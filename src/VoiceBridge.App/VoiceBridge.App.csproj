@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>WeChatVoiceBridge</AssemblyName>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../VoiceBridge.Core/VoiceBridge.Core.csproj" />
+    <ProjectReference Include="../VoiceBridge.WeChat/VoiceBridge.WeChat.csproj" />
+    <ProjectReference Include="../VoiceBridge.FishAudio/VoiceBridge.FishAudio.csproj" />
+    <ProjectReference Include="../VoiceBridge.Audio/VoiceBridge.Audio.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <Content Include="../../worker/*.py" Link="worker/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../worker/WECHATAUTO-LICENSE.txt" Link="worker/WECHATAUTO-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Resource Include="app.ico" />
+    <Resource Include="app-icon.png" />
+  </ItemGroup>
+</Project>

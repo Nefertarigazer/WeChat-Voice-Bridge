@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0-windows</TargetFramework><IsTestProject>true</IsTestProject></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" PrivateAssets="all" />
+    <ProjectReference Include="../../src/VoiceBridge.Core/VoiceBridge.Core.csproj" />
+    <ProjectReference Include="../../src/VoiceBridge.WeChat/VoiceBridge.WeChat.csproj" />
+    <ProjectReference Include="../../src/VoiceBridge.FishAudio/VoiceBridge.FishAudio.csproj" />
+    <ProjectReference Include="../../src/VoiceBridge.Audio/VoiceBridge.Audio.csproj" />
+    <Using Include="Xunit" />
+    <Content Include="../../worker/*.py" Link="worker/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="hang_worker.py;bad_worker.py;fault_worker.py;readings_worker.py" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="assets/tone.mp3" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

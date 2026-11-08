@@ -1,0 +1,969 @@
+<Window x:Class="VoiceBridge.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:local="clr-namespace:VoiceBridge.App"
+        Title="微信语音桥"
+        Width="940" Height="780" MinWidth="780" MinHeight="600" WindowStartupLocation="CenterScreen"
+        Background="{StaticResource PageBg}" FontFamily="Microsoft YaHei UI" FontSize="14"
+        TextOptions.TextFormattingMode="Display" UseLayoutRounding="True"
+        Icon="pack://application:,,,/app-icon.png"
+        WindowStyle="None" AllowsTransparency="False" ResizeMode="CanResize"
+        Closing="WindowClosing" StateChanged="WindowStateChanged">
+  <Window.Resources>
+    <DataTemplate x:Key="AnnouncementMenuTemplate">
+      <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+        <Button Grid.Column="1" Content="×" Tag="{Binding}" ToolTip="删除这个自定义提示词"
+                MinWidth="28" Padding="7,2" Margin="10,0,0,0"
+                PreviewMouseLeftButtonDown="DeleteAnnouncementFromMenuMouse" Click="DeleteAnnouncementFromMenu">
+          <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource PlainButton}">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers><MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                  <Condition Binding="{Binding IsCustomPreset}" Value="True"/>
+                  <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Value="True"/>
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Visibility" Value="Visible"/>
+              </MultiDataTrigger></Style.Triggers>
+            </Style>
+          </Button.Style>
+        </Button>
+      </Grid>
+    </DataTemplate>
+    <Style x:Key="ContactPreviewAction" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/><Setter Property="MinHeight" Value="32"/>
+      <Setter Property="Padding" Value="12,7"/><Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="Medium"/>
+      <Setter Property="Background" Value="#EAF6EF"/><Setter Property="Foreground" Value="#13754F"/>
+      <Setter Property="BorderBrush" Value="#D8EDE1"/>
+      <Setter Property="local:ContactActionIcon.Geometry" Value="M 3,1 L 11,6 L 3,11 Z"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+        <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="1" CornerRadius="11" Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5">
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Path x:Name="Glyph" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0"
+                  Data="{Binding Path=(local:ContactActionIcon.Geometry), RelativeSource={RelativeSource TemplatedParent}}"
+                  Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center"/>
+            <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}"
+                       FontWeight="{TemplateBinding FontWeight}" TextWrapping="NoWrap" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="Content" Value="取消试听"><Setter TargetName="Glyph" Property="Data" Value="M 2,2 L 10,2 L 10,10 L 2,10 Z"/></Trigger>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource Accent}"/></Trigger>
+          <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.97" ScaleY="0.97"/></Setter.Value></Setter></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.5"/></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+      <Style.Triggers><Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="#DDEFE4"/><Setter Property="BorderBrush" Value="#AED4BE"/>
+      </Trigger></Style.Triggers>
+    </Style>
+    <Style x:Key="ContactRemoveAction" TargetType="Button" BasedOn="{StaticResource ContactPreviewAction}">
+      <Setter Property="Margin" Value="8,0,0,0"/><Setter Property="Background" Value="#FBF1EE"/>
+      <Setter Property="Foreground" Value="#A85A48"/><Setter Property="BorderBrush" Value="#F1DDD5"/>
+      <Setter Property="local:ContactActionIcon.Geometry" Value="M 6,1 A 5,5 0 1 1 5.999,1 M 3.5,6 L 8.5,6"/>
+      <Setter Property="ToolTip" Value="移出朗读名单，不会删除微信联系人"/>
+      <Style.Triggers><Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="#F7E2DB"/><Setter Property="BorderBrush" Value="#E6BCAA"/>
+        <Setter Property="Foreground" Value="#934531"/>
+      </Trigger></Style.Triggers>
+    </Style>
+    <DataTemplate x:Key="LibraryGroupHeader">
+      <Border Background="#EDF7F1" BorderBrush="#DDEBE3" BorderThickness="0,0,0,1"
+              CornerRadius="13,13,0,0" Padding="16,11">
+        <TextBlock Text="{Binding Name}" Foreground="{StaticResource Accent}" FontWeight="SemiBold"/>
+      </Border>
+    </DataTemplate>
+    <Style x:Key="LibraryGroupContainer" TargetType="GroupItem">
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="GroupItem">
+        <Border Style="{StaticResource Group}" Margin="0,0,0,12">
+          <StackPanel><ContentPresenter/><ItemsPresenter/></StackPanel>
+        </Border>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <GroupStyle x:Key="VoiceProviderGroup">
+      <GroupStyle.HeaderTemplate><DataTemplate>
+        <Border Background="#EDF7F1" CornerRadius="6" Padding="8,5" Margin="4,7,4,3">
+          <TextBlock Text="{Binding Name}" FontSize="11" Foreground="#46745E" FontWeight="SemiBold"/>
+        </Border>
+      </DataTemplate></GroupStyle.HeaderTemplate>
+    </GroupStyle>
+    <Style x:Key="SidebarUpdateButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="Normal"/>
+      <Setter Property="MinHeight" Value="30"/>
+      <Setter Property="Padding" Value="10,4"/>
+      <Setter Property="Background" Value="#F7FBF9"/>
+      <Setter Property="BorderBrush" Value="#A8CABB"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Template">
+        <Setter.Value><ControlTemplate TargetType="Button">
+          <Border x:Name="Frame" CornerRadius="8" Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                  Padding="{TemplateBinding Padding}">
+            <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                       FontSize="{TemplateBinding FontSize}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{StaticResource AccentSoft}"/></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Background" Value="{StaticResource FillStrong}"/></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Frame" Property="Opacity" Value="0.5"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value>
+      </Setter>
+    </Style>
+    <!-- 自绘标题栏按钮。MaxGlyph / RestoreGlyph 两个名字后台按名字查找，请勿改名。 -->
+    <Style x:Key="CaptionMinButton" TargetType="Button">
+      <Setter Property="Width" Value="46"/>
+      <Setter Property="Height" Value="32"/>
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Root" Background="Transparent" CornerRadius="6">
+              <Path x:Name="Glyph" Width="10" Height="10" Stretch="Uniform" HorizontalAlignment="Center"
+                    VerticalAlignment="Center" Data="M 0,5 H 10" Stroke="#5C5C61" StrokeThickness="1"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#E3E9E6"/>
+                <Setter TargetName="Glyph" Property="Stroke" Value="#1D1D1F"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#D5DCD9"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="CaptionMaxButton" TargetType="Button">
+      <Setter Property="Width" Value="46"/>
+      <Setter Property="Height" Value="32"/>
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Root" Background="Transparent" CornerRadius="6">
+              <Grid>
+                <Path x:Name="MaxGlyph" Width="10" Height="10" Stretch="Uniform" HorizontalAlignment="Center"
+                      VerticalAlignment="Center" Data="M 0.5,0.5 H 9.5 V 9.5 H 0.5 Z" Stroke="#5C5C61"
+                      StrokeThickness="1" StrokeLineJoin="Round"/>
+                <Path x:Name="RestoreGlyph" Width="10" Height="10" Stretch="Uniform" HorizontalAlignment="Center"
+                      VerticalAlignment="Center" Data="M 0.5,4 H 7.5 V 10 H 0.5 Z M 3,4 V 0.5 H 9.5 V 6.5 H 7.5"
+                      Stroke="#5C5C61" StrokeThickness="1" StrokeLineJoin="Round" Visibility="Collapsed"/>
+              </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#E3E9E6"/>
+                <Setter TargetName="MaxGlyph" Property="Stroke" Value="#1D1D1F"/>
+                <Setter TargetName="RestoreGlyph" Property="Stroke" Value="#1D1D1F"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#D5DCD9"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="CaptionCloseButton" TargetType="Button">
+      <Setter Property="Width" Value="46"/>
+      <Setter Property="Height" Value="32"/>
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Root" Background="Transparent" CornerRadius="6">
+              <Path x:Name="Glyph" Width="10" Height="10" Stretch="Uniform" HorizontalAlignment="Center"
+                    VerticalAlignment="Center" Data="M 1,1 L 9,9 M 9,1 L 1,9" Stroke="#5C5C61"
+                    StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#C42B1C"/>
+                <Setter TargetName="Glyph" Property="Stroke" Value="White"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#A81E13"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- 词库的一行：原文 → 读作 ｜ 出现方式 ｜ 编辑 ｜ 删除。点“编辑”才能改内容。 -->
+    <DataTemplate x:Key="ReadingRow">
+      <Grid MinHeight="34">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="152"/><ColumnDefinition Width="66"/><ColumnDefinition Width="66"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 原文 -->
+        <Border Grid.Column="0" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
+                Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
+          <TextBlock Text="{Binding Match}" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis"/>
+        </Border>
+        <TextBox x:Name="MatchBox" Grid.Column="0" Text="{Binding Match, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
+                 AutomationProperties.Name="原文"/>
+        <TextBlock Grid.Column="1" Text="→" Foreground="{StaticResource Tertiary}" Margin="10,0"
+                   VerticalAlignment="Center"/>
+
+        <!-- 读作 -->
+        <Border Grid.Column="2" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
+                Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
+          <TextBlock Text="{Binding Say}" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis"/>
+        </Border>
+        <TextBox x:Name="SayBox" Grid.Column="2" Text="{Binding Say, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
+                 AutomationProperties.Name="读作"/>
+
+        <!-- 出现方式 -->
+        <Border Grid.Column="3" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="13,0,10,0"
+                Margin="12,0,10,0"
+                Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
+          <TextBlock Text="{Binding ScopeLabel}" VerticalAlignment="Center" TextWrapping="NoWrap"
+                     TextTrimming="CharacterEllipsis"/>
+        </Border>
+        <ComboBox x:Name="ScopeBox" Grid.Column="3" Margin="12,0,10,0" MinWidth="120" VerticalAlignment="Center"
+                  ItemsSource="{x:Static local:RuleScopes.Options}"
+                  SelectedValuePath="Value" DisplayMemberPath="Label"
+                  SelectedValue="{Binding Scope, Mode=TwoWay}"
+                  Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
+                  AutomationProperties.Name="出现方式"/>
+
+        <Button Grid.Column="4" Click="EditReadingClick" Tag="{Binding}" HorizontalAlignment="Right"
+                AutomationProperties.Name="编辑">
+          <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource PlainButton}">
+              <Setter Property="Content" Value="编辑"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                  <Setter Property="Content" Value="完成"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Button.Style>
+        </Button>
+        <Button Grid.Column="5" Content="删除" Style="{StaticResource PlainButton}" Click="DeleteReadingClick"
+                Tag="{Binding}" HorizontalAlignment="Right" AutomationProperties.Name="删除"/>
+      </Grid>
+    </DataTemplate>
+    <DataTemplate x:Key="AvatarTemplate">
+      <Grid Width="36" Height="36">
+        <Ellipse Fill="{StaticResource AccentSoft}"/>
+        <TextBlock Text="{Binding Initial}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource Accent}" FontSize="14"/>
+        <Ellipse><Ellipse.Fill><ImageBrush ImageSource="{Binding Avatar}" Stretch="UniformToFill"/></Ellipse.Fill></Ellipse>
+      </Grid>
+    </DataTemplate>
+    <DataTemplate x:Key="SpeechOptionsTemplate">
+      <StackPanel>
+          <Grid Visibility="{Binding HasModels, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <TextBlock Text="模型" Style="{StaticResource RowLabel}"/>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Models}" DisplayMemberPath="Label" SelectedValuePath="Id"
+                      SelectedValue="{Binding Model, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False"
+                      Visibility="{Binding CanSwitchModels, Converter={StaticResource BoolToVis}}"
+                      AutomationProperties.Name="此联系人使用模型" ToolTip="只影响此联系人，下一条开始合成时生效；付费模型按服务商规则计费"/>
+            <Border Grid.Column="1" Background="{StaticResource Fill}" CornerRadius="9" Padding="12,9"
+                    Visibility="{Binding CanSwitchModels, Converter={StaticResource InverseBoolToVis}}">
+              <TextBlock Text="{Binding ModelLabel}"/>
+            </Border>
+          </Grid>
+          <Grid Margin="0,10,0,0" Visibility="{Binding FishOptions, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <TextBlock Text="合成模式" Style="{StaticResource RowLabel}"/>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Latencies}" DisplayMemberPath="Label" SelectedValuePath="Id"
+                      SelectedValue="{Binding FishLatency, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False"
+                      AutomationProperties.Name="此联系人 Fish 合成模式" ToolTip="Fish 音质与延迟的取舍；实际效果受模型和网络影响。只对该联系人下一条合成生效"/>
+          </Grid>
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="SingleContactTemplate">
+      <Border Style="{StaticResource Group}" Padding="16,16">
+        <StackPanel>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AvatarTemplate}" Margin="0,0,12,0"/>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource ContactName}"/>
+              <TextBlock Text="{Binding Alias}" FontSize="11" Foreground="{StaticResource Secondary}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button x:Name="PreviewPeerButton" Content="试听" Style="{StaticResource ContactPreviewAction}" Tag="{Binding}" Click="PreviewContactClick"/>
+              <Button x:Name="RemovePeerButton" Content="移除" Style="{StaticResource ContactRemoveAction}" Tag="{Binding}" Click="RemoveContactClick"/>
+            </StackPanel>
+          </Grid>
+          <Grid Margin="0,18,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="音色" Style="{StaticResource RowLabel}"/>
+                <ComboBox Grid.Column="1" ItemsSource="{Binding Voices}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding VoiceProfileId, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="此联系人音色">
+                  <ComboBox.GroupStyle><StaticResource ResourceKey="VoiceProviderGroup"/></ComboBox.GroupStyle>
+                </ComboBox>
+              </Grid>
+              <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="提示词" Style="{StaticResource RowLabel}"/>
+                <ComboBox Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Announcements}" ItemTemplate="{StaticResource AnnouncementMenuTemplate}" SelectedValuePath="Id" SelectedValue="{Binding AnnouncementChoiceId, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="此联系人提示词"/>
+              </Grid>
+              <Button Content="编辑自定义…" Style="{StaticResource PlainButton}" HorizontalAlignment="Left" Margin="64,6,0,0" Visibility="{Binding CustomEnabled, Converter={StaticResource BoolToVis}}" Tag="{Binding}" Click="EditAnnouncementClick"/>
+            </StackPanel>
+            <ContentControl Grid.Column="2" Content="{Binding}" ContentTemplate="{StaticResource SpeechOptionsTemplate}" VerticalAlignment="Top"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="ContactCardTemplate">
+      <Border Padding="16,14">
+        <Border.Style>
+          <Style TargetType="Border" BasedOn="{StaticResource Group}">
+            <Style.Triggers><DataTrigger Binding="{Binding IsMultiPerson}" Value="False">
+              <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+              <Setter Property="CornerRadius" Value="0"/>
+            </DataTrigger></Style.Triggers>
+          </Style>
+        </Border.Style>
+        <StackPanel>
+          <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AvatarTemplate}" Margin="0,0,12,0"/>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource ContactName}"/>
+              <TextBlock Text="{Binding Alias}" FontSize="11" Foreground="{StaticResource Secondary}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+            <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+              <Button x:Name="PreviewPeerButton" Content="试听" Style="{StaticResource ContactPreviewAction}" Tag="{Binding}" Click="PreviewContactClick"/>
+              <Button x:Name="RemovePeerButton" Content="移除" Style="{StaticResource ContactRemoveAction}" Tag="{Binding}" Click="RemoveContactClick"/>
+            </StackPanel>
+          </Grid>
+          <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <TextBlock Text="音色" Style="{StaticResource RowLabel}"/>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Voices}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding VoiceProfileId, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="此联系人音色">
+              <ComboBox.GroupStyle><StaticResource ResourceKey="VoiceProviderGroup"/></ComboBox.GroupStyle>
+            </ComboBox>
+          </Grid>
+          <TextBlock Text="{Binding ConnectionName}" Foreground="{StaticResource Secondary}" FontSize="11" Margin="64,5,0,0"
+                     Visibility="{Binding ShowConnection, Converter={StaticResource BoolToVis}}"/>
+          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource SpeechOptionsTemplate}" Margin="0,10,0,0"
+                          Visibility="{Binding InlineSpeechOptions, Converter={StaticResource BoolToVis}}"/>
+          <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <TextBlock Text="提示词" Style="{StaticResource RowLabel}"/>
+            <ComboBox Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Announcements}" ItemTemplate="{StaticResource AnnouncementMenuTemplate}" SelectedValuePath="Id" IsSynchronizedWithCurrentItem="False"
+                      SelectedValue="{Binding AnnouncementChoiceId, Mode=TwoWay}" AutomationProperties.Name="此联系人提示词"/>
+          </Grid>
+          <Button Content="编辑自定义…" Style="{StaticResource PlainButton}" HorizontalAlignment="Left" Margin="64,6,0,0"
+                  Visibility="{Binding CustomEnabled, Converter={StaticResource BoolToVis}}" Tag="{Binding}" Click="EditAnnouncementClick"/>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </Window.Resources>
+
+  <shell:WindowChrome.WindowChrome>
+    <shell:WindowChrome CaptionHeight="0" CornerRadius="0" GlassFrameThickness="0"
+                         ResizeBorderThickness="6" UseAeroCaptionButtons="False"/>
+  </shell:WindowChrome.WindowChrome>
+
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="204"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <!-- ================= 左侧：品牌 + 导航 + 状态 ================= -->
+    <Border Grid.Column="0" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource Separator}"
+            BorderThickness="0,0,1,0">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="32"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="CaptionMouseDown"/>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="18,10,12,22">
+          <Image Source="pack://application:,,,/app-icon.png" Width="34" Height="34"
+                 RenderOptions.BitmapScalingMode="HighQuality"/>
+          <TextBlock Text="微信语音桥" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"
+                     Margin="10,0,0,0" TextWrapping="NoWrap"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Margin="12,0">
+          <RadioButton x:Name="NavHome" GroupName="Nav" IsChecked="True" Content="首页" Tag="&#xE8BD;"
+                       Style="{StaticResource NavItem}" Checked="NavigationChanged"/>
+          <RadioButton x:Name="NavVoice" GroupName="Nav" Content="音效" Tag="&#xE767;"
+                       Style="{StaticResource NavItem}" Checked="NavigationChanged"/>
+          <RadioButton x:Name="NavLexicon" GroupName="Nav" Content="词库" Tag="&#xE70F;"
+                       Style="{StaticResource NavItem}" Checked="NavigationChanged"/>
+          <RadioButton x:Name="NavAdvanced" GroupName="Nav" Content="高级" Tag="&#xE713;"
+                       Style="{StaticResource NavItem}" Checked="NavigationChanged"/>
+          <RadioButton x:Name="NavHelp" GroupName="Nav" Content="使用说明" Tag="&#xE897;"
+                       Style="{StaticResource NavItem}" Checked="NavigationChanged"/>
+        </StackPanel>
+
+        <!-- 状态胶囊放在侧边栏底部，切换到哪一页都能看到 -->
+        <Grid Grid.Row="3" Margin="18,0,14,20">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Border x:Name="StatusPill" Background="{StaticResource Fill}" CornerRadius="14"
+                  Padding="12,6" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal">
+              <Ellipse x:Name="StatusPillDot" Width="8" Height="8" Fill="{StaticResource Tertiary}"
+                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+              <TextBlock x:Name="StatusPillText" Text="未开始" FontSize="13" VerticalAlignment="Center"
+                         TextWrapping="NoWrap"/>
+            </StackPanel>
+          </Border>
+          <Button x:Name="SidebarUpdate" Grid.Column="1" Content="更新" Style="{StaticResource SidebarUpdateButton}"
+                  Margin="16,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                  Visibility="Collapsed" AutomationProperties.Name="可用的软件更新" Click="SidebarUpdateClick"/>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <!-- ================= 右侧：标题栏 + 页面 ================= -->
+    <Grid Grid.Column="1">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="32"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <Grid Grid.Row="0" Background="{StaticResource PageBg}" MouseLeftButtonDown="CaptionMouseDown">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+          <Button x:Name="MinimizeButton" Style="{StaticResource CaptionMinButton}"
+                  AutomationProperties.Name="最小化" Click="MinimizeClick"/>
+          <Button x:Name="MaximizeButton" Style="{StaticResource CaptionMaxButton}"
+                  AutomationProperties.Name="最大化" Click="MaximizeClick"/>
+          <Button x:Name="CloseButton" Style="{StaticResource CaptionCloseButton}"
+                  AutomationProperties.Name="关闭" Click="CloseClick"/>
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="1">
+        <ScrollViewer x:Name="ContentScroller" VerticalScrollBarVisibility="Hidden" Padding="34,4,34,0">
+          <ScrollViewer.Template>
+            <ControlTemplate TargetType="ScrollViewer">
+              <Grid Background="{TemplateBinding Background}">
+                <ScrollContentPresenter Margin="{TemplateBinding Padding}"
+                                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+              </Grid>
+            </ControlTemplate>
+          </ScrollViewer.Template>
+
+          <!-- 各页面由左侧导航的选中状态决定是否显示 -->
+          <Grid MaxWidth="660">
+
+            <!-- ========================= 首页 ========================= -->
+            <StackPanel Margin="0,0,0,48"
+                        Visibility="{Binding IsChecked, ElementName=NavHome, Converter={StaticResource BoolToVis}}">
+              <TextBlock Text="首页" Style="{StaticResource Title}" Margin="0,0,0,22"/>
+
+              <Border Style="{StaticResource Card}">
+                <Grid MinHeight="52">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                    <TextBlock x:Name="StatusTitle" Text="未开始" FontSize="22" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="StatusDetail" Style="{StaticResource Subtitle}" Margin="0,6,0,0"
+                               TextWrapping="Wrap"/>
+                  </StackPanel>
+                  <Button x:Name="StartButton" Grid.Column="1" Content="开始" Style="{StaticResource PrimaryButton}"
+                          VerticalAlignment="Center" Click="StartClick"/>
+                </Grid>
+              </Border>
+
+              <TextBlock x:Name="NoticeText" Margin="14,12,14,0" FontSize="13" Foreground="{StaticResource Caution}"
+                         Visibility="Collapsed"/>
+
+              <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition x:Name="SingleSpeechGap" Width="0"/><ColumnDefinition x:Name="SingleSpeechColumn" Width="0"/></Grid.ColumnDefinitions>
+              <Grid x:Name="ContactsHeader" Margin="14,24,0,8">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="ContactsCaption" Text="朗读对象 · 0/8" Style="{StaticResource Caption}" Margin="0" VerticalAlignment="Center"/>
+                <Button x:Name="AddContactButton" Grid.Column="1" Content="＋ 添加联系人" Style="{StaticResource AccentButton}" Click="AddContactClick"/>
+              </Grid>
+              <TextBlock Grid.Row="1" Grid.ColumnSpan="3" x:Name="PrefixHint" Style="{StaticResource Footnote}" Margin="14,0,14,12"/>
+              <ContentControl x:Name="SingleContactSurface" Grid.Row="2" Grid.ColumnSpan="3" ContentTemplate="{StaticResource SingleContactTemplate}" Visibility="Collapsed" HorizontalContentAlignment="Stretch"/>
+              <ItemsControl Grid.Row="2" x:Name="ContactsList" ItemTemplate="{StaticResource ContactCardTemplate}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:ContactCardsPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              </ItemsControl>
+
+              </Grid>
+              <Border x:Name="ContactPickerGroup" Style="{StaticResource Group}"><StackPanel>
+                  <Border x:Name="SelectedCard" Visibility="Collapsed" Padding="16,12">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <Grid Width="40" Height="40" Margin="0,0,12,0">
+                        <Ellipse Fill="{StaticResource AccentSoft}"/>
+                        <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="18"
+                                   Foreground="{StaticResource Accent}" TextWrapping="NoWrap"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                      </Grid>
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="SelectedName" Text="联系人" FontSize="16" TextWrapping="NoWrap"
+                                   TextTrimming="CharacterEllipsis" Style="{StaticResource ContactName}"/>
+                        <TextBlock x:Name="SelectedIdText" FontSize="12" Foreground="{StaticResource Secondary}"
+                                   Margin="0,2,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                      </StackPanel>
+                      <Button x:Name="ChangeButton" Grid.Column="2" Content="更换" Style="{StaticResource AccentButton}"
+                              VerticalAlignment="Center" Click="ChangeContactClick"/>
+                    </Grid>
+                  </Border>
+
+                  <Grid x:Name="SearchPanel" Margin="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBox x:Name="ContactSearch" Padding="36,7,12,7" Tag="昵称、备注或微信号"
+                             AutomationProperties.Name="搜索联系人"
+                             TextChanged="ContactSearchChanged" KeyDown="ContactSearchKeyDown"/>
+                    <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                               Foreground="{StaticResource Tertiary}" Margin="14,0,0,0" TextWrapping="NoWrap"
+                               HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                    <Button x:Name="CancelContactButton" Grid.Column="1" Content="取消" Style="{StaticResource PlainButton}" Margin="8,0,0,0" Click="CancelContactClick"/>
+                  </Grid>
+
+                  <Border x:Name="ResultsPanel" Visibility="Collapsed" BorderBrush="{StaticResource Separator}"
+                          BorderThickness="0,1,0,0" Padding="0,4" ClipToBounds="True">
+                    <ListBox x:Name="ContactResults" MaxHeight="240" SelectionChanged="ContactResultsSelectionChanged">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AvatarTemplate}" Margin="0,0,10,0"/>
+                            <StackPanel Grid.Column="1">
+                              <TextBlock Text="{Binding Name}" FontSize="14" TextWrapping="NoWrap"
+                                         TextTrimming="CharacterEllipsis" Style="{StaticResource ContactName}"/>
+                              <TextBlock Text="{Binding Alias}" FontSize="11" Foreground="{StaticResource Secondary}"
+                                         Margin="0,2,0,0" TextWrapping="NoWrap"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="选择" Foreground="{StaticResource Accent}" FontSize="13"
+                                       VerticalAlignment="Center"/>
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Border>
+
+                  <StackPanel x:Name="HistoryPanel" Margin="16,0,16,12">
+                    <Grid Margin="0,8,0,4">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="最近联系人" FontSize="12" Foreground="{StaticResource Secondary}" VerticalAlignment="Center"/>
+                      <Button x:Name="ClearHistoryButton" Grid.Column="1" Content="清空历史" Style="{StaticResource PlainButton}" Click="ClearHistoryClick"/>
+                    </Grid>
+                    <ItemsControl x:Name="RecentContactsList"><ItemsControl.ItemTemplate><DataTemplate>
+                      <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AvatarTemplate}" HorizontalAlignment="Left"/>
+                        <Button Grid.Column="1" x:Name="UseHistoryButton" HorizontalContentAlignment="Left" Content="{Binding Name}" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="UseRecentContactClick"/>
+                        <Button Grid.Column="2" Content="×" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="DeleteRecentContactClick" ToolTip="删除这条历史"/>
+                      </Grid>
+                    </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                  </StackPanel>
+                  <Border BorderBrush="{StaticResource Separator}" BorderThickness="0,1,0,0" Padding="16,10">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock x:Name="ContactHint" Style="{StaticResource Hint}" Margin="0,0,14,0" VerticalAlignment="Center"/>
+                      <Button x:Name="PreviewButton" Grid.Column="1" Content="试听最后一条消息" Style="{StaticResource AccentButton}" Click="PreviewClick"/>
+                    </Grid>
+                  </Border>
+                </StackPanel></Border>
+
+
+
+              <Grid Margin="0,24,0,8">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="朗读记录" Style="{StaticResource Caption}" Margin="14,0,0,0"
+                           VerticalAlignment="Center"/>
+                <Button x:Name="SkipButton" Grid.Column="1" Content="停止当前语音" Style="{StaticResource PlainButton}"
+                        Click="SkipClick"/>
+                <Button x:Name="ClearButton" Grid.Column="2" Content="清空" Style="{StaticResource PlainButton}"
+                        Click="ClearClick"/>
+              </Grid>
+              <Border Style="{StaticResource Group}">
+                <Grid>
+                  <Border x:Name="ResultsBox" Padding="4">
+                    <ListBox x:Name="Results" Height="190" ItemContainerStyle="{StaticResource LogItem}">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding}" FontSize="13" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Border>
+                  <TextBlock x:Name="ResultsEmpty" Style="{StaticResource Hint}" Margin="28,34" TextAlignment="Center"
+                             Text="还没有朗读记录。对方发来新消息后，这里会显示朗读过的内容。"
+                             Visibility="Collapsed"/>
+                </Grid>
+              </Border>
+            </StackPanel>
+
+            <!-- ========================= 音效 ========================= -->
+            <StackPanel Margin="0,0,0,48"
+                        Visibility="{Binding IsChecked, ElementName=NavVoice, Converter={StaticResource BoolToVis}}">
+              <TextBlock Text="音效" Style="{StaticResource Title}"/>
+              <TextBlock Text="播放" Style="{StaticResource Caption}"/>
+              <Border Style="{StaticResource Group}">
+                <StackPanel>
+                  <Border Style="{StaticResource Row}" Visibility="Collapsed">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="音色" Style="{StaticResource RowLabel}"/>
+                      <Grid Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="VoicePresetBox" AutomationProperties.Name="音色"
+                                  SelectionChanged="VoicePresetChanged"/>
+                        <Button x:Name="AddVoiceButton" Grid.Column="1" Content="添加" Style="{StaticResource PlainButton}"
+                                Margin="8,0,0,0" VerticalAlignment="Center" Click="AddVoiceClick"/>
+                        <Button x:Name="DeleteVoiceButton" Grid.Column="2" Content="删除" Style="{StaticResource PlainButton}"
+                                Margin="2,0,0,0" VerticalAlignment="Center" Click="DeleteVoiceClick"/>
+                      </Grid>
+                    </Grid>
+                  </Border>
+                  <Border Style="{StaticResource Hairline}"/>
+                  <Border Style="{StaticResource Row}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="输出设备" Style="{StaticResource RowLabel}"/>
+                      <ComboBox x:Name="DeviceBox" Grid.Column="1" SelectedValuePath="Id"
+                                ItemTemplate="{StaticResource DeviceNameTemplate}"
+                                AutomationProperties.Name="音频输出" SelectionChanged="DeviceChanged"/>
+                    </Grid>
+                  </Border>
+                  <Border Style="{StaticResource Hairline}"/>
+                  <Border Style="{StaticResource Row}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="音量" Style="{StaticResource RowLabel}"/>
+                      <Grid Grid.Column="1">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/></Grid.ColumnDefinitions>
+                        <local:DragSlider x:Name="VolumeBox" Style="{StaticResource {x:Type Slider}}"
+                                Minimum="0" Maximum="1" Value="0.7"
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name="音量" ValueChanged="VolumeChanged"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=VolumeBox, StringFormat={}{0:P0}}"
+                                   Foreground="{StaticResource Secondary}" TextAlignment="Right"
+                                   VerticalAlignment="Center" TextWrapping="NoWrap"/>
+                      </Grid>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+
+
+              <TextBlock Text="我的音色" Style="{StaticResource Caption}"/>
+
+                <ItemsControl x:Name="VoiceLibraryList">
+                  <ItemsControl.GroupStyle><GroupStyle HeaderTemplate="{StaticResource LibraryGroupHeader}" ContainerStyle="{StaticResource LibraryGroupContainer}"/></ItemsControl.GroupStyle>
+                  <ItemsControl.ItemTemplate><DataTemplate>
+                  <Border Padding="16,12" BorderBrush="{StaticResource Separator}" BorderThickness="0,0,0,1">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="编辑" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="EditLibraryVoiceClick"/>
+                        <Button Content="删除" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="DeleteLibraryVoiceClick"/>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                <Button Content="＋ 添加音色" Style="{StaticResource AccentButton}" HorizontalAlignment="Center" Margin="0,12" Click="AddLibraryVoiceClick"/>
+              <TextBlock x:Name="VoiceLibraryNotice" Foreground="{StaticResource Caution}" Style="{StaticResource Footnote}" Margin="14,8,14,0" AutomationProperties.LiveSetting="Polite"/>
+              <StackPanel Visibility="Collapsed">
+              <TextBlock Text="默认 Fish 服务" Style="{StaticResource Caption}"/>
+              <Border Style="{StaticResource Group}">
+                <Border Style="{StaticResource Row}">
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="合成模型" Style="{StaticResource RowLabel}"/>
+                    <Border Grid.Column="1" Background="{StaticResource Fill}" CornerRadius="9" Padding="2"
+                            HorizontalAlignment="Left">
+                      <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="FreeModel" GroupName="FishModel" Content="免费" IsChecked="True"
+                                     Style="{StaticResource Segment}" Checked="ModelChanged"/>
+                        <RadioButton x:Name="PaidModel" GroupName="FishModel" Content="Drama 3"
+                                     Style="{StaticResource Segment}" Checked="ModelChanged"/>
+                      </StackPanel>
+                    </Border>
+                  </Grid>
+                </Border>
+              </Border>
+              <TextBlock x:Name="ModelHint" Style="{StaticResource Footnote}" Text="免费模型适合日常使用。"/>
+              </StackPanel>
+            </StackPanel>
+
+            <!-- ========================= 词库 ========================= -->
+            <StackPanel x:Name="ReadingsPanel" Margin="0,0,0,48"
+                        Visibility="{Binding IsChecked, ElementName=NavLexicon, Converter={StaticResource BoolToVis}}">
+              <TextBlock Text="词库" Style="{StaticResource Title}" Margin="0,0,0,20"/>
+              <TextBlock x:Name="ReadingNotice" Style="{StaticResource Footnote}" Foreground="{StaticResource Caution}"
+                         Margin="2,0,0,12" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite"/>
+
+              <Border Style="{StaticResource Group}">
+                <StackPanel>
+                  <ListBox x:Name="ReadingList" ItemTemplate="{StaticResource ReadingRow}" Padding="0,4"/>
+                  <Border Style="{StaticResource Hairline}" Margin="17,0,17,0"
+                          Visibility="{Binding HasItems, ElementName=ReadingList, Converter={StaticResource BoolToVis}}"/>
+                  <Button x:Name="AddReadingButton" Content="＋" Style="{StaticResource AddButton}"
+                          HorizontalAlignment="Center" Margin="0,12,0,14"
+                          Click="AddReadingClick" AutomationProperties.Name="添加一行" ToolTip="添加一行"/>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- ========================= 高级 ========================= -->
+            <StackPanel x:Name="SettingsPanel" Margin="0,0,0,48"
+                        Visibility="{Binding IsChecked, ElementName=NavAdvanced, Converter={StaticResource BoolToVis}}">
+              <TextBlock Text="高级" Style="{StaticResource Title}"/>
+
+              <TextBlock Text="软件更新" Style="{StaticResource Caption}"/>
+              <Border Style="{StaticResource Group}">
+                <StackPanel>
+                  <Border Style="{StaticResource Row}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock x:Name="UpdateVersion" Style="{StaticResource RowLabel}"/>
+                      <Button x:Name="UpdateAction" Grid.Column="1" Content="检查更新"
+                              Style="{StaticResource SecondaryButton}" Click="UpdateClick"/>
+                    </Grid>
+                  </Border>
+                  <Border x:Name="UpdatePackage" Style="{StaticResource Row}" Visibility="Collapsed">
+                    <StackPanel>
+                      <TextBlock x:Name="UpdateSize" Style="{StaticResource RowLabel}"/>
+                      <ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <TextBlock x:Name="UpdateNotes" Style="{StaticResource Footnote}" Margin="0,6,0,0"/>
+                      </ScrollViewer>
+                    </StackPanel>
+                  </Border>
+                  <Border x:Name="UpdateProgressRow" Style="{StaticResource Row}" Visibility="Collapsed">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <ProgressBar x:Name="UpdateProgress" Height="5" Maximum="100" VerticalAlignment="Center"
+                                   Foreground="{StaticResource Accent}" Background="{StaticResource Fill}"
+                                   AutomationProperties.Name="更新下载进度"/>
+                      <TextBlock x:Name="UpdatePercent" Grid.Column="1" HorizontalAlignment="Center"
+                                 Style="{StaticResource RowLabel}"/>
+                      <Button x:Name="UpdateCancelButton" Grid.Column="2" Content="取消"
+                              Style="{StaticResource PlainButton}" Click="CancelUpdateClick"/>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+              <TextBlock x:Name="UpdateStatus" Style="{StaticResource Footnote}" Margin="17,10,17,0"
+                         AutomationProperties.LiveSetting="Polite"/>
+              <Button x:Name="UpdateKeepWorking" Content="暂不重启" Style="{StaticResource PlainButton}"
+                      HorizontalAlignment="Left" Visibility="Collapsed" Click="KeepWorkingClick"/>
+
+              <Border Background="#EDF3F0" BorderBrush="#DFE8E2" BorderThickness="1" CornerRadius="18" Padding="18" Margin="0,24,0,0">
+                <StackPanel>
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="语音服务" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Items.Count, ElementName=ProvidersList, StringFormat={}{0} 项配置}" FontSize="12" Foreground="{StaticResource Secondary}" VerticalAlignment="Center"/>
+                  </Grid>
+              <TextBlock Text="每款音色使用所属服务，可同时配置多个 API。" Style="{StaticResource Footnote}" Margin="0,8,0,16"/>
+                <ItemsControl x:Name="ProvidersList">
+                  <ItemsControl.GroupStyle><GroupStyle HeaderTemplate="{StaticResource LibraryGroupHeader}" ContainerStyle="{StaticResource LibraryGroupContainer}"/></ItemsControl.GroupStyle>
+                  <ItemsControl.ItemTemplate><DataTemplate>
+                  <Border Padding="16,12" BorderBrush="{StaticResource Separator}" BorderThickness="0,0,0,1">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding State}" FontSize="11" Foreground="{StaticResource Secondary}" Margin="0,4,0,0"/>
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="编辑" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="EditProviderClick"/>
+                        <Button Content="删除" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="DeleteProviderClick"/>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                <Button Content="＋ 添加 API 服务" Style="{StaticResource AccentButton}" HorizontalAlignment="Center" Margin="0,12" Click="AddProviderClick"/>
+              <TextBlock x:Name="ApiNotice" Foreground="{StaticResource Caution}" Style="{StaticResource Footnote}" Margin="14,8,14,0" AutomationProperties.LiveSetting="Polite"/>
+                </StackPanel>
+              </Border>
+              <StackPanel Visibility="Collapsed">
+              <TextBlock Text="凭据库" Style="{StaticResource Caption}"/>
+              <Border Style="{StaticResource Group}">
+                <Border Style="{StaticResource Row}">
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="默认 Fish 密钥" Style="{StaticResource RowLabel}"/>
+                    <Grid Grid.Column="1">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <ComboBox x:Name="KeyChoiceBox" AutomationProperties.Name="Fish API Key"
+                                SelectionChanged="KeyChoiceChanged"/>
+                      <Button x:Name="AddKeyButton" Grid.Column="1" Content="添加/替换" Style="{StaticResource PlainButton}"
+                              Margin="8,0,0,0" VerticalAlignment="Center" Click="AddKeyClick"/>
+                      <Button x:Name="DeleteKeyButton" Grid.Column="2" Content="删除" Style="{StaticResource PlainButton}"
+                              Margin="2,0,0,0" VerticalAlignment="Center" Click="DeleteKeyClick"/>
+                    </Grid>
+                  </Grid>
+                </Border>
+              </Border>
+              <TextBlock x:Name="KeyNotice" Style="{StaticResource Footnote}" Margin="2,6,0,0"
+                         AutomationProperties.LiveSetting="Polite"/>
+              </StackPanel>
+
+              <TextBlock Text="朗读" Style="{StaticResource Caption}"/>
+              <Border x:Name="ReadingSettingsGroup" Style="{StaticResource Group}">
+                <StackPanel>
+                  <Border Style="{StaticResource Row}" Visibility="Collapsed">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="合成延迟" Style="{StaticResource RowLabel}"/>
+                      <ComboBox x:Name="LatencyBox" Grid.Column="1" HorizontalAlignment="Left" MinWidth="160"
+                                AutomationProperties.Name="合成延迟"/>
+                    </Grid>
+                  </Border>
+                  <Border Style="{StaticResource Hairline}" Visibility="Collapsed"/>
+                  <Border Style="{StaticResource Row}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="在朗读记录里显示对方发来的原文" Style="{StaticResource RowLabel}"/>
+                      <CheckBox x:Name="PreviewBox" Grid.Column="1" Style="{StaticResource Switch}"
+                                AutomationProperties.Name="显示对方发来的原文"/>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+
+              <TextBlock Text="试听" Style="{StaticResource Caption}"/>
+              <Border x:Name="TestSettingsGroup" Style="{StaticResource Group}">
+                <StackPanel>
+                  <Border Style="{StaticResource Row}"><ComboBox x:Name="TestVoiceBox" DisplayMemberPath="Name" SelectedValuePath="Id" IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="试听音色" SelectionChanged="TestVoiceChanged">
+                    <ComboBox.GroupStyle><StaticResource ResourceKey="VoiceProviderGroup"/></ComboBox.GroupStyle>
+                  </ComboBox></Border>
+                  <Border Style="{StaticResource Row}">
+                    <TextBox x:Name="TestText" Text="你好，这是微信语音桥的试音。" MaxLength="1000" Tag="输入想试听的文字"
+                             VerticalAlignment="Center" AutomationProperties.Name="试听文字"/>
+                  </Border>
+                  <Border Style="{StaticResource Hairline}"/>
+                  <Border Style="{StaticResource Row}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock Style="{StaticResource RowLabel}" Foreground="{StaticResource Secondary}"/>
+                      <Button Grid.Column="1" Content="试听这段文字" Style="{StaticResource AccentButton}"
+                              Click="TestFishClick"/>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+
+              <TextBlock Text="微信" Style="{StaticResource Caption}"/>
+              <Border x:Name="WeChatSettingsGroup" Style="{StaticResource Group}">
+                <StackPanel>
+                  <Border Style="{StaticResource Row}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="数据目录" Style="{StaticResource RowLabel}"/>
+                      <Grid Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="RootBox" Tag="自动查找" AutomationProperties.Name="微信数据目录"/>
+                        <Button Grid.Column="1" Content="浏览…" Style="{StaticResource SecondaryButton}"
+                                Margin="8,0,0,0" VerticalAlignment="Center" Click="BrowseRootClick"/>
+                      </Grid>
+                    </Grid>
+                  </Border>
+                  <Border x:Name="AccountRow" Style="{StaticResource Hairline}"/>
+                  <Border x:Name="AccountRowContent" Style="{StaticResource Row}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="账号目录" Style="{StaticResource RowLabel}"/>
+                      <ComboBox x:Name="AccountBox" Grid.Column="1" MinWidth="220"
+                                DisplayMemberPath="Label" SelectedValuePath="Value"
+                                AutomationProperties.Name="微信账号目录" SelectionChanged="AccountChanged"/>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+
+              <TextBlock Text="缓存" Style="{StaticResource Caption}"/>
+              <Border x:Name="CacheSettingsGroup" Style="{StaticResource Group}">
+                <StackPanel>
+                  <Border Style="{StaticResource Row}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="大小上限" Style="{StaticResource RowLabel}"/>
+                      <ComboBox x:Name="CacheLimitBox" Grid.Column="1" HorizontalAlignment="Left" MinWidth="160"
+                                ItemsSource="{x:Static local:CacheLimits.Options}"
+                                SelectedValuePath="Bytes" DisplayMemberPath="Label"
+                                AutomationProperties.Name="缓存大小上限"/>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+              <TextBlock x:Name="CacheInfo" Style="{StaticResource Footnote}" Margin="2,10,0,0"/>
+
+              <StackPanel Orientation="Horizontal" Margin="0,26,0,0">
+                <Button x:Name="SaveButton" Content="保存设置" Style="{StaticResource PrimaryButton}" Click="SaveClick"/>
+                <Button x:Name="CleanButton" Content="清理缓存" Style="{StaticResource PlainButton}" Margin="10,0,0,0"
+                        Click="CleanClick"/>
+              </StackPanel>
+              <TextBlock x:Name="SettingsNotice" Style="{StaticResource Footnote}" Margin="2,10,0,0"/>
+            </StackPanel>
+
+            <local:UserGuide Margin="0,0,0,48" Visibility="{Binding IsChecked, ElementName=NavHelp, Converter={StaticResource BoolToVis}}"/>
+          </Grid>
+        </ScrollViewer>
+
+        <!-- 页面下沿渐隐，避免卡片被硬生生切断 -->
+        <Border Height="36" VerticalAlignment="Bottom" IsHitTestVisible="False">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+              <GradientStop Color="{StaticResource PageBgClearColor}" Offset="0"/>
+              <GradientStop Color="{StaticResource PageBgColor}" Offset="1"/>
+            </LinearGradientBrush>
+          </Border.Background>
+        </Border>
+
+        <!-- 页面离开顶部时，上沿才渐隐 -->
+        <Border x:Name="TopFade" Height="22" VerticalAlignment="Top" IsHitTestVisible="False" Opacity="0">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+              <GradientStop Color="{StaticResource PageBgColor}" Offset="0"/>
+              <GradientStop Color="{StaticResource PageBgClearColor}" Offset="1"/>
+            </LinearGradientBrush>
+          </Border.Background>
+        </Border>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>

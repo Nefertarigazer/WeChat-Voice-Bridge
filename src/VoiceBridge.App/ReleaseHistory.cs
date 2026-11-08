@@ -1,0 +1,85 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace VoiceBridge.App;
+
+internal sealed record ReleaseEntry(string Version, string Title, IReadOnlyList<string> Changes)
+{
+    public string Heading => $"v{Version} · {Title}";
+}
+
+/// <summary>The popup and the user guide share the same embedded release notes.</summary>
+internal static class ReleaseHistory
+{
+    public static IReadOnlyList<ReleaseEntry> Entries { get; } = Array.AsReadOnly(new[]
+    {
+        new ReleaseEntry("1.4.2", "更新安装进度与失败反馈", new[]
+        {
+            "更新准备阶段显示校验与解压进度，主程序退出后由独立更新窗口显示备份、安装及新版启动确认。",
+            "更新窗口增加耗时和任务栏进度；失败时保留原因、更新文件与备份，提供打开更新目录入口。",
+            "新版未确认启动时不会直接显示更新成功，失败恢复旧版后保留暂存文件以便重试。"
+        }),
+        new ReleaseEntry("1.4.1", "连续朗读、联系人索引与界面优化", new[]
+        {
+            "播放当前段时有界预合成下一段，减少多条消息之间等待合成的空档，仍按顺序播放。",
+            "长文优先按句分段，其次在空格或换行处分割，最后按长度安全切分，单条消息上限提高到两万字。",
+            "停止当前语音会跳过该消息余下段落，清空队列会丢弃预合成内容，结束监听取消整个处理链。",
+            "调整提示词下拉框选择同步，修正更新状态文字的边距。",
+            "确认微信账号后自动建立联系人搜索索引，按数据目录和账号加密隔离并长期保存；普通缓存清理不删除索引，联系人变化时更新。",
+            "单人使用合并的左右布局，多人使用双列卡片；统一试听和移除按钮的圆角与图标样式。",
+            "单人与多人之间切换时调整默认提示词，保留自定义选择；最近联系人为空时隐藏历史区，仅有一条时隐藏清空按钮。",
+            "API Key 统一在高级语音服务中管理，首页移除重复的设置入口。"
+        }),
+        new ReleaseEntry("1.4.0", "多人朗读与音色库", new[]
+        {
+            "同一微信账号可选择多位一对一联系人，为每个人单独绑定音色；所有消息共用一个播放队列，依次朗读。",
+            "音色库按语音服务区分归属，支持配置多项服务；兼容接口可连接相应的云服务和本地语音服务。",
+            "提示词支持无提示词、备注名说（句首）、备注名留言（句尾）以及可保存复用的自定义内容。",
+            "增加最近使用的联系人和搜索记录，搜索历史只登记确认过的词；恢复已保存头像，联系人搜索使用内存索引。",
+            "音色按服务小标题分类，添加 API 与音色时分步填写对应字段；双击应用会唤起已有窗口。",
+            "语音服务、密钥、音色、开头话和词库可在监听中更新，下一条开始合成时生效；音量即时生效，输出设备从下一段生效。",
+            "补充详细使用说明和完整版本日志；尚未完成首次配置时优先打开使用说明。",
+            "更新说明窗口使用独立底色、边框和阴影，更容易与主窗口区分。",
+            "更新下载支持保留进度和续传，完整包重开软件后仍可复用；安装前等待更新助手确认启动，失败时显示原因并保留下载包。"
+        }),
+        new ReleaseEntry("1.3.3", "更新说明窗口外观", new[]
+        {
+            "更新说明窗口顶部与正文统一底色，去掉左上角图标和标题，仅保留右侧关闭按钮。",
+            "保留顶部拖动、系统关闭以及每个版本首次打开时展示一次的行为。"
+        }),
+        new ReleaseEntry("1.3.2", "升级后查看更新说明", new[]
+        {
+            "已有配置的用户升级后，首次打开会看到本版更新说明，关闭后登记已读。",
+            "同一版本再次打开不重复显示；首次安装建立版本记录，后续升级时显示说明。"
+        }),
+        new ReleaseEntry("1.3.1", "交互和朗读改进", new[]
+        {
+            "词库和 Fish API Key 支持监听中更新，下一条开始合成时生效。",
+            "引用回复先朗读新消息，再朗读「来自引用」和引用原文。",
+            "修复输入框光标与音量点击后拖动，优化页面滚动、受限控件的提示及词库布局。",
+            "新增使用说明入口，完善安装向导图标并移除额外的安装完成提示。"
+        }),
+        new ReleaseEntry("1.3.0", "软件内更新", new[]
+        {
+            "在「高级 → 软件更新」手动检查、下载和重启安装新版。发现新版时，左下角显示更新入口。",
+            "下载后核对文件大小和 SHA-256；替换前备份程序文件，安装失败时尝试回滚。",
+            "提供带运行时的 Windows x64 ZIP 和单文件 EXE 安装包。"
+        }),
+        new ReleaseEntry("1.2.0", "手动开启的微信朗读", new[]
+        {
+            "支持手动开始和结束一次微信会话朗读，默认不补读开始前的历史消息。",
+            "将选定联系人的新消息交给 Fish Audio 合成，通过 Windows 音频设备顺序播放。",
+            "包含模拟消息、会话取消、消息去重、文件变化通知和轮询兜底。"
+        })
+    });
+
+    public static ReleaseEntry? Find(string version) => Entries.FirstOrDefault(entry => entry.Version == version);
+
+    public static IReadOnlyList<ReleaseEntry> Through(string version)
+    {
+        if (!System.Version.TryParse(version.Split('+')[0], out var current))
+            return Entries;
+        return Entries.Where(entry => System.Version.Parse(entry.Version) <= current).ToArray();
+    }
+}

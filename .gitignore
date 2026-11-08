@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/__pycache__/
+.venv/
+artifacts/
+TestResults/
+*.trx
+*.user
+*.env
+*.sqlite*

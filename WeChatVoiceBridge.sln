@@ -1,0 +1,64 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{192478A7-4082-45DE-934B-1C233313D62A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceBridge.WeChat", "src\VoiceBridge.WeChat\VoiceBridge.WeChat.csproj", "{A3C8BA95-FB9D-4FCA-9881-ABAD8CA11EF8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceBridge.FishAudio", "src\VoiceBridge.FishAudio\VoiceBridge.FishAudio.csproj", "{7D3E420D-B70E-424E-A209-63B2A25B830F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceBridge.Audio", "src\VoiceBridge.Audio\VoiceBridge.Audio.csproj", "{954660FD-1D6B-4014-9C38-E540D5A3D983}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceBridge.Core", "src\VoiceBridge.Core\VoiceBridge.Core.csproj", "{9AD6821F-9915-48AA-A503-9DB73FDF0E54}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceBridge.App", "src\VoiceBridge.App\VoiceBridge.App.csproj", "{4AC45AB2-796E-4A7A-ACDF-14C99251B293}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{DA72B957-0650-435D-BF9A-24F62813276C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoiceBridge.Tests", "tests\VoiceBridge.Tests\VoiceBridge.Tests.csproj", "{61F70051-E891-4CAD-8D2F-C04B900A75CD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A3C8BA95-FB9D-4FCA-9881-ABAD8CA11EF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3C8BA95-FB9D-4FCA-9881-ABAD8CA11EF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3C8BA95-FB9D-4FCA-9881-ABAD8CA11EF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3C8BA95-FB9D-4FCA-9881-ABAD8CA11EF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D3E420D-B70E-424E-A209-63B2A25B830F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D3E420D-B70E-424E-A209-63B2A25B830F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D3E420D-B70E-424E-A209-63B2A25B830F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D3E420D-B70E-424E-A209-63B2A25B830F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{954660FD-1D6B-4014-9C38-E540D5A3D983}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{954660FD-1D6B-4014-9C38-E540D5A3D983}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{954660FD-1D6B-4014-9C38-E540D5A3D983}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{954660FD-1D6B-4014-9C38-E540D5A3D983}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9AD6821F-9915-48AA-A503-9DB73FDF0E54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9AD6821F-9915-48AA-A503-9DB73FDF0E54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9AD6821F-9915-48AA-A503-9DB73FDF0E54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9AD6821F-9915-48AA-A503-9DB73FDF0E54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4AC45AB2-796E-4A7A-ACDF-14C99251B293}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AC45AB2-796E-4A7A-ACDF-14C99251B293}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AC45AB2-796E-4A7A-ACDF-14C99251B293}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AC45AB2-796E-4A7A-ACDF-14C99251B293}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61F70051-E891-4CAD-8D2F-C04B900A75CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61F70051-E891-4CAD-8D2F-C04B900A75CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61F70051-E891-4CAD-8D2F-C04B900A75CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61F70051-E891-4CAD-8D2F-C04B900A75CD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A3C8BA95-FB9D-4FCA-9881-ABAD8CA11EF8} = {192478A7-4082-45DE-934B-1C233313D62A}
+		{7D3E420D-B70E-424E-A209-63B2A25B830F} = {192478A7-4082-45DE-934B-1C233313D62A}
+		{954660FD-1D6B-4014-9C38-E540D5A3D983} = {192478A7-4082-45DE-934B-1C233313D62A}
+		{9AD6821F-9915-48AA-A503-9DB73FDF0E54} = {192478A7-4082-45DE-934B-1C233313D62A}
+		{4AC45AB2-796E-4A7A-ACDF-14C99251B293} = {192478A7-4082-45DE-934B-1C233313D62A}
+		{61F70051-E891-4CAD-8D2F-C04B900A75CD} = {DA72B957-0650-435D-BF9A-24F62813276C}
+	EndGlobalSection
+EndGlobal
