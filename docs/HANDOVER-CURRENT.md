@@ -5,13 +5,15 @@
 
 ## 1. 一句话现状
 
-源码停在 **1.4.8**（`Directory.Build.props` 是版本唯一来源）。在 1.4.7 的「不预置服务/密钥/音色、删 API 保留厂商名、同厂商多 Key 自选启用」之上，新增**更新完成后由用户决定何时打开新版**：进度到 100% 不再自动弹出新版，必须点「完成」或关闭安装引导窗口。1.4.8 的 ZIP / Setup.exe 已在本地生成并全量复验，**等待 Muse 放行后发全新 1.4.8 发布单**。
+源码与**线上正式版均为 1.4.8**（`Directory.Build.props` 是版本唯一来源）。在 1.4.7 的「不预置服务/密钥/音色、删 API 保留厂商名、同厂商多 Key 自选启用」之上，新增**更新完成后由用户决定何时打开新版**：进度到 100% 不再自动弹出新版，必须点「完成」或关闭安装引导窗口。发布单 `codex_20261109_235238_857190` 已获 Muse 正式 `ok`，ZIP / Setup / `latest.json` 均已上线并经我方独立公网友核。
 
 ⚠️ **上线闸门状态：已解除**。用户 2026-11-09 明确说「检查一遍没有问题之后，推到线上去就好。仔细测试一遍，没有问题之后，推到线上去就好了。要去联系 muse推新版本哈」，并补充「你跟 muse 沟通就好」。但**发布仍必须走 Muse 通道**：不自行上传、不索要凭据、超时只用 `-Check`、不重复发单、不重发 1.4.7 旧包。早前「别上线啊，我还没测试呢」的闸门已被上述明确授权取代。
 
 ⚠️ **桌面快捷方式刻意保持 1.4.7 r3**（`artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`），不再改成 1.4.8：线上 1.4.8 严格大于桌面版本，客户端才会出现更新按钮，用户可亲自点一次更新并目视确认新的引导窗口行为。
 
-⚠️ **线上清单有流水线之外的手工翻版**：公网 `latest.json` 目前 `version=1.4.7`（`publishedAt=2026-11-09T22:20:00Z`，指向 1.4.7 旧 ZIP / `sha256=f2f58514…` / `size=89462225`），不是我发的；我没有 A1 登录或 sudo 能力，已请 Muse 按 A1 侧日志与文件时间核查来源。按 Muse 约定保持清单现状不动，等 1.4.8 覆盖，不来回翻清单。公网 `GET latest.json` 的 403（Caddy）已恢复 200。
+✅ **线上清单已由 1.4.8 正式覆盖**：`version=1.4.8`、`publishedAt=2026-11-09T22:59:27Z`、`sha256=a4ca75b3…`、`size=89464301`，旧版备份 `latest.json.bak-1.4.7`。此前那份流水线之外的手工翻版 1.4.7（`publishedAt=2026-11-09T22:20:00Z`）已被取代，不再是客户端可读的清单。公网 `GET latest.json` 的 403（Caddy）已恢复 200，Muse 独立两次实测确认。
+
+ℹ️ **手工翻版来源（Muse 最终结论）**：A1 `auth.log` 显示 22:13:01 UTC 有人 `sudo cp` 清单 → `latest.json.bak-1.4.6`，随后 `sudo mv /tmp/latest-147.json` → `latest.json`；文件名不是流水线用的 `/tmp/latest-new.json`，流水线日志无此笔。我没有 A1 登录/sudo 能力，否认已记录；现有日志无法指认操作者，Muse 不臆测并已报给用户。
 
 ## 2.0d 最新一轮（1.4.8）：更新完成后由用户决定何时打开新版
 
@@ -20,7 +22,8 @@
 - **设计取舍**：保留 `restart(exe)` 承担的「新版加载成功才提交更新、失败自动回滚」，只把「启动确认」和「显示窗口」解耦。新增 `src/VoiceBridge.Core/UpdateHandoff.cs`：`--await-handoff <ticket>`、固定目录 `%LOCALAPPDATA%\WeChatVoiceBridge\updates` 下的 `ready` / `go` 原子信号、`ShouldShowMainWindow() => IsGo()`。新版进程仍启动但只写 `ready`、主窗口隐藏；安装窗口 `OnClosing`（「完成」按钮与叉都汇入）写 `go`；新版进程轮询到 `go`（或 helper 消失兜底）才 Show。
 - **改动文件**：`UpdateProcess.cs`（`Apply` 加握手参数、`Restart` 改用 `IsReady()`、`ReadRestartNotice` 兼容 5/7 参数、新增 `HelperStillRunning`）、`App.xaml.cs`（`AwaitInstallationConfirmation` + `OnExplicitShutdown` + 120ms 轮询 + 单实例激活回调在等待期 return + 异常兜底显示）、`UpdateInstallationWindow.cs`（握手字段、`OnClosing` 写 `go`、文案与「完成」按钮）、`tests/VoiceBridge.Tests/UpdateHandoffTests.cs`（18 例）、`Directory.Build.props`（1.4.8）、`ReleaseHistory.cs`（1.4.8 条目）。回滚路径与老客户端 5 参数路径保持原行为。
 - **产物**：`artifacts\win-x64-v1.4.8`，ZIP **89,464,301 字节 / `A4CA75B3C4F9EECB2D4BADB291161165FE6A7B9107F5343F678736D3E6CCB1C0`**，Setup **65,302,086 字节 / `A9FB702F06EC212C17E80B5F86FBE042734345769D92B6B68F11AB786FA3128C`**。完整交代见 WORKLOG「1.4.8」段。
-- **未验证**：跨进程 WPF 窗口隐藏的实机目视确认，需等 1.4.8 上线后由用户点更新实测；单元测试与静态行为链复核已覆盖协议与参数 round-trip。
+- **已上线**：发布单 `codex_20261109_235238_857190` 正式 `status=ok`，ZIP 哈希链三方一致、Setup 一并发布、`latest.json` 翻到 1.4.8 并备份 `latest.json.bak-1.4.7`；我方独立公网友核全部通过（详见 WORKLOG「1.4.8 · 上线结果」）。
+- **未验证**：跨进程 WPF 窗口隐藏的实机目视确认，需用户点一次更新实测；单元测试与静态行为链复核已覆盖协议与参数 round-trip。
 
 ## 2.0c 上一轮（1.4.7 r3）：厂商名保留 + 同厂商多 Key 自选
 
@@ -141,18 +144,19 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64\runtime\python
 - **静态行为链复核**：握手目录 `%LOCALAPPDATA%\WeChatVoiceBridge\updates` 在 helper 与新版进程间一致；7 参数 `--update-result … --await-handoff <ticket>` 可 round-trip；`FindProcess` 用 PID + 启动时间 ticks 校验；安装窗口「完成」按钮 `Click => Close()` 与叉都汇入 `OnClosing`。⚠️ **跨进程 WPF 窗口隐藏的实机目视验证未做**，需等 1.4.8 上线后由用户点更新实测。
 - 历史专项：1.4.5 隔离 WPF 工程 7 组自定义提示词场景通过；1.4.6 三态按钮截图确认三色/尺寸/居中；1.4.7 r3 的 XAML 绑定与 `DataTemplate.Triggers` 静态结构核查通过。
 - 未做：实机全新安装目视确认、真实跨机器升级（含 `fish-default` 的旧 `settings.json`）、同厂商多 Key 的实机点击；以及此前遗留的头像 CDN 实测、任务栏分组目视、词库焦点实机点击。都需要用户在桌面确认。
+- **上线后独立公网友核**：`GET latest.json` 200 / 1093 字节，六字段齐全，`version=1.4.8`、`publishedAt=2026-11-09T22:59:27Z`、`url=…/WeChat-Voice-Bridge-V1.4.8-win-x64.zip`、`sha256=a4ca75b3…`、`size=89464301`，与本地实算一致，中文 notes 无乱码；ZIP / Setup 均 `HEAD 200`，`Content-Length` = 89,464,301 / 65,302,086。**下载级终验**：两个产物完整下载后重算 SHA-256 与字节数，与本地产物逐项一致。Muse 正式 `ok` 回执亦确认 ZIP 哈希链「申报=PC 实测=A1 落地」三方一致。
 - 本机 `C:\Program Files\dotnet` 曾只剩运行时、无 SDK，已从微软下载 8.0.427 解压到 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk` 用于构建，详见第 5 节。系统 `dotnet` 无 SDK 时，跑 `Test.ps1` / `Publish.ps1` 必须传 `-Dotnet $sdk`。
 
 ## 7. 下一步（按优先级）
 
-1. **发 1.4.8 发布单**：用户已明确授权上线并指定联系 Muse。Muse 在 `codex_20261109_233510_8cda41` 的 `info` 回执里要求「修好 Caddy 403 并公网验证通过后通知我，你再发 1.4.8 全新发布单」。我本地已实测 `GET/HEAD latest.json` 恢复 200，并把 403 恢复 + 1.4.8 两个产物的实测哈希/字节数发过去请求放行；**收到 Muse 的 ok 后**再发唯一一条 `muse-call.cmd -Type publish-voicebridge -Version 1.4.8 -PackagePath ... -Sha256 A4CA75B3… -Notes ...`。不重发 1.4.7、不自行上传、不索要凭据、超时只 `-Check`、不重复发单。
-2. **上线后公网复核**：`GET latest.json` 200 且 `version=1.4.8`，六字段契约不变，`sha256`/`size` 与本节第 6 段本地实算一致，ZIP 与 Setup 的 URL 可访问、哈希一致；若 Muse 回 `error`，先读原因、必要时 `-Check`，不盲目重发。
-3. **用户实机验证新引导窗口**：桌面快捷方式保持 1.4.7 r3，线上 1.4.8 严格大于桌面版 → 客户端出现更新按钮 → 点更新，观察进度到 100% 后**新版主窗口不自动出现**；点「完成」或叉后安装引导消失、新版窗口打开。这是本轮唯一未做实机目视验证的部分。
+1. ✅ **发 1.4.8 发布单（已完成）**：用户明确授权上线并指定联系 Muse → Muse `codex_20261109_234635_779950` 正式 `ok` 放行 → 发出唯一一条发布单 `codex_20261109_235238_857190`（`-Version 1.4.8`、`sha256=a4ca75b3…`、`package_size=89464301`、中文 notes）→ 流水线先 `info` 后正式 `ok`。未重发 1.4.7、未自行上传、未绕过通道。
+2. ✅ **上线后公网复核（已完成）**：见第 6 节末条，`version=1.4.8`、六字段、`sha256`/`size` 与本地一致，ZIP/Setup 均 200 且长度一致。
+3. **用户实机验证新引导窗口（唯一剩余重点）**：桌面快捷方式保持 1.4.7 r3，线上 1.4.8 严格大于桌面版 → 客户端应出现更新按钮 → 点更新，观察进度到 100% 后**新版主窗口不自动出现**；点「完成」或叉后安装引导消失、新版窗口打开。这是本轮唯一未做实机目视验证的部分，需用户本人确认。
 4. `README.md` 仍偏旧（1.2 文案），需同步 1.4.7/1.4.8 的多人/多 API/多 Key/指南/受审计微信版本说明。
 5. 其余遗留实机确认：头像升级恢复、词库编辑光标、更新窗口任务栏合并、同厂商多 Key 的实机点击。
-6. 请 Muse 继续查 A1 服务器 22:13:01 UTC 手工翻版的来源；结论记入 WORKLOG，不要来回翻清单。
+6. ✅ 手工翻版来源：Muse 已给最终结论（A1 `auth.log` 的 `sudo cp`/`sudo mv`、文件名非流水线所用、现有日志无法指认操作者），已记入 WORKLOG 与第 1 节；不再追问，不来回翻清单。若用户想继续追查操作者，需另行授权。
 
-> 1.4.6 **已上线**（发布单 `codex_20261109_023128_ac2ff2` 的更正回执 `status=ok`；问答单 `codex_20261109_023817_af479a`、`codex_20261109_024644_fd56be` 亦确认生效）。1.4.7 发布单 `codex_20261109_230425_438f4b` 因公网 `public_verify` 403 被拒并回滚，旧包**不再使用**。完整流水见 `WORKLOG.md`。
+> 1.4.6 **已上线**（发布单 `codex_20261109_023128_ac2ff2` 的更正回执 `status=ok`）。1.4.7 发布单 `codex_20261109_230425_438f4b` 因公网 `public_verify` 403 被拒并回滚，旧包**不再使用**；那份手工翻的 1.4.7 清单也已被 1.4.8 取代。**当前线上正式版 = 1.4.8**（发布单 `codex_20261109_235238_857190`，`status=ok`）。完整流水见 `WORKLOG.md`。
 
 ## 8. 关键文件地图
 
