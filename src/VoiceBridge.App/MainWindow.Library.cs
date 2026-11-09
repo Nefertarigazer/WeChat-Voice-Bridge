@@ -16,7 +16,9 @@ namespace VoiceBridge.App;
 
 public partial class MainWindow
 {
-    private const string DefaultFishId = "fish-default";
+    // Older preset voices still carry this id as their ProviderId. No API service is
+    // ever created with it anymore; it is only a marker on legacy voice entries.
+    private const string LegacyPresetProviderId = ProviderMigration.FactoryDefaultId;
     private readonly SpeechProviderFactory speechFactory = new();
     private readonly AvatarCache avatars = new();
     private readonly ContactSearchCache contactIndexCache = new();
@@ -41,21 +43,22 @@ public partial class MainWindow
     private void InitializeLibrary(LocalSettings settings)
     {
         selectionAccount = AccountOf();
-        providers.AddRange((settings.Providers ?? new()).Where(item => !string.IsNullOrWhiteSpace(item.Id))
+        // LocalSettings.Load() has already stripped the factory connection from
+        // upgraded settings. A fresh install has no providers and stays empty:
+        // nothing is seeded, and every entry that does exist belongs to the user.
+        providers.AddRange((settings.Providers ?? new())
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+            .Where(item => !ProviderMigration.IsFactoryDefault(item.Id))
             .DistinctBy(item => item.Id));
-        if (!providers.Any(item => item.Id == DefaultFishId))
-            providers.Insert(0, new() { Id = DefaultFishId, Name = "Fish Audio", Kind = SpeechProviderKind.Fish,
-                Endpoint = SpeechProviderFactory.DefaultEndpoint(SpeechProviderKind.Fish), Model = settings.FishModel,
-                Latency = settings.Latency, CredentialId = selectedKeyName });
         library.AddRange((settings.VoiceLibrary ?? new()).Where(item => !string.IsNullOrWhiteSpace(item.Id))
             .DistinctBy(item => item.Id));
         if (library.Count == 0)
         {
             foreach (var voice in VoicePresets.Select(item => new NamedVoice(item.Name, item.Id)).Concat(userVoices)
                 .DistinctBy(item => item.Id))
-                library.Add(new() { Id = "fish-" + voice.Id, Name = voice.Name, ProviderId = DefaultFishId, VoiceId = voice.Id });
+                library.Add(new() { Id = "fish-" + voice.Id, Name = voice.Name, ProviderId = LegacyPresetProviderId, VoiceId = voice.Id });
             if (!string.IsNullOrWhiteSpace(settings.Voice) && !library.Any(item => item.VoiceId == settings.Voice))
-                library.Add(new() { Id = "fish-" + settings.Voice, Name = "此前使用的音色", ProviderId = DefaultFishId, VoiceId = settings.Voice });
+                library.Add(new() { Id = "fish-" + settings.Voice, Name = "此前使用的音色", ProviderId = LegacyPresetProviderId, VoiceId = settings.Voice });
         }
         contactPreferences.AddRange((settings.ContactProfiles ?? new()).Where(item =>
             !string.IsNullOrWhiteSpace(item.AccountId) && !string.IsNullOrWhiteSpace(item.ConversationId))
@@ -64,7 +67,7 @@ public partial class MainWindow
             !string.IsNullOrWhiteSpace(settings.WeChatAccount))
             contactPreferences.Add(new() { AccountId = settings.WeChatAccount, ConversationId = settings.WeChatConversation,
                 Name = settings.WeChatLabel, Alias = settings.WeChatAlias, Selected = true,
-                VoiceProfileId = library.FirstOrDefault(item => item.ProviderId == DefaultFishId && item.VoiceId == settings.Voice)?.Id
+                VoiceProfileId = library.FirstOrDefault(item => item.ProviderId == LegacyPresetProviderId && item.VoiceId == settings.Voice)?.Id
                     ?? library.FirstOrDefault()?.Id ?? "" });
         contactHistory.AddRange((settings.ContactHistory ?? new()).Take(12));
         searchHistory.AddRange((settings.SearchHistory ?? new()).Take(8));
@@ -141,7 +144,6 @@ public partial class MainWindow
     private void PublishRouting()
     {
         if (!libraryReady) return;
-        SyncDefaultFish();
         foreach (var card in contactCards)
         {
             RefreshContactSpeech(card);
@@ -149,14 +151,6 @@ public partial class MainWindow
         }
         Volatile.Write(ref routing, new(contactCards.Select(card => card.Profile).ToArray(), library.ToArray(),
             providers.ToArray(), userKeys.ToDictionary(key => key.Name, key => key.Value, StringComparer.Ordinal)));
-    }
-
-    private void SyncDefaultFish()
-    {
-        var index = providers.FindIndex(item => item.Id == DefaultFishId);
-        if (index >= 0)
-            providers[index] = providers[index] with { CredentialId = selectedKeyName, Model = fishModel,
-                Latency = LatencyBox.SelectedItem as string ?? "balanced" };
     }
 
     private bool ChooseContactVoice(ContactCard card, string voiceId)
@@ -208,7 +202,7 @@ public partial class MainWindow
         if (exists == null && contactCards.Count >= 8) { notice = "一次最多监听 8 个联系人。"; Render(); return; }
         var remembered = contactPreferences.FirstOrDefault(item => item.AccountId == account && item.ConversationId == contact.Id);
         var profile = (remembered ?? new ContactProfile { AccountId = account, ConversationId = contact.Id,
-            VoiceProfileId = library.FirstOrDefault(item => item.ProviderId == DefaultFishId && item.VoiceId == selectedVoiceId)?.Id
+            VoiceProfileId = library.FirstOrDefault(item => item.ProviderId == LegacyPresetProviderId && item.VoiceId == selectedVoiceId)?.Id
                 ?? library.FirstOrDefault()?.Id ?? "" }) with
         { Name = contact.Name, Alias = contact.Wechat, AvatarUrl = contact.AvatarUrl, Selected = true };
         if (!string.IsNullOrWhiteSpace(ContactSearch.Text)) RememberSearch(ContactSearch.Text.Trim());
@@ -361,7 +355,7 @@ public partial class MainWindow
             grouped.GroupDescriptions.Add(new PropertyGroupDescription(nameof(LibraryRow.ProviderName)));
             VoiceLibraryList.ItemsSource = grouped;
             var providerRows = providers.Select(provider => new ProviderRow(provider.Id,
-                provider.Name == SpeechProviderFactory.Label(provider.Kind) ? "默认连接" : provider.Name,
+                string.IsNullOrWhiteSpace(provider.Name) ? SpeechProviderFactory.Label(provider.Kind) : provider.Name,
                 SpeechProviderFactory.Label(provider.Kind), provider.Enabled ? "已启用" : "未启用", provider.Endpoint)).ToList();
             var providerGroups = new ListCollectionView(providerRows);
             providerGroups.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ProviderRow.Kind)));
@@ -538,9 +532,16 @@ public partial class MainWindow
     private void DeleteProviderClick(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: ProviderRow row }) return;
-        if (row.Id == DefaultFishId || library.Any(voice => voice.ProviderId == row.Id))
-        { notice = row.Id == DefaultFishId ? "默认 Fish 连接请通过编辑修改。" : "请先删除该服务的音色。"; Render(); return; }
-        providers.RemoveAll(item => item.Id == row.Id); RefreshLibrary(); SaveNow(); Render();
+        // No entry is built in or protected: every service the user sees can be
+        // removed. Voices that pointed at it are kept (never silently discarded);
+        // the library already labels them "服务已删除" and they can be re-pointed.
+        var boundVoices = library.Count(voice => voice.ProviderId == row.Id);
+        providers.RemoveAll(item => item.Id == row.Id);
+        RefreshLibrary(); SaveNow();
+        notice = boundVoices > 0
+            ? $"服务已删除。它的 {boundVoices} 个音色仍保留在音色库，可在「编辑音色」里改绑到其他服务。"
+            : "服务已删除。";
+        Render();
     }
     private void TestVoiceChanged(object sender, SelectionChangedEventArgs e)
     {

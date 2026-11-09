@@ -93,6 +93,11 @@ print("worker dependencies ok")
 & (Join-Path $python 'python.exe') -I -B $dependencyCheck $workerDeps
 if ($LASTEXITCODE -ne 0) { throw 'The worker dependencies failed their smoke check.' }
 
+# A shipped build must never carry this machine's settings.json, DPAPI store or
+# a live API key. Fail the publish before any ZIP is written.
+. (Join-Path $PSScriptRoot 'Assert-CleanPayload.ps1')
+Assert-CleanPayload -Payload $output
+
 if ($ZipPath) {
     $archive = [IO.Path]::GetFullPath($ZipPath)
     New-Item -ItemType Directory -Force (Split-Path -Parent $archive) | Out-Null

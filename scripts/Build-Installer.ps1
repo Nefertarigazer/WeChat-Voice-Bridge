@@ -18,6 +18,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'Assert-CleanPayload.ps1')
 $iss = Join-Path $PSScriptRoot 'installer\WeChatVoiceBridge.iss'
 $properties = [xml](Get-Content -LiteralPath (Join-Path $root 'Directory.Build.props') -Raw)
 $version = [string]$properties.Project.PropertyGroup.Version
@@ -56,14 +57,10 @@ if ($payloadVersion -ne $version)
     throw "发布目录里的程序版本是 $payloadVersion，期望版本是 $version。"
 }
 
-# The publish directory is packed recursively. Reject per-user data before compiling.
-$privateFiles = @(Get-ChildItem -LiteralPath $payload -Recurse -File -Force | Where-Object {
-    $_.Name -match '(?i)\.(?:db|sqlite(?:3)?)(?:-(?:wal|shm|journal))?$|\.(?:dpapi|key)$|^settings(?:[.-].*)?\.json$|^\.env(?:\..*)?$'
-})
-if ($privateFiles.Count -gt 0)
-{
-    throw "发布目录内含 $($privateFiles.Count) 个数据库或个人配置文件，已停止打包。请使用干净的发布目录。"
-}
+# The publish directory is packed recursively. Reject per-user data and any live
+# API key before compiling, even when the installer is built on its own (it can
+# be pointed at a different payload with -PayloadDirectory).
+Assert-CleanPayload -Payload $payload
 
 # Validate UTF-8 and preserve BOM for Windows PowerShell and the installer sources.
 $language = Join-Path $PSScriptRoot 'installer\ChineseSimplified.isl'

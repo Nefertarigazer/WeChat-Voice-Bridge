@@ -31,6 +31,13 @@ if ($LASTEXITCODE -ne 0) { throw 'Build: FAIL' }
     --logger 'trx;LogFileName=automated.trx' --results-directory (Join-Path $artifacts 'TestResults')
 if ($LASTEXITCODE -ne 0) { throw '.NET tests: FAIL' }
 Write-Output '.NET tests: PASS'
-& $env:WVB_PYTHON -B -X utf8 -m unittest discover -s (Join-Path $root 'tests\python') -v
+# unittest -v writes its progress to stderr. Windows PowerShell 5.1 wraps native
+# stderr in an ErrorRecord, which aborts a script running with Stop, so relax the
+# preference for this one call and judge the run by its exit code instead.
+$previousPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try { & $env:WVB_PYTHON -B -X utf8 -m unittest discover -s (Join-Path $root 'tests\python') -v 2>&1 |
+        ForEach-Object { if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { "$_" } } }
+finally { $ErrorActionPreference = $previousPreference }
 if ($LASTEXITCODE -ne 0) { throw 'Python tests: FAIL' }
 Write-Output 'Python tests: PASS'

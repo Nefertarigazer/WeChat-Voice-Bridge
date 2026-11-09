@@ -170,7 +170,7 @@ public partial class MainWindow : Window
         };
 
         LatencyBox.ItemsSource = new[] { "balanced", "normal", "low" };
-        LatencyBox.SelectionChanged += (_, _) => { if (!applyingProvider) ScheduleSave(); };
+        LatencyBox.SelectionChanged += (_, _) => ScheduleSave();
         PreviewBox.Checked += PreviewSettingChanged;
         PreviewBox.Unchecked += PreviewSettingChanged;
         var settings = ReadStoredSettings();
@@ -891,7 +891,7 @@ public partial class MainWindow : Window
 
     private void ModelChanged(object sender, RoutedEventArgs e)
     {
-        if (!ready || applyingProvider)
+        if (!ready)
             return;
         Volatile.Write(ref fishModel, PaidModel.IsChecked == true ? FishSpeech.PaidModel : FishSpeech.Model);
         ModelHint.Text = fishModel == FishSpeech.PaidModel

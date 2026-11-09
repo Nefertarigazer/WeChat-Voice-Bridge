@@ -1,15 +1,27 @@
-# 微信语音桥 · 当前交接（2026-11-09，v1.4.6）
+# 微信语音桥 · 当前交接（2026-11-09，v1.4.7）
 
 > 本文是**最新接手入口**。旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 完整改动流水见 [WORKLOG.md](WORKLOG.md)，用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
 ## 1. 一句话现状
 
-源码停在 **1.4.6**（`Directory.Build.props` 是版本唯一来源）。发布产物 `artifacts/WeChat-Voice-Bridge-V1.4.6-win-x64.zip` 与 `artifacts/WeChat-Voice-Bridge-V1.4.6-Setup.exe` 已生成，按用户指令通过 Muse 通道推到线上（本代理不自行上传）。**线上发布前的版本是 1.4.3**。
+源码停在 **1.4.7**（`Directory.Build.props` 是版本唯一来源）：本轮取消出厂自带的「默认 API」，全新安装服务列表为空、老配置升级自动摘除内置连接。**线上仍是 1.4.6**；1.4.7 的 ZIP / Setup.exe 只在本地生成验证，**尚未上线、未联系 Muse**（本轮用户没有要求发布，不要自行上传或发单）。
 
-⚠️ **桌面快捷方式刻意保持在 `artifacts/win-x64-v1.4.5`，不要改**：用户要在 Muse 上线后亲自从桌面端点「检查更新 → 下载 → 重启安装」体验完整自升级流程。任何后续构建都不要调用 `Install-DesktopShortcut.ps1`，除非用户明确要求。
+⚠️ **桌面快捷方式刻意保持在 `artifacts/win-x64-v1.4.5`，不要改**：用户要亲自从桌面端体验「检查更新 → 下载 → 重启安装」的完整自升级流程。任何后续构建都不要调用 `Install-DesktopShortcut.ps1`，除非用户明确要求。
 
-## 2.0 最新一轮（1.4.6）：更新按钮三态配色
+## 2.0 最新一轮（1.4.7）：取消出厂自带默认 API
+
+用户要求：全新安装一条 API 服务都不种、任何条目都可删；老用户自建服务与钥匙原样保留、内置默认 API 自动删掉；出厂包不得含真实 API 钥匙；**预置音色本次不动**。
+
+**根因**：不是源码里硬编码了钥匙（源码/git 历史/1.4.6 的 ZIP 与 Setup.exe 都没有明文真实 Key），而是 `MainWindow.Library.cs` 每次启动补种固定 `Id="fish-default"` 的连接，`SyncDefaultFish()` 把本机 DPAPI 凭据库里当前选中的凭据名写回它，`DeleteProviderClick()` 又禁止删它。开发机 `settings.json` 实测即 `fish-default → CredentialId=speech-fish-default`。
+
+**摘除**：删掉 `InitializeLibrary()` 的 `providers.Insert(0, ...)` 播种、删掉 `SyncDefaultFish()`、删掉删除特判与「默认连接」标签；`StoreProvider()` 去掉联动隐藏控件的 `applyingProvider`；XAML 的「默认 Fish 服务/密钥」改中性文案并说明「软件不预置任何服务或密钥」。预置音色播种保留，常量改名 `LegacyPresetProviderId`，只作旧音色归属标记。
+
+**迁移**：新增 `src/VoiceBridge.Core/ProviderMigration.cs`，`LocalSettings.Load()` 读盘后无条件 `RemoveFactoryDefault()`，只按 Ordinal 全等摘 `fish-default`，用户服务连同 `CredentialId` 原样保留、顺序不变；发现过出厂条目就立刻 `Save()` 把 `settings.json` 写干净；**不读不写不删 DPAPI 凭据库**。`InitializeLibrary()` 再过滤一次做双保险。
+
+**出厂包门禁**：新增 `scripts/Assert-CleanPayload.ps1`，ZIP 与 Setup 打包前强制跑——拒绝 `settings.json`/`.dpapi`/`.key`/`.env`/数据库；全文件分块扫明文密钥；读取本机 DPAPI 凭据库（只在内存里，绝不打印）按明文与 UTF-16 两种形式精确比对，命中即拒绝打包。`Verify-Source.ps1` 加了三条防复发断言（禁止再播种、`Load()` 必须调迁移、`fish-default` 只允许出现在 `ProviderMigration.cs`）。完整交代见 WORKLOG 1.4.7 段。
+
+## 2.1 上一轮（1.4.6）：更新按钮三态配色
 
 用户要求「软件更新」区有升级时的按钮更美观、上下居中，且三种状态颜色各不相同。根因：`Row` 内高 36 DIP（`MinHeight 52 − Padding 16`），而 `SecondaryButton` 是 `MinHeight 34`、`PrimaryButton` 是 `MinHeight 38 / MinWidth 96 / Padding 24,8`——状态切换时按钮高度与宽度都跳变，把整行撑高、左右失配。
 
@@ -51,45 +63,51 @@
 - 微信受审计支持版本仅 `4.2.0.13`（`WeChatSession.SupportedVersion`），不要擅自放宽。只读访问也不保证符合微信平台规范或账号安全。
 - 始终手动开始、初始 IDLE，结束取消整条链路；不自动恢复监听。
 - 用户配置与 DPAPI 密钥在 `%LOCALAPPDATA%\WeChatVoiceBridge`，不进发布包；不删用户数据库、录音、配置。
+- **不得重新引入任何出厂预置 API 服务、不可删条目或内置密钥**：全新安装的「语音服务」列表必须为空。`scripts/Verify-Source.ps1` 会拦截再次播种（`providers.Insert(` / `SyncDefaultFish` / `DefaultFishId`）、迁移缺失、以及 `fish-default` 字面量扩散；`scripts/Assert-CleanPayload.ps1` 会在 ZIP / Setup 打包前拦下个人配置与真实 API Key。
 - 发布上线需用户授权；固定 feed `https://iceland.de5.net/voice-bridge/latest.json`，六字段契约不变。本地打包 ≠ 上线。
 - 用户重视先交付可用版本，别为了完善程度做无关扩展或反复跑长测试。
 
 ## 5. 命令速查
 
 ```powershell
-$sdk = 'C:\Users\USERNAME\AppData\Local\Temp\wvb-sdk-builds\dotnet.exe'
-$py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-live\runtime\python\python.exe'
+# 本机 `C:\Program Files\dotnet` 一度只剩运行时、没有 SDK，已从微软官方
+# 下载 .NET SDK 8.0.427 解压到临时目录（不改系统 PATH、不装系统组件）。
+# 若临时目录被清理：重新下载 dotnet-sdk-8.0.427-win-x64.zip 并解压即可。
+$sdk = 'C:\Users\USERNAME\AppData\Local\Temp\wvb-sdk\sdk\dotnet.exe'
+$py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64\runtime\python\python.exe'
 
 # 构建 / 全量测试 / 静态边界
 & $sdk build 'D:\OneDrive\文档\ChatGPT\微信语音\WeChatVoiceBridge.sln' -c Release
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Test.ps1' -Dotnet $sdk -Python $py
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Verify-Source.ps1'
 
-# 发布到独立目录并更新桌面快捷方式（不会强关运行中的程序）
+# 发布到独立目录（ZIP 与 Setup 都会先跑出厂包门禁）
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Publish.ps1' -Dotnet $sdk `
-    -OutputDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.6' `
-    -ZipPath 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\WeChat-Voice-Bridge-V1.4.6-win-x64.zip'
+    -OutputDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.7' `
+    -ZipPath 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\WeChat-Voice-Bridge-V1.4.7-win-x64.zip'
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Build-Installer.ps1' `
-    -PayloadDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.6'
+    -PayloadDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.7'
 # 不要运行 Install-DesktopShortcut.ps1：用户要保留桌面 1.4.5 以体验自升级。
 ```
 
 `Publish.ps1` 会复用 `artifacts/build-tools` 里已校验的 Python 3.12.10 NuGet 包与 sqlcipher3/zstandard wheel；`-ZipPath` 可选，本轮未用。
 
-## 6. 验证基线（本轮）
+## 6. 验证基线（1.4.7 本轮）
 
 - Release 全量构建：**0 警告 0 错误**。
-- `Test.ps1` 全量：**141/141 C# PASS + 54/54 Python PASS**（worker 本轮未改，仍复跑确认）。
-- `Verify-Source.ps1`：**PASS**。
-- **1.4.5 专项 UI 验证**：隔离 WPF 工程 `D:\USERNAME\CodexScratch\Temp\wvb-announcement-rootfix-20261109`，`ContentControl` + `DataTemplate` 渲染、链接真实源码、模拟真实 `SelectedItem` 点击，7 组场景全部通过（含 `shows 自定义=False`）。
-- **1.4.6 专项 UI 验证**：`D:\USERNAME\CodexScratch\Temp\wvb-update-row-20261109` 截图确认三态三种颜色、尺寸一致、上下居中、无文字换行。
-- 发布物检查：ZIP 内 exe/程序集 `1.4.6`、1621 项、Python 运行时与两个 wheel 齐全、无 `.db`/WAL/SHM/`settings.json`/密钥残留、程序集含本轮全部修复符号；ZIP 实算 SHA-256 与字节数见 WORKLOG 1.4.6 段。
-- 未做：实机真实微信头像 CDN 实测、更新流程真实跨进程任务栏分组的目视确认、词库焦点修复的实机点击验证。这些都需要用户在实际桌面确认。
+- `Test.ps1` 全量：**153/153 C# PASS**（141 + `ProviderMigrationTests` 12）+ **54/54 Python PASS**（worker 未改，仍复跑确认）。
+- `Verify-Source.ps1`：**PASS**（含 1.4.7 新增的三条防复发断言）。
+- **出厂包门禁**：ZIP 与 Setup 打包前各跑一次 `Assert-CleanPayload`，均 `PASS (1619 files, ...; 2 local credential(s) compared)`——本机 2 个真实 Key 按明文与 UTF-16 比对零命中。
+- 发布物：ZIP 89,456,803 字节 / SHA-256 `908AC12B7767BC11930787F96C73886BB3C009EA0C992C92E246FFE05035F66A`，1621 项；Setup.exe 65,297,495 字节 / SHA-256 `3F0927711AC2FE53F2174F7D7C63F905C1B23E1015FD7B1094ECE5F41DD76263`；exe/dll `ProductVersion=1.4.7`；无 `.db`/WAL/SHM/`settings.json`/密钥残留。二进制符号核查见 WORKLOG 1.4.7 段。
+- 历史专项：1.4.5 隔离 WPF 工程 7 组自定义提示词场景通过；1.4.6 三态按钮截图确认三色/尺寸/居中。
+- 未做：实机全新安装的界面目视确认、真实跨机器升级（把含 `fish-default` 的旧 `settings.json` 放到另一台 Windows 上跑）；以及此前遗留的头像 CDN 实测、任务栏分组目视、词库焦点实机点击。都需要用户在桌面确认。
+- 本机 `C:\Program Files\dotnet` 曾只剩运行时、无 SDK，已从微软下载 8.0.427 解压到 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk` 用于构建，详见第 5 节。
 
 ## 7. 下一步（按优先级）
 
 2. 用户实机确认头像升级恢复、词库编辑光标、更新窗口任务栏合并三项；并在桌面端 1.4.5 亲自走完「检查更新 → 下载 → 重启安装」升级到 1.4.6（**不要替他更新桌面快捷方式**）。
 3. `README.md` 仍偏旧（1.2 文案），需同步 1.4.6 的多人/多 API/指南/受审计微信版本说明。
+4. **1.4.7 未上线**：用户本轮只要求改机制与交付报告，没有要求发布。若之后要推线上，须等明确指令，并沿用既定纪律：先读线上 `latest.json` 确认版本严格大于线上、生成 ZIP + Setup.exe、实算 ZIP SHA-256 与字节数、再用 `muse-call.cmd -Type publish-voicebridge` 联系 Muse；不自行上传、不索要凭据、超时只 `-Check`、不重复发单。
 
 > 1.4.6 **已上线**（发布单 `codex_20261109_023128_ac2ff2` 的更正回执 `status=ok`；问答单 `codex_20261109_023817_af479a`、`codex_20261109_024644_fd56be` 亦确认生效）。不要再发同版本发布单，版本守卫会拒。完整流水见 `WORKLOG.md` 的 1.4.6 段。
 
@@ -109,3 +127,4 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-live\runtime\p
 | 微信进程只读 | `worker/audited_wechat_keys.py`、`src/VoiceBridge.WeChat/WeChatSession.cs`、`PythonFixtureSource.cs` |
 | 更新助手 | `src/VoiceBridge.App/UpdateInstallationWindow.cs`、`UpdateProcess.cs`、`MainWindow.Updates.cs` |
 | 发布/快捷方式 | `scripts/Publish.ps1`、`scripts/Install-DesktopShortcut.ps1` |
+| 出厂服务迁移与门禁 | `src/VoiceBridge.Core/ProviderMigration.cs`、`src/VoiceBridge.App/LocalSettings.cs`(Load)、`tests/VoiceBridge.Tests/ProviderMigrationTests.cs`、`scripts/Assert-CleanPayload.ps1` |

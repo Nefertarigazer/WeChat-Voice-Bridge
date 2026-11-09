@@ -76,12 +76,24 @@ internal sealed record LocalSettings
             .Concat((settings.Lexicon ?? new List<WordEntry>())
                 .Select(word => new ReadingRule(word.Word, word.Say, true) { Scope = "both" }))
             .ToList();
-        return settings with
+        // Builds before 1.4.7 seeded one undeletable factory Fish connection. Drop it
+        // from upgraded settings at read time; every service the user added is kept.
+        var providers = ProviderMigration.RemoveFactoryDefault(settings.Providers, out var removedFactoryDefault);
+        var migrated = settings with
         {
             Rules = rules,
             Lexicon = new List<WordEntry>(),
-            CacheLimitBytes = settings.CacheLimitBytes > 0 ? settings.CacheLimitBytes : CacheLimits.DefaultBytes
+            CacheLimitBytes = settings.CacheLimitBytes > 0 ? settings.CacheLimitBytes : CacheLimits.DefaultBytes,
+            Providers = providers
         };
+        // Persist the removal once, so an upgraded settings.json no longer carries the
+        // factory entry. A failed write must never lose the user's other settings.
+        if (removedFactoryDefault)
+        {
+            try { migrated.Save(); }
+            catch (Exception) { /* The in-memory list is already clean; retry next start. */ }
+        }
+        return migrated;
     }
 
     private static ReadingRule NormalizeRule(ReadingRule rule)

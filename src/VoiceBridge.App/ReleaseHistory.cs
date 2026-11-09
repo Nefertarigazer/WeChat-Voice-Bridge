@@ -14,6 +14,13 @@ internal static class ReleaseHistory
 {
     public static IReadOnlyList<ReleaseEntry> Entries { get; } = Array.AsReadOnly(new[]
     {
+        new ReleaseEntry("1.4.7", "取消出厂自带默认 API", new[]
+        {
+            "全新安装不再预置任何语音 API 服务：「语音服务」列表为空，请添加自己的 API 后使用。",
+            "所有服务条目都可以删除；删除后原有音色仍保留在音色库，可在「编辑音色」里改绑到其他服务。",
+            "从旧版本升级时自动移除内置的那条默认连接，用户自己添加过的服务和密钥原样保留。",
+            "打包前增加出厂检查：本机设置、凭据库与真实 API Key 一旦混进发布目录就拒绝生成安装包。"
+        }),
         new ReleaseEntry("1.4.6", "更新按钮三态配色与居中", new[]
         {
             "「软件更新」的按钮按三种状态使用三种不同颜色：无更新为灰色、发现新版为浅绿描边、已下载可安装为实心绿。",
