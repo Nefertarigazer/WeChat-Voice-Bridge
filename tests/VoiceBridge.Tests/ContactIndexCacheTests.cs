@@ -15,7 +15,7 @@ public sealed class ContactIndexCacheTests
                 var folder = Path.Combine(temporary.FullName, account, "db_storage", "contact");
                 Directory.CreateDirectory(folder);
                 File.WriteAllText(Path.Combine(folder, "contact.db"), "simulated encrypted database, no real data");
-                return new(temporary.FullName, account, "unused", [], DateTime.UtcNow);
+                return new(temporary.FullName, account, "unused", [], DateTime.UtcNow, "4.2.0.13");
             }
             var one = Session("account-one"); var two = Session("account-two");
             var cachePath = Path.Combine(temporary.FullName, "index-cache");
@@ -49,7 +49,8 @@ public sealed class ContactIndexCacheTests
             Directory.CreateDirectory(folder);
             var database = Path.Combine(folder, "contact.db");
             File.WriteAllText(database, "simulated encrypted database, no real data");
-            var session = new WeChatSession(temporary.FullName, "account", "unused", [], DateTime.UtcNow);
+            var session = new WeChatSession(temporary.FullName, "account", "unused", [],
+                DateTime.UtcNow, "4.2.0.13");
             var cachePath = Path.Combine(temporary.FullName, "index-cache");
             var cache = new ContactSearchCache(cachePath);
             // Row 79 is beyond TrySearch's 60-result cap but must still be recoverable.

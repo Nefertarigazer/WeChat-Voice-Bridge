@@ -26,11 +26,23 @@
 - **通读成果包**：`README.md`、`merge-notes-for-workbuddy.md`、`docs/review-crouton.md`（含 §2.2 合并配方与 §4 清单）、`docs/fix-round1.md`（R1–R8 修复对照）、`docs/impl-summary.md`（实现总结与 58 项构成）、自检脚本全文、项目与包内 `WeChatSession.cs`、`worker/audited_wechat_keys.py`。
 - **差异核对（关键结论）**：包内 `impl/` 的 4 个文件相对当前项目**仅多出 version 透传与错误码映射**（`wechat_adapter.py` 11 行、`main.py` 9 行、`PythonFixtureSource.cs` 2 行、`WeChatDirectory.cs` 2 行），直接替换不会回退 1.4.x 改动；`worker/audited_wechat_keys.py` 当前是 8.7KB 的「原切片」，包内是 35KB 的多版本化重写。自检脚本硬编码 `ROOT/slice/worker/...` 与 `ROOT/out/impl/worker/...`，成果包里没有这两个目录，合并后必须把自检改造成指向项目真实文件的形式才能长期复跑。
 
+### 合并主体已完成（本段第一小节）
+
+- **落地文件**：`worker/audited_wechat_keys.py`（35KB 多版本化重写，替换原 8.7KB 切片）、`worker/wechat_adapter.py`（`WeChatStore(..., version=...)` → `WeChatDB(version=version)`）、`worker/main.py`（start 包透传 version + 显式捕获 `UnsupportedVersionError` → `code="unsupported_version"` 并保留中文 message）、`src/VoiceBridge.WeChat/PythonFixtureSource.cs` 与 `WeChatDirectory.cs`（start 包 `version` 字段 + code switch 新增中文「不支持此版本」文案）。
+- **原切片冻结**：`tests/wx-multi/slice/audited_wechat_keys.py`（8,704 字节，逐字节复制自合并前的 `worker/audited_wechat_keys.py`，**禁止编辑**，作为 58 项等价性基线）。
+- **自检落位**：`tests/wx-multi/test_audited_wechat_keys.py` 由包内自检改造，路径改为指向**真实生产文件**：`IMPL=worker/audited_wechat_keys.py`、`MAIN=worker/main.py`、`SLICE=tests/wx-multi/slice/...`，这样 58 项门禁长期守护实际 shipped 代码，而不是包内副本。
+- **`WeChatSession.cs` 按 review §2.2 合并**：基底 impl 版（`MinSupportedVersion=4.1.11`、`MaxSupportedVersion=4.2.0.13`、`IsSupportedVersion`、`Version` 字段、`Bind` 区间判定与中文拒绝文案），并入 discovery 版 `RootAnchorName`/`ScanMaxDepth=6`/`ScanBudget=20s` 与 `DiscoverRootByScan`/`EnumerateFixedDrives`/`ScanDirectory`，`DiscoverRoot()` 末尾改 `return DiscoverRootByScan();`。**未使用 discovery 的单版本 `SupportedVersion` 锁**。另新增只读 `DetectClientVersion()`（不碰数据库/内存/账号目录）供宿主版本门控使用。
+- **R5 编译期修复（包内未编译验证的两处 CS8602）**：`module` 可能为 null、`version.ToString()` 可能为 null。改为 `if (module is null || !IsSupportedVersion(parsed)) throw ...`，把「读不到版本」也归入明确拒绝；通过后用 `parsed!.ToString()`。行为不变，绝不静默乱读。
+- **R6 破坏点同步**：`tests/VoiceBridge.Tests/ContactIndexCacheTests.cs` 两处 5 参数构造（含一处 target-typed `new(...)`）补 `"4.2.0.13"` 版本参数；全仓 grep 确认无其它 `new WeChatSession(` / `SupportedVersion` 引用。
+- **复验结果**：
+  - `tests/wx-multi/test_audited_wechat_keys.py` **58/58 PASS**（`ALL SELF-CHECKS PASSED (58 checks)`），含 R1 错误映射、R2 掩码单值、R3 空版本、R4 严格解析、49 项 slice 等价性（常量、HMAC 200 组、合成内存场景 A/B/C、拒绝版本零句柄）。
+  - ⚠️ **必须用项目内置 Python 3.12.10 跑**：`artifacts/win-x64/runtime/python/python.exe tests/wx-multi/test_audited_wechat_keys.py`。系统 Python 3.13 会被 `main.py` 的 `sys.version_info[:2] != (3, 12)` 检查提前挡下，导致 R1 误报失败（第一次跑就是踩了这个坑，非代码问题）。
+  - `python -m py_compile` 三个 worker 文件全过；`dotnet build WeChatVoiceBridge.sln -c Release` **0 警告 0 错误**。
+
 ### 进行中 / 待办
 
-- [ ] 按 §4 与 §2.2 合并代码（worker 三件套、C# 三个文件、冻结原切片基线、自检脚本落位）。
-- [ ] 落实 `unsupported_version` 通道与版本门控弹窗；数据目录按名扫描与手动兜底。
-- [ ] 58 项自检 + `dotnet build` 0 报错 + 全量 `Test.ps1` / `Verify-Source.ps1`。
+- [ ] 落实 `merge-notes-for-workbuddy.md` 的两条 UX：范围外版本弹窗（检测到版本 + 支持范围 + 「更新微信」/「退出应用」）；数据目录扫描失败时手动选目录兜底。
+- [ ] 全量 `Test.ps1` + `Verify-Source.ps1` 回归（确认不回退 1.4.7/1.4.8）。
 - [ ] 更新页 UI 优化与截图。
 - [ ] 回写文档、commit、报告新版软件位置；**不打包、不上线、不改快捷方式**。
 

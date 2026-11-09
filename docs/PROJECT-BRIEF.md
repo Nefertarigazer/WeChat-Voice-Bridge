@@ -38,6 +38,8 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 & "$root\scripts\Publish.ps1" -Dotnet $sdk -OutputDirectory "$root\artifacts\win-x64-vX.Y.Z" `
     -ZipPath "$root\artifacts\WeChat-Voice-Bridge-VX.Y.Z-win-x64.zip"   # 发布目录 + ZIP（内含出厂包门禁）
 & "$root\scripts\Build-Installer.ps1" -PayloadDirectory "$root\artifacts\win-x64-vX.Y.Z"  # Setup.exe（含门禁）
+# wx-multi 58 项等价性自检（必须用内置 3.12，系统 Python 3.13 会被 main.py 的版本检查挡下）
+& "$root\artifacts\win-x64\runtime\python\python.exe" "$root\tests\wx-multi\test_audited_wechat_keys.py"
 ```
 
 - `Publish.ps1` / `Build-Installer.ps1` 都会先跑 `scripts/Assert-CleanPayload.ps1`：禁止 `settings.json`、`.dpapi`、`.key`、`.env`、DB/WAL/SHM 混进出厂包，扫描明文 Key 形状，并用本机 DPAPI 凭据按明文与 UTF-16 比对。
@@ -96,7 +98,8 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
   3. 不许回退第 5 节的三条已上线改动。
 - 关键实现：`impl/worker/audited_wechat_keys.py`（多版本化重写，35KB）、`impl/worker/wechat_adapter.py` 与 `main.py`（version 透传）、`impl/cs/WeChatSession.cs`（区间判定 + `Version` 字段）、`impl/cs/PythonFixtureSource.cs` 与 `WeChatDirectory.cs`（start 包加 `version` + `unsupported_version` 文案）、`discovery/WeChatSession.cs`（按名扫描 `xwechat_files`，深度 ≤6、20 秒预算）。
 - `WeChatSession.cs` 合并配方（review §2.2）：**基底取 impl 版**（区间门控），**并入 discovery 版的三常量三方法**（定位扫描）；禁止用 discovery 版的 `SupportedVersion` 单版本锁。
-- 待落实 UX：启动识别到范围外版本时弹窗（显示检测到的版本 + 支持范围，按钮「更新微信」/「退出应用」）；数据目录扫描失败时手动选目录兜底。
+- **合并主体已完成**：worker 三件套 + C# 三文件已落地；原切片冻结在 `tests/wx-multi/slice/audited_wechat_keys.py`（禁止编辑）；自检落位 `tests/wx-multi/test_audited_wechat_keys.py` 并改为指向真实生产文件；58/58 PASS；`dotnet build` 0 警告 0 错误。R5 的两处 CS8602 与 R6 的两处测试构造点已修。详见 WORKLOG「进行中 · 2026-11-10」。
+- 待落实 UX：范围外版本弹窗（检测到版本 + 支持范围，按钮「更新微信」/「退出应用」）；数据目录扫描失败时手动选目录兜底。
 
 ### B. 更新页面 UI 优化
 

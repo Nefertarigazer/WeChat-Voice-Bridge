@@ -10,6 +10,7 @@ from uuid import UUID
 # -I ignores cwd, user site and PYTHONPATH. Add only the bundled worker directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from db_adapter import ACCOUNT, CONVERSATION, SHARDS, TEXT_LIMIT, FixtureStore, IdentityChanged
+from audited_wechat_keys import UnsupportedVersionError
 from ipc_protocol import receive, send
 
 
@@ -49,7 +50,8 @@ def main():
             retryable += (SnapshotBusy, sql.OperationalError)
             configure(packet.get("rules"), packet.get("lexicon"))
             store = WeChatStore(directory, packet["root"], account, packet["pids"], None,
-                                include_speech=packet.get("includeSpeech") is True)
+                                include_speech=packet.get("includeSpeech") is True,
+                                version=packet.get("version"))
             if mode == "wechat":
                 store.open_conversations(conversations)
             shards = store.shards
@@ -145,6 +147,11 @@ def main():
             return 3
         traceback.print_exc(file=sys.stderr)
         send("error", session, generation, code="worker")
+        return 2
+    except UnsupportedVersionError as error:
+        # Distinguish "outside the supported range / unparsable" from a generic
+        # worker failure, and keep the Chinese "不支持此版本" reason on the wire.
+        send("error", session, generation, code="unsupported_version", message=str(error))
         return 2
     except Exception:
         # Stderr is discarded by the parent; keep the traceback for local diagnosis.

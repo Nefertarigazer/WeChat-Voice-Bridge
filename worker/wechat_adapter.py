@@ -743,7 +743,12 @@ class EncryptedSnapshot:
 class WeChatStore:
     """Read-only access to one account's contact list and message shards."""
 
-    def __init__(self, cache, root, account, pids, peer=None, include_speech=False):
+    def __init__(self, cache, root, account, pids, peer=None, include_speech=False,
+                 version=None):
+        # `version` is the client file version validated by WeChatSession.Bind
+        # (4.1.11 <= v <= 4.2.0.13); it is handed to the key reader, which refuses
+        # to scan otherwise. Unsupported/unparsable versions raise there before
+        # any process handle or database file is touched.
         if not account or Path(account).name != account or account in (".", ".."):
             raise IdentityChanged()
         if not pids:
@@ -759,7 +764,9 @@ class WeChatStore:
         if not 1 <= len(self.shards) <= 20:
             raise IdentityChanged()
         # One memory scan authenticates the contact database and every shard.
-        key_reader = WeChatDB()
+        # `version` drives the strict 4.1.11 <= v <= 4.2.0.13 profile dispatch;
+        # an unsupported version raises before any scan starts.
+        key_reader = WeChatDB(version=version)
         targets = [(self.contact_path.name, str(self.contact_path), 0)]
         targets += [(name, str(self.message_dir / name), 0) for name in self.shards]
         key_reader._db_files = targets

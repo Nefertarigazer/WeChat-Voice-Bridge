@@ -122,6 +122,7 @@ public sealed class PythonFixtureSource(WatchOptions options, string python, str
                 account = target.AccountId, conversation = target.ConversationId, mode,
                 conversations = peers,
                 root = wechat?.Root, pids = wechat?.Pids,
+                version = wechat?.Version,
                 includeSpeech = currentReadings != null,
                 rules = WireReadings(appliedReadings) }, deadline.Token);
             var capabilities = await ReceiveAsync(deadline.Token, "capabilities");
@@ -402,6 +403,7 @@ public sealed class PythonFixtureSource(WatchOptions options, string python, str
                         "identity" => "Worker 无法确认目标账号或会话。",
                         "runtime" => "消息 Worker 需要 Python 3.12 x64。",
                         "disk" => "磁盘空间不足，无法复制微信数据库。请清理磁盘后重试。",
+                        "unsupported_version" => "不支持此版本。请确认微信 Windows 版在支持范围内（4.1.11 至 4.2.0.13）。",
                         _ => "消息数据库查询失败。"
                     });
                 if (!expected.Contains(kind))
