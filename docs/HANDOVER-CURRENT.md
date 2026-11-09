@@ -1,17 +1,28 @@
-# 微信语音桥 · 当前交接（2026-11-09，v1.4.7）
+# 微信语音桥 · 当前交接（2026-11-09，v1.4.8）
 
 > 本文是**最新接手入口**。旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 完整改动流水见 [WORKLOG.md](WORKLOG.md)，用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
 ## 1. 一句话现状
 
-源码停在 **1.4.7**（`Directory.Build.props` 是版本唯一来源）：全新安装**不预置任何 API 服务、密钥与音色**；老配置升级自动摘除出厂连接与出厂音色；删除 API 后音色保留厂商名、换成缺失样式且仍可编辑删除；同一厂商多个 Key 用「启用」按钮自选（添加不自动应用），不同厂商各启用一个；音色按厂商自动跟随正在使用的 Key。**线上仍是 1.4.6**；1.4.7 的 ZIP / Setup.exe 只在本地生成验证，**尚未上线、未联系 Muse**。
+源码停在 **1.4.8**（`Directory.Build.props` 是版本唯一来源）。在 1.4.7 的「不预置服务/密钥/音色、删 API 保留厂商名、同厂商多 Key 自选启用」之上，新增**更新完成后由用户决定何时打开新版**：进度到 100% 不再自动弹出新版，必须点「完成」或关闭安装引导窗口。1.4.8 的 ZIP / Setup.exe 已在本地生成并全量复验，**等待 Muse 放行后发全新 1.4.8 发布单**。
 
-⚠️ **上线闸门（用户 2026-11-09 明确）**：任何推线上 / 发单必须等用户本人实测通过并明确发话；不得因为「客户端没出现更新按钮」或「本地包已构建好」就自行上线。用户说「别上线」时立即停手，只做只读确认。此前已因误判要上线而被用户当场叫停，发布任务已撤销。
+⚠️ **上线闸门状态：已解除**。用户 2026-11-09 明确说「检查一遍没有问题之后，推到线上去就好。仔细测试一遍，没有问题之后，推到线上去就好了。要去联系 muse推新版本哈」，并补充「你跟 muse 沟通就好」。但**发布仍必须走 Muse 通道**：不自行上传、不索要凭据、超时只用 `-Check`、不重复发单、不重发 1.4.7 旧包。早前「别上线啊，我还没测试呢」的闸门已被上述明确授权取代。
 
-⚠️ **桌面快捷方式已于本轮按用户明确指令更新**到 `artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`；此前「刻意留在 `win-x64-v1.4.5` 体验自升级」的约定已被本轮指令取代。桌面版本（1.4.7）已高于线上（1.4.6），因此**客户端不会再出现更新按钮**；若要重新体验自升级，需先把快捷方式指回较低版本，或等线上版本超过桌面版本。
+⚠️ **桌面快捷方式刻意保持 1.4.7 r3**（`artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`），不再改成 1.4.8：线上 1.4.8 严格大于桌面版本，客户端才会出现更新按钮，用户可亲自点一次更新并目视确认新的引导窗口行为。
 
-## 2.0c 最新一轮（1.4.7 r3）：厂商名保留 + 同厂商多 Key 自选
+⚠️ **线上清单有流水线之外的手工翻版**：公网 `latest.json` 目前 `version=1.4.7`（`publishedAt=2026-11-09T22:20:00Z`，指向 1.4.7 旧 ZIP / `sha256=f2f58514…` / `size=89462225`），不是我发的；我没有 A1 登录或 sudo 能力，已请 Muse 按 A1 侧日志与文件时间核查来源。按 Muse 约定保持清单现状不动，等 1.4.8 覆盖，不来回翻清单。公网 `GET latest.json` 的 403（Caddy）已恢复 200。
+
+## 2.0d 最新一轮（1.4.8）：更新完成后由用户决定何时打开新版
+
+用户指令：更新安装引导进度到 100% 后，**不点「完成」或叉，新版应用界面不能自己弹出来**；点确定/叉之后，安装引导界面消失、新版界面才打开。核对确认原行为不符合：`UpdateInstaller.Apply()` 在 95% 无条件 `restart(exe)`，`Restart()` 以 `MainWindowHandle != IntPtr.Zero` 判定启动成功，所以主窗口提前显示。
+
+- **设计取舍**：保留 `restart(exe)` 承担的「新版加载成功才提交更新、失败自动回滚」，只把「启动确认」和「显示窗口」解耦。新增 `src/VoiceBridge.Core/UpdateHandoff.cs`：`--await-handoff <ticket>`、固定目录 `%LOCALAPPDATA%\WeChatVoiceBridge\updates` 下的 `ready` / `go` 原子信号、`ShouldShowMainWindow() => IsGo()`。新版进程仍启动但只写 `ready`、主窗口隐藏；安装窗口 `OnClosing`（「完成」按钮与叉都汇入）写 `go`；新版进程轮询到 `go`（或 helper 消失兜底）才 Show。
+- **改动文件**：`UpdateProcess.cs`（`Apply` 加握手参数、`Restart` 改用 `IsReady()`、`ReadRestartNotice` 兼容 5/7 参数、新增 `HelperStillRunning`）、`App.xaml.cs`（`AwaitInstallationConfirmation` + `OnExplicitShutdown` + 120ms 轮询 + 单实例激活回调在等待期 return + 异常兜底显示）、`UpdateInstallationWindow.cs`（握手字段、`OnClosing` 写 `go`、文案与「完成」按钮）、`tests/VoiceBridge.Tests/UpdateHandoffTests.cs`（18 例）、`Directory.Build.props`（1.4.8）、`ReleaseHistory.cs`（1.4.8 条目）。回滚路径与老客户端 5 参数路径保持原行为。
+- **产物**：`artifacts\win-x64-v1.4.8`，ZIP **89,464,301 字节 / `A4CA75B3C4F9EECB2D4BADB291161165FE6A7B9107F5343F678736D3E6CCB1C0`**，Setup **65,302,086 字节 / `A9FB702F06EC212C17E80B5F86FBE042734345769D92B6B68F11AB786FA3128C`**。完整交代见 WORKLOG「1.4.8」段。
+- **未验证**：跨进程 WPF 窗口隐藏的实机目视确认，需等 1.4.8 上线后由用户点更新实测；单元测试与静态行为链复核已覆盖协议与参数 round-trip。
+
+## 2.0c 上一轮（1.4.7 r3）：厂商名保留 + 同厂商多 Key 自选
 
 用户指令：删掉 API 后该厂商音色仍保留厂商名、只换显示样式，编辑与删除照常可用；同一厂商有多个 Key 时多一个「启用」按钮选择用哪个，不同厂商各可启用一个，只有同厂商 ≥2 个 Key 才出现该按钮；添加第二/第三个 Key **只添加不自动应用**。用户同时澄清事实：**Fish 音色 ID 是平台公共的，任何有效 Key 都能跑**——所以音色不应绑死在某一个 Key 上。
 
@@ -104,38 +115,44 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64\runtime\python
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Verify-Source.ps1'
 
 # 发布到独立目录（ZIP 与 Setup 都会先跑出厂包门禁）
-# 用 -r3 目录：用户可能正运行旧目录里的 exe，DLL 被锁会令覆盖发布失败。
+# 每轮用新的 -vX.Y.Z 目录：用户可能正运行旧目录里的 exe，DLL 被锁会令覆盖发布失败。
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Publish.ps1' -Dotnet $sdk `
-    -OutputDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.7-r3' `
-    -ZipPath 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\WeChat-Voice-Bridge-V1.4.7-win-x64.zip'
+    -OutputDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.8' `
+    -ZipPath 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\WeChat-Voice-Bridge-V1.4.8-win-x64.zip'
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Build-Installer.ps1' `
-    -PayloadDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.7-r3'
-# 桌面快捷方式已于 1.4.7 r3 按用户明确指令更新到 r3；之后若还要改，用：
+    -PayloadDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.8'
+# Setup 输出名由 Directory.Build.props 的 <Version> 自动决定：
+# artifacts\WeChat-Voice-Bridge-V1.4.8-Setup.exe
+# 桌面快捷方式刻意保持 1.4.7 r3 不动，让用户能亲自体验一次真实升级；若要改，用：
 # & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Install-DesktopShortcut.ps1' -InstallDirectory '<新目录>'
 # 若目标 ZIP 已存在且位于 OneDrive，覆盖可能触发安全删除拦截：先把旧包改名留档，再生成新包。
 ```
 
-`Publish.ps1` 会复用 `artifacts/build-tools` 里已校验的 Python 3.12.10 NuGet 包与 sqlcipher3/zstandard wheel；`-ZipPath` 可选，本轮未用。
+`Publish.ps1` 会复用 `artifacts/build-tools` 里已校验的 Python 3.12.10 NuGet 包与 sqlcipher3/zstandard wheel；本轮用 `-ZipPath` 指定标准文件名。
 
-## 6. 验证基线（1.4.7 r3 后重跑）
+## 6. 验证基线（1.4.8 后重跑）
 
 - Release 全量构建：**0 警告 0 错误**。
-- `Test.ps1` 全量：**179/179 C# PASS**（141 + `ProviderMigrationTests` 12 + `VoiceLibraryMigrationTests` 14 + `ProviderActivationTests` 12）+ **54/54 Python PASS**（worker 未改，仍复跑确认）。
+- `Test.ps1` 全量：**197/197 C# PASS**（179 基线 + `UpdateHandoffTests` 18）+ **54/54 Python PASS**（41 个需 SQLCipher 运行时的跳过属既有基线；worker 未改，仍复跑确认）。
 - `Verify-Source.ps1`：**PASS**（含禁止服务/音色播种、迁移与孤儿绑定必须存在的全套防复发断言）。
-- **出厂包门禁**：ZIP 与 Setup 打包前各跑一次 `Assert-CleanPayload`，均 `PASS (1619 files, no per-user data, no live API key; 2 local credential(s) compared)`——本机 2 个真实 Key 按明文与 UTF-16 比对零命中。
-- 发布物（**以这一组为准**，r1/r2 与 r3-prelog 哈希均已作废）：ZIP **89,462,225 字节** / SHA-256 `F2F58514A93E63148166845E5CFA982F8056D9EE6ECC29BFDA51784DE408635C`，1621 项；Setup.exe **65,299,128 字节** / SHA-256 `2139EDB3521D6C8A89D4284C891FEEC974A371BBB2C12747AF219A857A21B51E`；无 `.db`/WAL/SHM/`settings.json`/密钥残留。出厂 DLL 含 `ProviderActivation`/`StaysOnStandby`/`UseActiveKey`/`ActivateProviderClick`/`ProviderMissing`，App.dll 仍不含 `VoicePresets`/`LegacyPresetProviderId`。详见 WORKLOG「1.4.7 r3」段。
-- **本轮 UI 静态结构核查**：真实 `MainWindow.xaml` 两个 `DataTemplate` 的所有绑定路径都能在 `LibraryRow`/`ProviderRow` 字段中解析，`DataTemplate.Triggers` 的 `TargetName` 与 `x:Name` 一一对应。⚠️ **运行时隔离 WPF 渲染验证未做**：需要临时编译 .NET 代码，被环境安全策略拦下且未绕过；缺失样式与启用按钮外观请在桌面目视确认。
-- 历史专项：1.4.5 隔离 WPF 工程 7 组自定义提示词场景通过；1.4.6 三态按钮截图确认三色/尺寸/居中。
-- 未做：实机全新安装的界面目视确认、真实跨机器升级（把含 `fish-default` 的旧 `settings.json` 放到另一台 Windows 上跑）、同厂商多 Key 的实机点击；以及此前遗留的头像 CDN 实测、任务栏分组目视、词库焦点实机点击。都需要用户在桌面确认。
-- 本机 `C:\Program Files\dotnet` 曾只剩运行时、无 SDK，已从微软下载 8.0.427 解压到 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk` 用于构建，详见第 5 节。
+- **出厂包门禁**：`Publish.ps1` 与 `Build-Installer.ps1` 各跑一次 `Assert-CleanPayload`，均 `PASS (1619 files, no per-user data, no live API key; 2 local credential(s) compared)`——本机 2 个真实 Key 按明文与 UTF-16 比对零命中。
+- 发布物（**以这一组为准**，1.4.7 各组哈希均已作废且不得再用于发布单）：ZIP `WeChat-Voice-Bridge-V1.4.8-win-x64.zip` **89,464,301 字节** / SHA-256 `A4CA75B3C4F9EECB2D4BADB291161165FE6A7B9107F5343F678736D3E6CCB1C0`，1621 项；Setup.exe **65,302,086 字节** / SHA-256 `A9FB702F06EC212C17E80B5F86FBE042734345769D92B6B68F11AB786FA3128C`；无 `.db`/WAL/SHM/`settings.json`/密钥残留。
+- **产物内容核验**：ZIP 内 `WeChatVoiceBridge.dll` / `VoiceBridge.Core.dll` / `WeChatVoiceBridge.exe` 与发布目录逐字节一致；EXE `ProductVersion=1.4.8+<commit>`、`FileVersion=1.4.8.0`，Setup `ProductVersion=1.4.8`；出厂 DLL 含 `--await-handoff` / `UpdateHandoff` / `ShouldShowMainWindow` / `SignalGo` / `AwaitInstallationConfirmation` 与 1.4.8 版本说明，旧的「新版本已启动，可以关闭此窗口」文案已消失，`VoicePresets`/`LegacyPresetProviderId`/`SyncDefaultFish`/`DefaultFishId` 仍未回流。
+- **静态行为链复核**：握手目录 `%LOCALAPPDATA%\WeChatVoiceBridge\updates` 在 helper 与新版进程间一致；7 参数 `--update-result … --await-handoff <ticket>` 可 round-trip；`FindProcess` 用 PID + 启动时间 ticks 校验；安装窗口「完成」按钮 `Click => Close()` 与叉都汇入 `OnClosing`。⚠️ **跨进程 WPF 窗口隐藏的实机目视验证未做**，需等 1.4.8 上线后由用户点更新实测。
+- 历史专项：1.4.5 隔离 WPF 工程 7 组自定义提示词场景通过；1.4.6 三态按钮截图确认三色/尺寸/居中；1.4.7 r3 的 XAML 绑定与 `DataTemplate.Triggers` 静态结构核查通过。
+- 未做：实机全新安装目视确认、真实跨机器升级（含 `fish-default` 的旧 `settings.json`）、同厂商多 Key 的实机点击；以及此前遗留的头像 CDN 实测、任务栏分组目视、词库焦点实机点击。都需要用户在桌面确认。
+- 本机 `C:\Program Files\dotnet` 曾只剩运行时、无 SDK，已从微软下载 8.0.427 解压到 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk` 用于构建，详见第 5 节。系统 `dotnet` 无 SDK 时，跑 `Test.ps1` / `Publish.ps1` 必须传 `-Dotnet $sdk`。
 
 ## 7. 下一步（按优先级）
 
-2. 用户实机确认头像升级恢复、词库编辑光标、更新窗口任务栏合并三项。**桌面快捷方式已按本轮明确指令指向 r3（1.4.7）**，「留在 1.4.5 体验自升级」的约定已结束；桌面版本高于线上，短期内不会出现更新按钮，若用户仍想体验需另行确认并把快捷方式指回较低版本。
-3. `README.md` 仍偏旧（1.2 文案），需同步 1.4.7 的多人/多 API/多 Key/指南/受审计微信版本说明。
-4. **1.4.7 未上线，且用户明确说「别上线啊，我还没测试呢」**：先让用户实测「服务与音色都为空」「删除 API 后音色保留厂商名且仍可编辑删除」「同厂商多 Key 的启用切换与添加不自动应用」，**等他明确发话才能推线上**。届时沿用既定纪律：先读线上 `latest.json` 确认版本严格大于线上、用本节第 6 段的标准名 ZIP/Setup 与实测哈希、再用 `muse-call.cmd -Type publish-voicebridge` 联系 Muse；不自行上传、不索要凭据、超时只 `-Check`、不重复发单。客户端不出更新按钮只是因为线上仍是 1.4.6，绝不是自行上线的理由。
+1. **发 1.4.8 发布单**：用户已明确授权上线并指定联系 Muse。Muse 在 `codex_20261109_233510_8cda41` 的 `info` 回执里要求「修好 Caddy 403 并公网验证通过后通知我，你再发 1.4.8 全新发布单」。我本地已实测 `GET/HEAD latest.json` 恢复 200，并把 403 恢复 + 1.4.8 两个产物的实测哈希/字节数发过去请求放行；**收到 Muse 的 ok 后**再发唯一一条 `muse-call.cmd -Type publish-voicebridge -Version 1.4.8 -PackagePath ... -Sha256 A4CA75B3… -Notes ...`。不重发 1.4.7、不自行上传、不索要凭据、超时只 `-Check`、不重复发单。
+2. **上线后公网复核**：`GET latest.json` 200 且 `version=1.4.8`，六字段契约不变，`sha256`/`size` 与本节第 6 段本地实算一致，ZIP 与 Setup 的 URL 可访问、哈希一致；若 Muse 回 `error`，先读原因、必要时 `-Check`，不盲目重发。
+3. **用户实机验证新引导窗口**：桌面快捷方式保持 1.4.7 r3，线上 1.4.8 严格大于桌面版 → 客户端出现更新按钮 → 点更新，观察进度到 100% 后**新版主窗口不自动出现**；点「完成」或叉后安装引导消失、新版窗口打开。这是本轮唯一未做实机目视验证的部分。
+4. `README.md` 仍偏旧（1.2 文案），需同步 1.4.7/1.4.8 的多人/多 API/多 Key/指南/受审计微信版本说明。
+5. 其余遗留实机确认：头像升级恢复、词库编辑光标、更新窗口任务栏合并、同厂商多 Key 的实机点击。
+6. 请 Muse 继续查 A1 服务器 22:13:01 UTC 手工翻版的来源；结论记入 WORKLOG，不要来回翻清单。
 
-> 1.4.6 **已上线**（发布单 `codex_20261109_023128_ac2ff2` 的更正回执 `status=ok`；问答单 `codex_20261109_023817_af479a`、`codex_20261109_024644_fd56be` 亦确认生效）。不要再发同版本发布单，版本守卫会拒。完整流水见 `WORKLOG.md` 的 1.4.6 段。
+> 1.4.6 **已上线**（发布单 `codex_20261109_023128_ac2ff2` 的更正回执 `status=ok`；问答单 `codex_20261109_023817_af479a`、`codex_20261109_024644_fd56be` 亦确认生效）。1.4.7 发布单 `codex_20261109_230425_438f4b` 因公网 `public_verify` 403 被拒并回滚，旧包**不再使用**。完整流水见 `WORKLOG.md`。
 
 ## 8. 关键文件地图
 
@@ -151,7 +168,8 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64\runtime\python
 | 会话准入/热移除 | `src/VoiceBridge.Core/SessionController.cs`、`MainWindow.Library.cs`(PublishRouting/RemoveContactClick) |
 | 联系人索引/头像 | `src/VoiceBridge.WeChat/ContactSearchCache.cs`、`src/VoiceBridge.App/AvatarCache.cs`、`MainWindow.ContactIndexing.cs`、`MainWindow.Library.cs` |
 | 微信进程只读 | `worker/audited_wechat_keys.py`、`src/VoiceBridge.WeChat/WeChatSession.cs`、`PythonFixtureSource.cs` |
-| 更新助手 | `src/VoiceBridge.App/UpdateInstallationWindow.cs`、`UpdateProcess.cs`、`MainWindow.Updates.cs` |
+| 更新助手 | `src/VoiceBridge.App/UpdateInstallationWindow.cs`、`UpdateProcess.cs`、`App.xaml.cs`(AwaitInstallationConfirmation)、`MainWindow.Updates.cs`、`src/VoiceBridge.Core/UpdateInstaller.cs` |
+| 更新完成握手（1.4.8） | `src/VoiceBridge.Core/UpdateHandoff.cs`、`tests/VoiceBridge.Tests/UpdateHandoffTests.cs`；`--await-handoff <ticket>`、`ready`/`go` 信号固定写在 `%LOCALAPPDATA%\WeChatVoiceBridge\updates` |
 | 发布/快捷方式 | `scripts/Publish.ps1`、`scripts/Install-DesktopShortcut.ps1` |
 | 出厂服务/音色迁移与门禁 | `src/VoiceBridge.Core/ProviderMigration.cs`、`VoiceLibraryMigration.cs`、`src/VoiceBridge.App/LocalSettings.cs`(Load)、`MainWindow.Library.cs`(InitializeLibrary/EditProvider/RefreshLibrary)、`tests/VoiceBridge.Tests/ProviderMigrationTests.cs`、`VoiceLibraryMigrationTests.cs`、`scripts/Assert-CleanPayload.ps1`、`scripts/Verify-Source.ps1` |
 | 厂商缓存与多 Key 启用 | `src/VoiceBridge.Core/ProviderActivation.cs`、`VoiceLibraryMigration.cs`(CacheVendor/UseActiveKey)、`SpeechProfiles.cs`(ProviderKind)、`MainWindow.Library.cs`(ActivateProviderClick/ActiveProviderFor)、`ProfileEditors.cs`(VoiceEditor 占位编辑)、`tests/VoiceBridge.Tests/ProviderActivationTests.cs` |

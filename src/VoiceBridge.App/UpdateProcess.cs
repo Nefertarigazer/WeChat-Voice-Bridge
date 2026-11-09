@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -67,7 +68,8 @@ internal static class UpdateProcess
             throw new InvalidDataException("更新包内的程序版本与清单不符。");
     }
 
-    internal static int Apply(string[] args, IProgress<InstallationProgress>? progress = null, Action<string>? reportFailure = null)
+    internal static int Apply(string[] args, UpdateHandoff handoff,
+        IProgress<InstallationProgress>? progress = null, Action<string>? reportFailure = null)
     {
         // Five arguments remain compatible with already released clients.
         if ((args.Length != 5 && args.Length != 6) || !int.TryParse(args[1], out var parentId) ||
@@ -118,13 +120,16 @@ internal static class UpdateProcess
 
             var confirmed = false;
             UpdateInstaller.Apply(stage, installation, DirectoryPath, oldVersion,
-                exe => confirmed = Restart(exe, stage, "installed"), progress);
+                exe => confirmed = Restart(exe, stage, "installed", handoff), progress);
             if (!confirmed)
             {
-                reportFailure?.Invoke("新版本文件已安装，但暂未确认窗口成功打开。请检查任务栏；若未打开，可手动启动微信语音桥。更新包和备份已保留。");
+                // Do not release the restarted build here. Even on this degraded
+                // path the new window must wait until the user dismisses the
+                // installation window, which writes the "go" signal on close.
+                reportFailure?.Invoke("新版本文件已安装，但暂未确认启动成功。点「关闭」后会打开新版本；若仍未出现，请检查任务栏或手动启动微信语音桥。更新包和备份已保留。");
                 return 4;
             }
-            progress?.Report(new("更新完成，新版本已启动", 100));
+            progress?.Report(new("更新完成，等待确认后打开新版本", 100));
             return 0;
         }
         catch (AggregateException error)
@@ -167,9 +172,25 @@ internal static class UpdateProcess
         catch (Exception) { /* The parent also detects early exit and startup timeout. */ }
     }
 
+    /// <summary>True while the installation helper process that launched this build is still alive.</summary>
+    internal static bool HelperStillRunning(string[] args)
+    {
+        if (args.Length < 4 || args[0] != "--update-result" || !int.TryParse(args[2], out var helperId))
+            return false;
+        try
+        {
+            using var helper = FindProcess(helperId, args[3]);
+            return helper is not null && !helper.HasExited;
+        }
+        catch (Exception) { return false; }
+    }
+
     internal static string? ReadRestartNotice(string[] args)
     {
-        if (args.Length != 5 || args[0] != "--update-result" || !int.TryParse(args[2], out var helperId))
+        // Five arguments come from an older helper; seven carry the extra
+        // --await-handoff <ticket> pair used by this build.
+        if ((args.Length != 5 && args.Length != 7) || args[0] != "--update-result" ||
+            !int.TryParse(args[2], out var helperId))
             return null;
 
         var stage = Path.Combine(DirectoryPath, args[1]);
@@ -192,24 +213,36 @@ internal static class UpdateProcess
             : "更新未完成，已重新打开原版本。请检查程序目录权限后重试。";
     }
 
-    private static bool Restart(string exe, string stage, string result)
+    private static bool Restart(string exe, string stage, string result, UpdateHandoff? handoff = null)
     {
         using var helper = Process.GetCurrentProcess();
-        using var process = Launch(exe, Path.GetDirectoryName(exe)!, "--update-result", Path.GetFileName(stage),
-            helper.Id.ToString(CultureInfo.InvariantCulture), ProcessStamp(helper), result);
+        var args = new List<string> { "--update-result", Path.GetFileName(stage),
+            helper.Id.ToString(CultureInfo.InvariantCulture), ProcessStamp(helper), result };
+        // Only a successful install is asked to wait. A rolled-back original build
+        // knows nothing about the handshake and must start normally.
+        if (result == "installed" && handoff is not null)
+            args.AddRange(handoff.LaunchArguments);
+        using var process = Launch(exe, Path.GetDirectoryName(exe)!, args.ToArray());
         if (result != "installed")
             return true;
 
-        // Detect a failed load before committing the update. If the new process is
-        // still alive at the deadline, leave its files in place instead of killing it.
+        // Detect a failed load before committing the update. The restarted build
+        // signals readiness once its main window has been constructed, but does NOT
+        // show it until the user dismisses the installation window. If it never
+        // becomes ready we leave its files in place instead of killing it.
         var started = Stopwatch.StartNew();
         while (started.Elapsed < TimeSpan.FromSeconds(15))
         {
             if (process.WaitForExit(100))
                 throw new IOException("新版程序未能启动。");
-            process.Refresh();
-            if (process.MainWindowHandle != IntPtr.Zero)
+            if (handoff is not null && handoff.IsReady())
                 return true;
+            if (handoff is null)
+            {
+                process.Refresh();
+                if (process.MainWindowHandle != IntPtr.Zero)
+                    return true;
+            }
         }
         return false;
     }

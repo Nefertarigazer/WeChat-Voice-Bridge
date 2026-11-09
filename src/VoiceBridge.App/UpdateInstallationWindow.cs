@@ -17,13 +17,14 @@ internal sealed class UpdateInstallationWindow : Window
 {
     private readonly TextBlock heading = new() { Text = "正在安装更新", FontSize = 22, FontWeight = FontWeights.SemiBold };
     private readonly TextBlock stage = new() { Text = "正在准备更新…", Margin = new(0,20,0,8) };
-    private readonly TextBlock detail = new() { Text = "更新期间请勿关闭电脑。完成后会自动打开新版。", Margin = new(0,12,0,0) };
+    private readonly TextBlock detail = new() { Text = "更新期间请勿关闭电脑。安装完成后，点「完成」或关闭本窗口才会打开新版本。", Margin = new(0,12,0,0) };
     private readonly TextBlock elapsed = new() { Margin = new(0,8,0,0), FontSize = 12 };
     private readonly ProgressBar bar = new() { Height = 7, Maximum = 100, IsIndeterminate = true };
     private readonly Button close;
     private readonly Button files;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly Stopwatch clock = Stopwatch.StartNew();
+    private readonly UpdateHandoff handoff = UpdateHandoff.Create(UpdateProcess.DirectoryPath);
     private bool busy = true;
 
     public UpdateInstallationWindow()
@@ -53,6 +54,12 @@ internal sealed class UpdateInstallationWindow : Window
     protected override void OnClosing(CancelEventArgs e)
     {
         if (busy) { e.Cancel = true; detail.Text = "更新正在进行，请等待当前操作完成。"; }
+        else
+        {
+            // Both the "完成" button and the window close cross land here. Only now
+            // is the restarted build allowed to show its main window.
+            try { handoff.SignalGo(); } catch (Exception) { }
+        }
         base.OnClosing(e);
     }
 
@@ -69,7 +76,7 @@ internal sealed class UpdateInstallationWindow : Window
             TaskbarItemInfo.ProgressValue = value.Percent / 100d;
         });
         int result;
-        try { result = await Task.Run(() => UpdateProcess.Apply(args, progress, message => error = message)); }
+        try { result = await Task.Run(() => UpdateProcess.Apply(args, handoff, progress, message => error = message)); }
         catch (Exception exception) { result = 3; error = "更新助手遇到异常：" + exception.Message; }
         busy = false; timer.Stop();
         elapsed.Text = $"已用时 {clock.Elapsed.Minutes:00}:{clock.Elapsed.Seconds:00}";
@@ -79,7 +86,8 @@ internal sealed class UpdateInstallationWindow : Window
         {
             heading.Text = "更新完成";
             stage.Text = $"已更新到 v{UpdateProcess.CurrentVersion}"; bar.Value = 100;
-            detail.Text = "新版本已启动，可以关闭此窗口。";
+            detail.Text = "点「完成」或关闭本窗口后，才会打开新版本。";
+            close.Content = "完成";
             TaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
         }
         else

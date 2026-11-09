@@ -4,6 +4,54 @@
 
 ---
 
+## 1.4.8 · 2026-11-09（更新完成后由用户决定何时打开新版）
+
+用户先解除上线闸门：「检查一遍没有问题之后，推到线上去就好。仔细测试一遍，没有问题之后，推到线上去就好了。要去联系 muse推新版本哈」。随后补报一个更新引导窗口的 bug：**「更新有那个安装引导进度条然后到百分百就可以点确定，要改成就是如果点确定或者叉，才会开始弹出新更新的应用页面然后这个安装引导的界面消失……不点确定，不会自己弹出来新更新的应用界面」**，并要求「你看现在是不是这样 不是的话优化成这个样」；沟通由我代劳：「你跟 muse 沟通就好」。
+
+**核对结论：原行为确实不符合要求**。`UpdateInstaller.Apply()` 在文件替换完成、进度 95% 时无条件调用 `restart(exe)`；`UpdateProcess.Restart()` 启动新版进程并以 `MainWindowHandle != IntPtr.Zero` 作为「启动确认成功」的判据，于是新版主窗口在用户点「完成」之前就自己弹出；窗口文案还写着「完成后会自动打开新版」「新版本已启动，可以关闭此窗口」。
+
+### 设计取舍
+
+不能直接把 `restart(exe)` 删掉：它同时承担「新版程序确实加载成功才提交更新，加载失败恢复旧版本并保留备份」的保护。因此把**启动确认**与**显示窗口**解耦：新版进程照常启动、但只写 `ready` 信号并保持主窗口隐藏；安装引导窗口在用户点「完成」或右上角叉触发 `OnClosing` 时写 `go`；新版进程轮询到 `go`（或 helper 进程异常消失的兜底）才显示主窗口并清理信号。回滚路径仍用不带 handshake 的旧启动方式，老客户端 5 参数 `--update-result` 行为不变。
+
+### 改动清单
+
+| 文件 | 改动 |
+| --- | --- |
+| `src/VoiceBridge.Core/UpdateHandoff.cs`（**新建**） | 跨进程握手协议：`--await-handoff <ticket>`、`LaunchArguments`、ticket 只允许 32 位 Guid `N` 格式（不能逃逸 updates 目录）、`SignalReady()` / `SignalGo()` / `IsReady()` / `IsGo()` / `ShouldShowMainWindow() => IsGo()` / `Cleanup()`；信号用 `.tmp` + `File.Move(overwrite)` 原子写，路径固定在 `%LOCALAPPDATA%\WeChatVoiceBridge\updates`，helper 与新版进程共用 |
+| `src/VoiceBridge.App/UpdateProcess.cs` | `Apply(string[] args, UpdateHandoff handoff, ...)` 增加握手参数；`Restart(..., UpdateHandoff? handoff = null)` 成功安装时附加 `--await-handoff <ticket>`，改以 `handoff.IsReady()` 判定启动成功，失败回滚仍用 `MainWindowHandle` 老判据；`ReadRestartNotice` 兼容 5 与 7 参数；新增 `HelperStillRunning(args)` 供 helper 消失兜底；100% 文案改「更新完成，等待确认后打开新版本」，未确认路径不再 `SignalGo()` |
+| `src/VoiceBridge.App/App.xaml.cs` | 主窗口创建后若发现 handshake 则走 `AwaitInstallationConfirmation()`：`ShutdownMode.OnExplicitShutdown`、`SignalReady()`、120ms `DispatcherTimer` 轮询 `go` 或 helper 退出，再 `RestoreAndShow()` 恢复 ShutdownMode / 清理信号 / `Show()` + `Activate()`；`SingleInstance` 二次启动激活回调在等待期直接 return，防止绕过隐藏；握手写失败等异常一律兜底显示，不让应用永久不可见 |
+| `src/VoiceBridge.App/UpdateInstallationWindow.cs` | 新增 `handoff = UpdateHandoff.Create(UpdateProcess.DirectoryPath)`；`OnClosing` 在安装忙时照旧阻止关闭，完成后（点「完成」或叉）写 `go`；初始与成功文案改为「点「完成」或关闭本窗口后才会打开新版本」，成功时按钮显示「完成」；`InstallAsync` 把 handshake 传入 `UpdateProcess.Apply` |
+| `tests/VoiceBridge.Tests/UpdateHandoffTests.cs`（**新建**） | 18 例：初始无 `ready`/`go`、`ready` 后仍 `ShouldShowMainWindow()==false`、`go` 后才允许显示、`LaunchArguments` round-trip、老 5 参数无握手、非法 ticket 不创建、ticket 唯一且不能逃逸、`Cleanup()` 只清自己的信号、信号幂等不留 `.tmp`、空目录抛 `ArgumentException` |
+| `Directory.Build.props` | `1.4.7` → `1.4.8`（Muse 建议旧包不再复用、另起版本号，已采纳） |
+| `src/VoiceBridge.App/ReleaseHistory.cs` | 新增 1.4.8 条目（4 条），说明 100% 后不自动弹出、必须由用户确认、保留启动确认与失败回滚 |
+
+### 验证（版本改动后重跑）
+
+- Release 全量构建 **0 警告 0 错误**；`Test.ps1` **197/197 C# PASS** + **54/54 Python PASS**（41 个需 SQLCipher 运行时的跳过属既有基线）。
+- `Verify-Source.ps1` **PASS**；`Publish.ps1` 与 `Build-Installer.ps1` 出厂门禁各一次，均 `PASS (1619 files, no per-user data, no live API key; 2 local credential(s) compared)`。
+- 产物内容：ZIP 1621 项，`WeChatVoiceBridge.dll` / `VoiceBridge.Core.dll` / `WeChatVoiceBridge.exe` 与发布目录逐字节一致；EXE `ProductVersion=1.4.8+<commit>`、`FileVersion=1.4.8.0`、Setup `ProductVersion=1.4.8`；出厂 DLL 含 `--await-handoff` / `UpdateHandoff` / `ShouldShowMainWindow` / `SignalGo` / 1.4.8 版本说明，旧的「新版本已启动，可以关闭此窗口」文案已消失，`VoicePresets` / `SyncDefaultFish` 等禁用符号仍未回流。
+- 静态行为链复核：握手目录固定（helper 与新版进程一致）、7 参数命令行可 round-trip、`FindProcess` 用 PID + 启动时间 ticks 校验、安装窗口中「完成」按钮 `Click => Close()` 与叉都汇入 `OnClosing`。⚠️ **跨进程 WPF 实机窗口隐藏未做目视验证**：需要真实跑一次升级，等 1.4.8 上线后由用户点更新实测（桌面快捷方式刻意保持 1.4.7，使线上版本严格大于桌面版本）。
+
+### 产物（本地实算，供 1.4.8 发布单）
+
+| 文件 | 字节 | SHA-256 |
+| --- | --- | --- |
+| `artifacts\WeChat-Voice-Bridge-V1.4.8-win-x64.zip` | 89,464,301 | `A4CA75B3C4F9EECB2D4BADB291161165FE6A7B9107F5343F678736D3E6CCB1C0` |
+| `artifacts\WeChat-Voice-Bridge-V1.4.8-Setup.exe` | 65,302,086 | `A9FB702F06EC212C17E80B5F86FBE042734345769D92B6B68F11AB786FA3128C` |
+
+发布目录 `artifacts\win-x64-v1.4.8`，r3 的 1.4.7 产物保留不删。
+
+### 发布状态与 Muse 沟通（工程记录）
+
+- 1.4.7 发布单 `codex_20261109_230425_438f4b` 正式回执为 `error`：`publish-voicebridge 1.4.7 REFUSED at public_verify`，公网清单 `GET` 连续 3 次 403（Caddy），流水线把清单回滚到 1.4.6 并声明未发布任何文件。不盲目重发。
+- 暂缓通知 `codex_20261109_231021_676940` 最终 `ok`：旧包不再上传、不再翻清单；同时揭示 A1 服务器上 22:13:01 UTC 有一次**流水线之外的手工翻版**，服务器 `latest.json` 当时是 1.4.7 旧包。已明确回复 Muse：手工翻版不是我做的，我没有 A1 登录或 sudo 能力，请他以 A1 侧日志与文件时间为准继续查。
+- 策略消息 `codex_20261109_233510_8cda41` 回执 `info`：Muse 确认①查手工翻版来源 ②清单保持现状等 1.4.8 覆盖 ③采纳 1.4.8、桌面保持 1.4.7 ④正在修 Caddy 403 ⑤**修好并公网验证通过后通知我，再发全新 1.4.8 发布单**。
+- 22:4x UTC 我本地实测 `GET/HEAD latest.json` 已恢复 **200**，但内容仍是那份手工翻版 1.4.7（version=1.4.7 / publishedAt=2026-11-09T22:20:00Z / sha256=f2f58514… / size=89462225）。已再发消息 `wvb-muse-148-ready.txt` 告知 403 恢复、附上 1.4.8 两个产物的实测哈希与字节数，请 Muse 放行；**未自行上传、未绕过 Muse 通道、未重发 1.4.7**。
+- 桌面快捷方式保持 1.4.7 r3 不动，目的就是让线上 1.4.8 严格大于桌面版本，用户能亲自点一次更新、目视确认新的引导窗口行为。
+
+---
+
 ## 1.4.7 r3 · 2026-11-09（删 API 后保留厂商名换样式 + 同厂商多 Key 自选启用）
 
 > 仍在同一未发布版本号 1.4.7 上迭代；**线上仍是 1.4.6，本轮未上线、未联系 Muse**。上一节的 r2 产物哈希作废，以本节为准。本轮按用户明确指令**更新了桌面快捷方式**（指向 r3），此前「留在 1.4.5 体验自升级」的约定就此结束。

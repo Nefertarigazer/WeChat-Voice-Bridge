@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using VoiceBridge.Core;
@@ -13,6 +14,8 @@ public partial class App : Application
 {
     private IHost? host;
     private SingleInstance? instance;
+    private DispatcherTimer? handoffTimer;
+    private bool waitingForHandoff;
     private const string AppUserModelId = "WeChatVoiceBridge";
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
@@ -37,6 +40,9 @@ public partial class App : Application
         }
         instance = SingleInstance.TryEnter(() => Dispatcher.BeginInvoke(new Action(() =>
         {
+            // While the installation window is still waiting for the user, a
+            // second launch must not reveal the new main window either.
+            if (waitingForHandoff) return;
             if (MainWindow is not { } window) return;
             window.Show(); window.WindowState = WindowState.Normal; window.Activate();
         })));
@@ -55,7 +61,11 @@ public partial class App : Application
         host.Start();
         MainWindow = new MainWindow(host.Services.GetRequiredService<HttpClient>(), updateNotice);
         MainWindow.ContentRendered += ShowReleaseNotes;
-        MainWindow.Show();
+        var handoff = UpdateHandoff.FromArguments(UpdateProcess.DirectoryPath, e.Args);
+        if (handoff is null)
+            MainWindow.Show();
+        else
+            AwaitInstallationConfirmation(handoff, e.Args);
 
         void ShowReleaseNotes(object? sender, EventArgs args)
         {
@@ -73,6 +83,46 @@ public partial class App : Application
             {
                 // The optional notice must not prevent the main application from opening.
             }
+        }
+    }
+
+    /// <summary>
+    /// The updated build has finished loading but must stay invisible until the user
+    /// dismisses the installation window. Signalling readiness first keeps the
+    /// installer's "did the new build start?" check (and its rollback on failure).
+    /// </summary>
+    private void AwaitInstallationConfirmation(UpdateHandoff handoff, string[] args)
+    {
+        waitingForHandoff = true;
+        var previousShutdownMode = ShutdownMode;
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        try { handoff.SignalReady(); }
+        catch (Exception)
+        {
+            // A broken handshake must never leave the app invisible.
+            RestoreAndShow();
+            return;
+        }
+
+        handoffTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
+        handoffTimer.Tick += (_, _) =>
+        {
+            // "go" is written when the user clicks 完成 or closes the helper window.
+            // If the helper vanished without confirming (crash / force kill), showing
+            // the new build is still the safe outcome.
+            if (!handoff.ShouldShowMainWindow() && UpdateProcess.HelperStillRunning(args)) return;
+            handoffTimer!.Stop();
+            RestoreAndShow();
+        };
+        handoffTimer.Start();
+
+        void RestoreAndShow()
+        {
+            waitingForHandoff = false;
+            ShutdownMode = previousShutdownMode;
+            try { handoff.Cleanup(); } catch (Exception) { }
+            MainWindow?.Show();
+            MainWindow?.Activate();
         }
     }
 
