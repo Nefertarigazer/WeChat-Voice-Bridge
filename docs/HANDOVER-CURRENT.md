@@ -5,17 +5,29 @@
 
 ## 1. 一句话现状
 
-源码停在 **1.4.7**（`Directory.Build.props` 是版本唯一来源）：本轮取消出厂自带的「默认 API」，全新安装服务列表为空、老配置升级自动摘除内置连接。**线上仍是 1.4.6**；1.4.7 的 ZIP / Setup.exe 只在本地生成验证，**尚未上线、未联系 Muse**（本轮用户没有要求发布，不要自行上传或发单）。
+源码停在 **1.4.7**（`Directory.Build.props` 是版本唯一来源）：全新安装**不预置任何 API 服务、密钥与音色**，服务与音色两个列表都为空；老配置升级自动摘除出厂连接与出厂音色；用户补上 API 后，原本无归属的音色自动变为可用。**线上仍是 1.4.6**；1.4.7 的 ZIP / Setup.exe 只在本地生成验证，**尚未上线、未联系 Muse**。
+
+⚠️ **上线闸门（用户 2026-11-09 明确）**：任何推线上 / 发单必须等用户本人实测通过并明确发话；不得因为「客户端没出现更新按钮」或「本地包已构建好」就自行上线。用户说「别上线」时立即停手，只做只读确认。此前已因误判要上线而被用户当场叫停，发布任务已撤销。
 
 ⚠️ **桌面快捷方式刻意保持在 `artifacts/win-x64-v1.4.5`，不要改**：用户要亲自从桌面端体验「检查更新 → 下载 → 重启安装」的完整自升级流程。任何后续构建都不要调用 `Install-DesktopShortcut.ps1`，除非用户明确要求。
 
-## 2.0 最新一轮（1.4.7）：取消出厂自带默认 API
+## 2.0 最新一轮（1.4.7 修订）：不预置服务与音色
 
-用户要求：全新安装一条 API 服务都不种、任何条目都可删；老用户自建服务与钥匙原样保留、内置默认 API 自动删掉；出厂包不得含真实 API 钥匙；**预置音色本次不动**。
+用户改主意：内置音色也清空、无内置音色、只保留用户新添加的；并要求「api 添加进来，对应的音色就不要显示无 api 了，而是变成可用的状态」。
+
+**「无 API」的由来**：首轮 1.4.7 摘掉了出厂 `fish-default` 服务，却按当时要求保留了 4 个预置音色 +「此前使用的音色」的播种，它们的 `ProviderId` 仍指向已不存在的服务，于是音色库显示「服务已删除 / 服务不可用」、首页选音色提示「尚未配置的 API」。
+
+**改动**：删掉 `InitializeLibrary()` 的整段预置音色播种、`LegacyPresetProviderId` 常量、`MainWindow.xaml.cs` 的 `VoicePresets` 四个内置音色。新增 `src/VoiceBridge.Core/VoiceLibraryMigration.cs`：`IsFactoryVoice()` 双条件精确识别（`ProviderId` 精确为出厂 Id **且** `Id` 以 `fish-` 开头，用户改绑过的保留）、`RemoveFactoryVoices()`、`CleanContactReferences()` / `CleanTestVoiceReference()`、`BindOrphanVoices()`。`LocalSettings.Load()` 接入音色迁移并清理悬空引用；`EditProvider()` 新增服务后把孤儿音色自动关联到新服务；文案统一为「未关联服务 / 尚未关联可用的 API」。DPAPI 凭据库仍不读不写不删。
+
+**产物目录注意**：用户当时正在运行 `artifacts\win-x64-v1.4.7\WeChatVoiceBridge.exe`，DLL 被锁，覆盖发布失败且未强杀进程。本轮发布在 **`artifacts\win-x64-v1.4.7-r2`**，ZIP / Setup 仍用标准文件名；旧 Setup 改名保留为 `...-r1-Setup.exe`。要测新版请用 r2 目录或重新解压的新 ZIP，**不要继续用 `win-x64-v1.4.7` 旧目录**。完整交代与哈希见 WORKLOG「1.4.7 修订」段。
+
+## 2.0b 同一版首轮（1.4.7）：取消出厂自带默认 API
+
+用户当时要求：全新安装一条 API 服务都不种、任何条目都可删；老用户自建服务与钥匙原样保留、内置默认 API 自动删掉；出厂包不得含真实 API 钥匙；**预置音色本次不动**（该条已被上一节的修订推翻）。
 
 **根因**：不是源码里硬编码了钥匙（源码/git 历史/1.4.6 的 ZIP 与 Setup.exe 都没有明文真实 Key），而是 `MainWindow.Library.cs` 每次启动补种固定 `Id="fish-default"` 的连接，`SyncDefaultFish()` 把本机 DPAPI 凭据库里当前选中的凭据名写回它，`DeleteProviderClick()` 又禁止删它。开发机 `settings.json` 实测即 `fish-default → CredentialId=speech-fish-default`。
 
-**摘除**：删掉 `InitializeLibrary()` 的 `providers.Insert(0, ...)` 播种、删掉 `SyncDefaultFish()`、删掉删除特判与「默认连接」标签；`StoreProvider()` 去掉联动隐藏控件的 `applyingProvider`；XAML 的「默认 Fish 服务/密钥」改中性文案并说明「软件不预置任何服务或密钥」。预置音色播种保留，常量改名 `LegacyPresetProviderId`，只作旧音色归属标记。
+**摘除**：删掉 `InitializeLibrary()` 的 `providers.Insert(0, ...)` 播种、删掉 `SyncDefaultFish()`、删掉删除特判与「默认连接」标签；`StoreProvider()` 去掉联动隐藏控件的 `applyingProvider`；XAML 的「默认 Fish 服务/密钥」改中性文案并说明「软件不预置任何服务或密钥」。预置音色播种当时保留、常量改名 `LegacyPresetProviderId`（**该状态已在 2.0 修订中删除**）。
 
 **迁移**：新增 `src/VoiceBridge.Core/ProviderMigration.cs`，`LocalSettings.Load()` 读盘后无条件 `RemoveFactoryDefault()`，只按 Ordinal 全等摘 `fish-default`，用户服务连同 `CredentialId` 原样保留、顺序不变；发现过出厂条目就立刻 `Save()` 把 `settings.json` 写干净；**不读不写不删 DPAPI 凭据库**。`InitializeLibrary()` 再过滤一次做双保险。
 
@@ -63,7 +75,7 @@
 - 微信受审计支持版本仅 `4.2.0.13`（`WeChatSession.SupportedVersion`），不要擅自放宽。只读访问也不保证符合微信平台规范或账号安全。
 - 始终手动开始、初始 IDLE，结束取消整条链路；不自动恢复监听。
 - 用户配置与 DPAPI 密钥在 `%LOCALAPPDATA%\WeChatVoiceBridge`，不进发布包；不删用户数据库、录音、配置。
-- **不得重新引入任何出厂预置 API 服务、不可删条目或内置密钥**：全新安装的「语音服务」列表必须为空。`scripts/Verify-Source.ps1` 会拦截再次播种（`providers.Insert(` / `SyncDefaultFish` / `DefaultFishId`）、迁移缺失、以及 `fish-default` 字面量扩散；`scripts/Assert-CleanPayload.ps1` 会在 ZIP / Setup 打包前拦下个人配置与真实 API Key。
+- **不得重新引入任何出厂预置 API 服务、出厂音色、不可删条目或内置密钥**：全新安装的「语音服务」与「我的音色」两个列表都必须为空。`scripts/Verify-Source.ps1` 会拦截再次播种（`providers.Insert(` / `SyncDefaultFish` / `DefaultFishId` / `VoicePresets` / `LegacyPresetProviderId`）、迁移或孤儿绑定缺失、以及 `fish-default` 字面量扩散；`scripts/Assert-CleanPayload.ps1` 会在 ZIP / Setup 打包前拦下个人配置与真实 API Key。
 - 发布上线需用户授权；固定 feed `https://iceland.de5.net/voice-bridge/latest.json`，六字段契约不变。本地打包 ≠ 上线。
 - 用户重视先交付可用版本，别为了完善程度做无关扩展或反复跑长测试。
 
@@ -82,23 +94,25 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64\runtime\python
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Verify-Source.ps1'
 
 # 发布到独立目录（ZIP 与 Setup 都会先跑出厂包门禁）
+# 用 -r2 目录：用户可能正运行 win-x64-v1.4.7 里的 exe，DLL 被锁会令覆盖发布失败。
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Publish.ps1' -Dotnet $sdk `
-    -OutputDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.7' `
+    -OutputDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.7-r2' `
     -ZipPath 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\WeChat-Voice-Bridge-V1.4.7-win-x64.zip'
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Build-Installer.ps1' `
-    -PayloadDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.7'
+    -PayloadDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.7-r2'
 # 不要运行 Install-DesktopShortcut.ps1：用户要保留桌面 1.4.5 以体验自升级。
+# 若目标 ZIP 已存在且位于 OneDrive，覆盖可能触发安全删除拦截：先把旧包改名留档，再生成新包。
 ```
 
 `Publish.ps1` 会复用 `artifacts/build-tools` 里已校验的 Python 3.12.10 NuGet 包与 sqlcipher3/zstandard wheel；`-ZipPath` 可选，本轮未用。
 
-## 6. 验证基线（1.4.7 本轮）
+## 6. 验证基线（1.4.7 修订后重跑）
 
 - Release 全量构建：**0 警告 0 错误**。
-- `Test.ps1` 全量：**153/153 C# PASS**（141 + `ProviderMigrationTests` 12）+ **54/54 Python PASS**（worker 未改，仍复跑确认）。
-- `Verify-Source.ps1`：**PASS**（含 1.4.7 新增的三条防复发断言）。
-- **出厂包门禁**：ZIP 与 Setup 打包前各跑一次 `Assert-CleanPayload`，均 `PASS (1619 files, ...; 2 local credential(s) compared)`——本机 2 个真实 Key 按明文与 UTF-16 比对零命中。
-- 发布物：ZIP 89,456,803 字节 / SHA-256 `908AC12B7767BC11930787F96C73886BB3C009EA0C992C92E246FFE05035F66A`，1621 项；Setup.exe 65,297,495 字节 / SHA-256 `3F0927711AC2FE53F2174F7D7C63F905C1B23E1015FD7B1094ECE5F41DD76263`；exe/dll `ProductVersion=1.4.7`；无 `.db`/WAL/SHM/`settings.json`/密钥残留。二进制符号核查见 WORKLOG 1.4.7 段。
+- `Test.ps1` 全量：**167/167 C# PASS**（141 + `ProviderMigrationTests` 12 + `VoiceLibraryMigrationTests` 14）+ **54/54 Python PASS**（worker 未改，仍复跑确认）。
+- `Verify-Source.ps1`：**PASS**（含禁止服务/音色播种、迁移与孤儿绑定必须存在的全套防复发断言）。
+- **出厂包门禁**：ZIP 与 Setup 打包前各跑一次 `Assert-CleanPayload`，均 `PASS (1619 files, no per-user data, no live API key; 2 local credential(s) compared)`——本机 2 个真实 Key 按明文与 UTF-16 比对零命中。
+- 发布物（**以这一组为准**，首轮哈希已作废）：ZIP **89,457,459 字节** / SHA-256 `116BB5C052852FBA961E4B2219EB9C73C56C62FC4CED81D7F347ACC00278C1E0`，1621 项；Setup.exe **65,298,145 字节** / SHA-256 `5D711DC6E9F043AFEE37A160CCE14ED4CFBA3D6C0D9B39C9546D034FF6C5B7AD`；exe/dll `ProductVersion=1.4.7`；无 `.db`/WAL/SHM/`settings.json`/密钥残留。Core.dll 含 `VoiceLibraryMigration`，App.dll 已不含 `VoicePresets`/`LegacyPresetProviderId`。详见 WORKLOG「1.4.7 修订」段。
 - 历史专项：1.4.5 隔离 WPF 工程 7 组自定义提示词场景通过；1.4.6 三态按钮截图确认三色/尺寸/居中。
 - 未做：实机全新安装的界面目视确认、真实跨机器升级（把含 `fish-default` 的旧 `settings.json` 放到另一台 Windows 上跑）；以及此前遗留的头像 CDN 实测、任务栏分组目视、词库焦点实机点击。都需要用户在桌面确认。
 - 本机 `C:\Program Files\dotnet` 曾只剩运行时、无 SDK，已从微软下载 8.0.427 解压到 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk` 用于构建，详见第 5 节。
@@ -107,7 +121,7 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64\runtime\python
 
 2. 用户实机确认头像升级恢复、词库编辑光标、更新窗口任务栏合并三项；并在桌面端 1.4.5 亲自走完「检查更新 → 下载 → 重启安装」升级到 1.4.6（**不要替他更新桌面快捷方式**）。
 3. `README.md` 仍偏旧（1.2 文案），需同步 1.4.6 的多人/多 API/指南/受审计微信版本说明。
-4. **1.4.7 未上线**：用户本轮只要求改机制与交付报告，没有要求发布。若之后要推线上，须等明确指令，并沿用既定纪律：先读线上 `latest.json` 确认版本严格大于线上、生成 ZIP + Setup.exe、实算 ZIP SHA-256 与字节数、再用 `muse-call.cmd -Type publish-voicebridge` 联系 Muse；不自行上传、不索要凭据、超时只 `-Check`、不重复发单。
+4. **1.4.7 未上线，且用户明确说「别上线啊，我还没测试呢」**：先让用户实测「服务与音色都为空」「添加 API 后音色自动可用」，**等他明确发话才能推线上**。届时沿用既定纪律：先读线上 `latest.json` 确认版本严格大于线上、用本节第 6 段的标准名 ZIP/Setup 与实测哈希、再用 `muse-call.cmd -Type publish-voicebridge` 联系 Muse；不自行上传、不索要凭据、超时只 `-Check`、不重复发单。客户端不出更新按钮只是因为线上仍是 1.4.6，绝不是自行上线的理由。
 
 > 1.4.6 **已上线**（发布单 `codex_20261109_023128_ac2ff2` 的更正回执 `status=ok`；问答单 `codex_20261109_023817_af479a`、`codex_20261109_024644_fd56be` 亦确认生效）。不要再发同版本发布单，版本守卫会拒。完整流水见 `WORKLOG.md` 的 1.4.6 段。
 
@@ -127,4 +141,4 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64\runtime\python
 | 微信进程只读 | `worker/audited_wechat_keys.py`、`src/VoiceBridge.WeChat/WeChatSession.cs`、`PythonFixtureSource.cs` |
 | 更新助手 | `src/VoiceBridge.App/UpdateInstallationWindow.cs`、`UpdateProcess.cs`、`MainWindow.Updates.cs` |
 | 发布/快捷方式 | `scripts/Publish.ps1`、`scripts/Install-DesktopShortcut.ps1` |
-| 出厂服务迁移与门禁 | `src/VoiceBridge.Core/ProviderMigration.cs`、`src/VoiceBridge.App/LocalSettings.cs`(Load)、`tests/VoiceBridge.Tests/ProviderMigrationTests.cs`、`scripts/Assert-CleanPayload.ps1` |
+| 出厂服务/音色迁移与门禁 | `src/VoiceBridge.Core/ProviderMigration.cs`、`VoiceLibraryMigration.cs`、`src/VoiceBridge.App/LocalSettings.cs`(Load)、`MainWindow.Library.cs`(InitializeLibrary/EditProvider/RefreshLibrary)、`tests/VoiceBridge.Tests/ProviderMigrationTests.cs`、`VoiceLibraryMigrationTests.cs`、`scripts/Assert-CleanPayload.ps1`、`scripts/Verify-Source.ps1` |

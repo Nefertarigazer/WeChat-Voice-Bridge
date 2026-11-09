@@ -76,22 +76,30 @@ internal sealed record LocalSettings
             .Concat((settings.Lexicon ?? new List<WordEntry>())
                 .Select(word => new ReadingRule(word.Word, word.Say, true) { Scope = "both" }))
             .ToList();
-        // Builds before 1.4.7 seeded one undeletable factory Fish connection. Drop it
-        // from upgraded settings at read time; every service the user added is kept.
+        // Builds before 1.4.7 seeded one undeletable factory Fish connection and a
+        // handful of preset voices that pointed at it. Drop both kinds of factory
+        // data at read time; every service and voice the user added is kept.
         var providers = ProviderMigration.RemoveFactoryDefault(settings.Providers, out var removedFactoryDefault);
+        var voices = VoiceLibraryMigration.RemoveFactoryVoices(settings.VoiceLibrary, out var removedVoiceIds);
+        var contacts = VoiceLibraryMigration.CleanContactReferences(settings.ContactProfiles, removedVoiceIds);
+        var testVoice = VoiceLibraryMigration.CleanTestVoiceReference(settings.TestVoiceProfileId, removedVoiceIds);
         var migrated = settings with
         {
             Rules = rules,
             Lexicon = new List<WordEntry>(),
             CacheLimitBytes = settings.CacheLimitBytes > 0 ? settings.CacheLimitBytes : CacheLimits.DefaultBytes,
-            Providers = providers
+            Providers = providers,
+            VoiceLibrary = voices,
+            ContactProfiles = contacts,
+            TestVoiceProfileId = testVoice
         };
-        // Persist the removal once, so an upgraded settings.json no longer carries the
-        // factory entry. A failed write must never lose the user's other settings.
-        if (removedFactoryDefault)
+        // Persist the cleanup once, so an upgraded settings.json no longer carries
+        // factory entries or references to them. A failed write must never lose the
+        // user's other settings.
+        if (removedFactoryDefault || removedVoiceIds.Count > 0)
         {
             try { migrated.Save(); }
-            catch (Exception) { /* The in-memory list is already clean; retry next start. */ }
+            catch (Exception) { /* The in-memory lists are already clean; retry next start. */ }
         }
         return migrated;
     }

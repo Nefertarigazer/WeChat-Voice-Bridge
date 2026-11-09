@@ -4,6 +4,41 @@
 
 ---
 
+## 1.4.7 修订 · 2026-11-09（清空内置音色 + 添加 API 后音色自动可用）
+
+> 1.4.7 **从未上线**，本轮在同一版本号上迭代。下面旧的 1.4.7 段是首轮记录，其中「预置音色本次不动」的要求与该段产物哈希均已作废；**以本节的产物哈希和新包为准**。线上仍是 1.4.6，桌面快捷方式未动。
+
+用户新指令：内置音色也清空、无内置音色、只保留用户新添加的；并明确「api 添加进来，对应的音色就不要显示无 api 了，而是变成可用的状态，请修复」。
+
+### 问题定位：「无 API」从哪来
+
+- 首轮 1.4.7 摘掉了出厂 `fish-default` **服务**，但按当时要求保留了 4 个预置音色（聂聂 / 里奥 / 熊二 / 派大星）+「此前使用的音色」的播种，这些音色的 `ProviderId` 仍指向已不存在的 `fish-default`。
+- 于是 `RefreshLibrary()` 把它们归到「服务已删除 / 服务不可用」分组，`ChooseContactVoice()` 提示「尚未配置的 API」——即用户说的「无 API」。用户删掉自己添加的服务后留下的孤儿音色同样会卡在这个状态。
+
+### 改动清单
+
+| 文件 | 改动 |
+| --- | --- |
+| `src/VoiceBridge.App/MainWindow.Library.cs` | 删掉 `InitializeLibrary()` 里 `if (library.Count == 0)` 的整段预置音色播种；删掉 `LegacyPresetProviderId` 常量与两处按它查找音色的逻辑（联系人默认音色改为只按 `VoiceId` / 第一条可用音色）；加载 `VoiceLibrary` 时再按 `IsFactoryVoice()` 过滤一次做双保险 |
+| `src/VoiceBridge.App/MainWindow.xaml.cs` | 删掉 `VoicePreset` 记录与 `VoicePresets` 四个内置音色；`RefreshVoices()` 只列 `userVoices`，空列表时 `SelectedIndex = -1` 防越界；`VoiceIdOf()` 只查用户命名音色 |
+| `src/VoiceBridge.Core/VoiceLibraryMigration.cs`（新增） | `IsFactoryVoice()` 用**双条件**精确识别出厂音色（`ProviderId` 精确等于出厂 Id **且** `Id` 以 `fish-` 开头）——用户把内置音色改绑到自己服务后不再算出厂音色，会保留；`RemoveFactoryVoices()` 返回用户音色 + 被删 Id 并清理空/重复 Id；`CleanContactReferences()` / `CleanTestVoiceReference()` 清理悬空引用；`BindOrphanVoices()` 把没有有效服务的音色关联到指定服务 |
+| `src/VoiceBridge.App/LocalSettings.cs` | `Load()` 在 provider 迁移之外再跑音色迁移，同步清理 `ContactProfiles[].VoiceProfileId` 与 `TestVoiceProfileId`，任一迁移发生变化就 `Save()` 一次；DPAPI 凭据库仍不读不写不删 |
+| `MainWindow.Library.cs` `EditProvider()` | 新增服务保存后调用 `BindOrphanVoices(library, providers, updated, out bound)`，把孤儿音色自动关联到新服务并提示数量；已绑定现存服务的音色一律不动，编辑已有服务时不触发 |
+| 文案 | `RefreshLibrary()` 的「服务已删除 / 服务不可用」→「未关联服务」；`ChooseContactVoice()` 的「尚未配置的 API」→「尚未关联可用的 API」并指引改绑；`MainWindow.xaml` 的「我的音色」补空态说明、语音服务说明补「不预置音色」 |
+| `scripts/Verify-Source.ps1` | 新增防复发断言：禁止 `VoicePresets` / `LegacyPresetProviderId` 播种、`LocalSettings.Load()` 必须调用音色迁移、`MainWindow.Library.cs` 必须保留孤儿绑定；顺手修了 PowerShell 5.1 读 UTF-8 无 BOM 脚本的语法坑（补 BOM）与 `git diff --check` 的 stderr 噪声 |
+
+### 验证与产物（本轮重做）
+
+- Release 构建 **0 警告 0 错误**；`Test.ps1` **167/167 C# + 54/54 Python PASS**（新增 `VoiceLibraryMigrationTests.cs` 14 个用例：出厂音色全删、用户音色逐字段保留、改绑过的内置 Id 保留、相似 Id 不误删、幂等、联系人/试听引用清理、旧 JSON 反序列化、孤儿绑定与幂等）；`Verify-Source.ps1` **PASS**。
+- **打包环境插曲**：用户当时正在运行 `artifacts\win-x64-v1.4.7\WeChatVoiceBridge.exe`（PID 36940），DLL 被锁导致覆盖发布失败。**没有强杀进程、没有动那个目录**；改为发布到并行目录 `artifacts\win-x64-v1.4.7-r2`，ZIP / Setup 仍用标准文件名输出新内容。旧 Setup 改名保留为 `WeChat-Voice-Bridge-V1.4.7-r1-Setup.exe`（未删除）；旧 ZIP 在覆盖尝试中已被安全删除机制移入回收站。
+- 出厂门禁：ZIP 与 Setup 打包前各一次 `PASS (1619 files, no per-user data, no live API key; 2 local credential(s) compared)`。
+- `WeChat-Voice-Bridge-V1.4.7-win-x64.zip`：**89,457,459 字节**，SHA-256 `116BB5C052852FBA961E4B2219EB9C73C56C62FC4CED81D7F347ACC00278C1E0`；1621 项、exe/dll `ProductVersion=1.4.7`、worker 与两个 wheel 齐全、无 `settings.json` / `.dpapi` / `.key` / 数据库残留。
+- `WeChat-Voice-Bridge-V1.4.7-Setup.exe`：**65,298,145 字节**，SHA-256 `5D711DC6E9F043AFEE37A160CCE14ED4CFBA3D6C0D9B39C9546D034FF6C5B7AD`；Inno Setup `Successful compile`。
+- 出厂二进制符号核查：`VoiceBridge.Core.dll` 含 `VoiceLibraryMigration` / `RemoveFactoryVoices` / `BindOrphanVoices`；`WeChatVoiceBridge.dll` 已**不含** `VoicePresets` / `LegacyPresetProviderId` /「此前使用的音色」，含「未关联服务」与 `BindOrphanVoices`。
+- **未上线、未联系 Muse、桌面快捷方式未动**。上线闸门：必须等用户实测通过并明确发话。
+
+---
+
 ## 1.4.7 · 2026-11-09（取消出厂自带「默认 API」）
 
 用户要求：全新安装时 API 服务列表为空、一条不种；任何服务条目都可删，不留内置/不可删条目；老用户升级时自己添加过的服务与钥匙原样保留、所有人的内置默认 API 自动删掉；出厂包里不得再含任何真实 API 钥匙；**预置音色本次不动**。并要求交付说明「种子逻辑原来在哪、怎么摘的；升级迁移怎么处理的老配置」。

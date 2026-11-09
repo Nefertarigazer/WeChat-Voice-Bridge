@@ -16,9 +16,6 @@ namespace VoiceBridge.App;
 
 public partial class MainWindow
 {
-    // Older preset voices still carry this id as their ProviderId. No API service is
-    // ever created with it anymore; it is only a marker on legacy voice entries.
-    private const string LegacyPresetProviderId = ProviderMigration.FactoryDefaultId;
     private readonly SpeechProviderFactory speechFactory = new();
     private readonly AvatarCache avatars = new();
     private readonly ContactSearchCache contactIndexCache = new();
@@ -43,23 +40,17 @@ public partial class MainWindow
     private void InitializeLibrary(LocalSettings settings)
     {
         selectionAccount = AccountOf();
-        // LocalSettings.Load() has already stripped the factory connection from
-        // upgraded settings. A fresh install has no providers and stays empty:
-        // nothing is seeded, and every entry that does exist belongs to the user.
+        // LocalSettings.Load() has already stripped the factory connection and the
+        // voices that older builds seeded. A fresh install has no services and no
+        // voices: nothing is seeded, and every entry that exists belongs to the user.
         providers.AddRange((settings.Providers ?? new())
             .Where(item => !string.IsNullOrWhiteSpace(item.Id))
             .Where(item => !ProviderMigration.IsFactoryDefault(item.Id))
             .DistinctBy(item => item.Id));
-        library.AddRange((settings.VoiceLibrary ?? new()).Where(item => !string.IsNullOrWhiteSpace(item.Id))
+        library.AddRange((settings.VoiceLibrary ?? new())
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+            .Where(item => !VoiceLibraryMigration.IsFactoryVoice(item))
             .DistinctBy(item => item.Id));
-        if (library.Count == 0)
-        {
-            foreach (var voice in VoicePresets.Select(item => new NamedVoice(item.Name, item.Id)).Concat(userVoices)
-                .DistinctBy(item => item.Id))
-                library.Add(new() { Id = "fish-" + voice.Id, Name = voice.Name, ProviderId = LegacyPresetProviderId, VoiceId = voice.Id });
-            if (!string.IsNullOrWhiteSpace(settings.Voice) && !library.Any(item => item.VoiceId == settings.Voice))
-                library.Add(new() { Id = "fish-" + settings.Voice, Name = "此前使用的音色", ProviderId = LegacyPresetProviderId, VoiceId = settings.Voice });
-        }
         contactPreferences.AddRange((settings.ContactProfiles ?? new()).Where(item =>
             !string.IsNullOrWhiteSpace(item.AccountId) && !string.IsNullOrWhiteSpace(item.ConversationId))
             .DistinctBy(item => (item.AccountId, item.ConversationId)));
@@ -67,7 +58,7 @@ public partial class MainWindow
             !string.IsNullOrWhiteSpace(settings.WeChatAccount))
             contactPreferences.Add(new() { AccountId = settings.WeChatAccount, ConversationId = settings.WeChatConversation,
                 Name = settings.WeChatLabel, Alias = settings.WeChatAlias, Selected = true,
-                VoiceProfileId = library.FirstOrDefault(item => item.ProviderId == LegacyPresetProviderId && item.VoiceId == settings.Voice)?.Id
+                VoiceProfileId = library.FirstOrDefault(item => item.VoiceId == settings.Voice)?.Id
                     ?? library.FirstOrDefault()?.Id ?? "" });
         contactHistory.AddRange((settings.ContactHistory ?? new()).Take(12));
         searchHistory.AddRange((settings.SearchHistory ?? new()).Take(8));
@@ -159,7 +150,7 @@ public partial class MainWindow
         var provider = providers.FirstOrDefault(item => item.Id == voice?.ProviderId);
         if (voice == null || provider is not { Enabled: true })
         {
-            notice = $"这款音色属于{provider?.Name ?? "尚未配置的 API"}。请在“高级 → 语音服务”启用它，或换用已启用服务的音色。";
+            notice = "这款音色尚未关联可用的 API。请在“高级 → 语音服务”添加并启用服务，或在「编辑音色」里改绑。";
             Render();
             return false;
         }
@@ -202,7 +193,7 @@ public partial class MainWindow
         if (exists == null && contactCards.Count >= 8) { notice = "一次最多监听 8 个联系人。"; Render(); return; }
         var remembered = contactPreferences.FirstOrDefault(item => item.AccountId == account && item.ConversationId == contact.Id);
         var profile = (remembered ?? new ContactProfile { AccountId = account, ConversationId = contact.Id,
-            VoiceProfileId = library.FirstOrDefault(item => item.ProviderId == LegacyPresetProviderId && item.VoiceId == selectedVoiceId)?.Id
+            VoiceProfileId = library.FirstOrDefault(item => item.VoiceId == selectedVoiceId)?.Id
                 ?? library.FirstOrDefault()?.Id ?? "" }) with
         { Name = contact.Name, Alias = contact.Wechat, AvatarUrl = contact.AvatarUrl, Selected = true };
         if (!string.IsNullOrWhiteSpace(ContactSearch.Text)) RememberSearch(ContactSearch.Text.Trim());
@@ -346,11 +337,11 @@ public partial class MainWindow
             foreach (var voice in library)
             {
                 var provider = providers.FirstOrDefault(item => item.Id == voice.ProviderId);
-                voiceChoices.Add(new(voice.Id, voice.Name, (provider?.Name ?? "服务已删除") +
+                voiceChoices.Add(new(voice.Id, voice.Name, (provider?.Name ?? "未关联服务") +
                     (provider is { Enabled: false } ? "（未启用）" : "")));
             }
             var rows = library.Select(voice => new LibraryRow(voice.Id, voice.Name, voice.VoiceId,
-                providers.FirstOrDefault(item => item.Id == voice.ProviderId)?.Name ?? "服务不可用")).ToList();
+                providers.FirstOrDefault(item => item.Id == voice.ProviderId)?.Name ?? "未关联服务")).ToList();
             var grouped = new ListCollectionView(rows);
             grouped.GroupDescriptions.Add(new PropertyGroupDescription(nameof(LibraryRow.ProviderName)));
             VoiceLibraryList.ItemsSource = grouped;
@@ -523,8 +514,19 @@ public partial class MainWindow
                 KeyStore.Save(keys); userKeys.Clear(); userKeys.AddRange(keys); RefreshKeys(selectedKeyName);
             }
             StoreProvider(updated);
+            // A voice whose service is gone must not keep showing "no API" once the
+            // user adds one: point those orphans at the newly added service so the
+            // library shows them as usable again. Existing bindings are untouched.
+            var rebound = 0;
+            if (provider == null)
+            {
+                var bound = VoiceLibraryMigration.BindOrphanVoices(library, providers, updated, out rebound);
+                library.Clear();
+                library.AddRange(bound);
+            }
             RefreshLibrary(); SaveNow();
-            notice = ListeningActive ? "服务配置已保存，下一条开始合成时生效。" : "语音服务已保存。";
+            var bindingNote = rebound > 0 ? $" 已将 {rebound} 个音色关联到这项服务。" : "";
+            notice = (ListeningActive ? "服务配置已保存，下一条开始合成时生效。" : "语音服务已保存。") + bindingNote;
         }
         catch (Exception) { notice = "保存服务凭据失败，请检查本机配置目录权限。"; }
         Render();
@@ -534,7 +536,8 @@ public partial class MainWindow
         if (sender is not Button { Tag: ProviderRow row }) return;
         // No entry is built in or protected: every service the user sees can be
         // removed. Voices that pointed at it are kept (never silently discarded);
-        // the library already labels them "服务已删除" and they can be re-pointed.
+        // the library labels them "未关联服务", and the next service the user adds
+        // picks them up automatically. They can also be re-pointed by hand.
         var boundVoices = library.Count(voice => voice.ProviderId == row.Id);
         providers.RemoveAll(item => item.Id == row.Id);
         RefreshLibrary(); SaveNow();

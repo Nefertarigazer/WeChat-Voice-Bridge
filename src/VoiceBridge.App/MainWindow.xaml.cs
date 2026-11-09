@@ -45,16 +45,6 @@ public partial class MainWindow : Window
     private static readonly Brush LabelBrush = Frozen(0x1D, 0x1D, 0x1F);
     private static readonly Brush SecondaryBrush = Frozen(0x6E, 0x6E, 0x73);
 
-    private sealed record VoicePreset(string Name, string Id);
-
-    private static readonly VoicePreset[] VoicePresets =
-    [
-        new("聂聂", "bf8f5cb1501d4e5a950d26738db7f772"),
-        new("里奥", "46deb5ee78c04a2a894073f993e8211e"),
-        new("熊二", "2d1ad251fc944d5bb473318468544c60"),
-        new("派大星", "05e50c98f48845999d2d9d101d95958c")
-    ];
-
     private readonly SessionController controller = new();
     private readonly HttpClient http;
     private readonly Forms.NotifyIcon tray;
@@ -919,7 +909,9 @@ public partial class MainWindow : Window
 
     private void RefreshVoices(string? select = null)
     {
-        var names = VoicePresets.Select(item => item.Name).Concat(userVoices.Select(item => item.Name)).ToArray();
+        // Only voices the user named themselves are listed; the old factory presets
+        // are gone from both the voice library and this legacy dropdown.
+        var names = userVoices.Select(item => item.Name).ToArray();
         VoicePresetBox.ItemsSource = names;
         // A name picks the entry that carries it, an id finds the entry of a voice.
         var index = select == null
@@ -927,20 +919,15 @@ public partial class MainWindow : Window
             : Array.FindIndex(names, name => name == select);
         if (index < 0)
         {
-            index = 0;
+            index = names.Length > 0 ? 0 : -1;
             if (names.Length > 0)
                 selectedVoiceId = VoiceIdOf(names[0]);
         }
         VoicePresetBox.SelectedIndex = index;
     }
 
-    private string VoiceIdOf(string name)
-    {
-        var preset = VoicePresets.FirstOrDefault(item => item.Name == name);
-        if (preset != null)
-            return preset.Id;
-        return userVoices.FirstOrDefault(item => item.Name == name)?.Id ?? "";
-    }
+    private string VoiceIdOf(string name) =>
+        userVoices.FirstOrDefault(item => item.Name == name)?.Id ?? "";
 
     private void VoicePresetChanged(object sender, SelectionChangedEventArgs e)
     {

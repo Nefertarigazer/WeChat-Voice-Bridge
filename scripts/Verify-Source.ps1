@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
@@ -6,7 +6,7 @@ try {
     # 5.1 would abort on them; judge the command by its exit code instead.
     $previousPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    try { & git diff --check; $checkExit = $LASTEXITCODE }
+    try { & git diff --check 2>$null; $checkExit = $LASTEXITCODE }
     finally { $ErrorActionPreference = $previousPreference }
     if ($checkExit -ne 0) { throw 'Whitespace check failed.' }
 
@@ -30,17 +30,28 @@ try {
     }
 
     # 1.4.7 regression guards: a fresh install must never seed a factory API
-    # service, and upgraded settings must always pass through the migration.
+    # service or a preset voice, upgraded settings must always pass through both
+    # migrations, and adding a service must re-bind orphaned voices.
     $library = Join-Path $root 'src\VoiceBridge.App\MainWindow.Library.cs'
     $settings = Join-Path $root 'src\VoiceBridge.App\LocalSettings.cs'
+    $main = Join-Path $root 'src\VoiceBridge.App\MainWindow.xaml.cs'
     $libraryText = [IO.File]::ReadAllText($library)
     $settingsText = [IO.File]::ReadAllText($settings)
+    $mainText = [IO.File]::ReadAllText($main)
     if ($libraryText -match 'providers\.Insert\s*\(' -or
         $libraryText -match 'SyncDefaultFish|DefaultFishId|默认 Fish 连接') {
         throw 'A factory API service is being seeded again; fresh installs must start with an empty list.'
     }
+    if ($libraryText -match 'VoicePresets|此前使用的音色|LegacyPresetProviderId' -or
+        $mainText -match 'VoicePresets|此前使用的音色') {
+        throw 'Factory preset voices must not be seeded any more; the library starts empty.'
+    }
     if ($settingsText -notmatch 'ProviderMigration\.RemoveFactoryDefault') {
         throw 'LocalSettings.Load() must run the factory-default migration on upgraded settings.'
+    }
+    if ($settingsText -notmatch 'VoiceLibraryMigration\.RemoveFactoryVoices' -or
+        $libraryText -notmatch 'VoiceLibraryMigration\.BindOrphanVoices') {
+        throw 'Preset-voice migration and orphan-voice binding must stay wired up.'
     }
     $strayIds = @($sources | Where-Object { $_.FullName -match '\\src\\' } |
         Select-String -Pattern 'fish-default' |

@@ -699,6 +699,7 @@
 
 
               <TextBlock Text="我的音色" Style="{StaticResource Caption}"/>
+              <TextBlock Text="软件不预置音色，这里只显示你自己添加的音色。补上 API 服务后，尚未关联的音色会自动变为可用。" Style="{StaticResource Footnote}" Margin="0,4,0,10" TextWrapping="Wrap"/>
 
                 <ItemsControl x:Name="VoiceLibraryList">
                   <ItemsControl.GroupStyle><GroupStyle HeaderTemplate="{StaticResource LibraryGroupHeader}" ContainerStyle="{StaticResource LibraryGroupContainer}"/></ItemsControl.GroupStyle>
@@ -818,7 +819,7 @@
                     <TextBlock Text="语音服务" FontSize="16" FontWeight="SemiBold"/>
                     <TextBlock Grid.Column="1" Text="{Binding Items.Count, ElementName=ProvidersList, StringFormat={}{0} 项配置}" FontSize="12" Foreground="{StaticResource Secondary}" VerticalAlignment="Center"/>
                   </Grid>
-              <TextBlock Text="每款音色使用所属服务，可同时配置多个 API。软件不预置任何服务或密钥，首次使用请点下方按钮添加自己的 API。" Style="{StaticResource Footnote}" Margin="0,8,0,16" TextWrapping="Wrap"/>
+              <TextBlock Text="每款音色使用所属服务，可同时配置多个 API。软件不预置任何服务、密钥或音色，首次使用请点下方按钮添加自己的 API。" Style="{StaticResource Footnote}" Margin="0,8,0,16" TextWrapping="Wrap"/>
                 <ItemsControl x:Name="ProvidersList">
                   <ItemsControl.GroupStyle><GroupStyle HeaderTemplate="{StaticResource LibraryGroupHeader}" ContainerStyle="{StaticResource LibraryGroupContainer}"/></ItemsControl.GroupStyle>
                   <ItemsControl.ItemTemplate><DataTemplate>
