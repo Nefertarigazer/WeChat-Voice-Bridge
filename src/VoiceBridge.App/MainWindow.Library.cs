@@ -32,10 +32,33 @@ public partial class MainWindow
     private string selectionAccount = "";
     private RoutingSnapshot routing = new([], [], [], new(StringComparer.Ordinal));
 
-    private sealed record ProviderRow(string Id, string Name, string Kind, string State, string Endpoint);
-    private sealed record LibraryRow(string Id, string Name, string VoiceId, string ProviderName);
+    private sealed record ProviderRow(string Id, string Name, string Kind, string State, string Endpoint,
+        bool ShowActivate, bool CanActivate, string ActivateLabel);
+    private sealed record LibraryRow(string Id, string Name, string VoiceId, string ProviderName,
+        bool ProviderMissing, string ProviderHint);
     private sealed record RoutingSnapshot(ContactProfile[] Contacts, VoiceProfile[] Voices,
         SpeechProviderProfile[] Providers, Dictionary<string, string> Credentials);
+
+    /// <summary>Vendor label survives deleting the connection that created a voice.</summary>
+    private static string VendorName(VoiceProfile voice, IEnumerable<SpeechProviderProfile> providers) =>
+        VoiceLibraryMigration.VendorOf(voice, providers) is { } kind
+            ? SpeechProviderFactory.Label(kind) : "未知语音接口";
+
+    /// <summary>
+    /// The key that will actually synthesize this voice: its own when enabled,
+    /// otherwise any enabled key of the same vendor. A public voice id works with
+    /// any valid key of that vendor, so no manual re-binding is required.
+    /// </summary>
+    private static SpeechProviderProfile? ActiveProviderFor(
+        VoiceProfile voice, IEnumerable<SpeechProviderProfile> providers)
+    {
+        var own = providers.FirstOrDefault(item => item.Id == voice.ProviderId);
+        if (own is { Enabled: true })
+            return own;
+        return VoiceLibraryMigration.VendorOf(voice, providers) is { } kind
+            ? providers.FirstOrDefault(item => item.Enabled && item.Kind == kind)
+            : null;
+    }
 
     private void InitializeLibrary(LocalSettings settings)
     {
@@ -147,10 +170,9 @@ public partial class MainWindow
     private bool ChooseContactVoice(ContactCard card, string voiceId)
     {
         var voice = library.FirstOrDefault(item => item.Id == voiceId);
-        var provider = providers.FirstOrDefault(item => item.Id == voice?.ProviderId);
-        if (voice == null || provider is not { Enabled: true })
+        if (voice == null || ActiveProviderFor(voice, providers) is null)
         {
-            notice = "这款音色尚未关联可用的 API。请在“高级 → 语音服务”添加并启用服务，或在「编辑音色」里改绑。";
+            notice = "这款音色还没有可用的 API。请在“高级 → 语音服务”添加并启用同厂商的服务，或在「编辑音色」里改绑。";
             Render();
             return false;
         }
@@ -334,20 +356,29 @@ public partial class MainWindow
         {
             var selected = selectedTest ?? TestVoiceBox.SelectedValue as string;
             voiceChoices.Clear();
+            var rows = new List<LibraryRow>();
             foreach (var voice in library)
             {
-                var provider = providers.FirstOrDefault(item => item.Id == voice.ProviderId);
-                voiceChoices.Add(new(voice.Id, voice.Name, (provider?.Name ?? "未关联服务") +
-                    (provider is { Enabled: false } ? "（未启用）" : "")));
+                var own = providers.FirstOrDefault(item => item.Id == voice.ProviderId);
+                // After deleting a connection the vendor name stays on the group;
+                // only the state of the row changes (see the ItemTemplate style).
+                var group = !string.IsNullOrWhiteSpace(own?.Name) ? own!.Name : VendorName(voice, providers);
+                var usable = ActiveProviderFor(voice, providers) is not null;
+                voiceChoices.Add(new(voice.Id, voice.Name, group + (usable ? "" : "（API 未就绪）")));
+                var hint = usable ? "" : own is null
+                    ? "API 已删除 · 仍可编辑或删除，补上同厂商服务后自动恢复可用"
+                    : "该服务未启用 · 在「语音服务」里点「启用」选择使用的 Key";
+                rows.Add(new LibraryRow(voice.Id, voice.Name, voice.VoiceId, group, !usable, hint));
             }
-            var rows = library.Select(voice => new LibraryRow(voice.Id, voice.Name, voice.VoiceId,
-                providers.FirstOrDefault(item => item.Id == voice.ProviderId)?.Name ?? "未关联服务")).ToList();
             var grouped = new ListCollectionView(rows);
             grouped.GroupDescriptions.Add(new PropertyGroupDescription(nameof(LibraryRow.ProviderName)));
             VoiceLibraryList.ItemsSource = grouped;
             var providerRows = providers.Select(provider => new ProviderRow(provider.Id,
                 string.IsNullOrWhiteSpace(provider.Name) ? SpeechProviderFactory.Label(provider.Kind) : provider.Name,
-                SpeechProviderFactory.Label(provider.Kind), provider.Enabled ? "已启用" : "未启用", provider.Endpoint)).ToList();
+                SpeechProviderFactory.Label(provider.Kind),
+                provider.Enabled ? "已启用（使用中）" : "未启用（待用）", provider.Endpoint,
+                ProviderActivation.NeedsActivation(providers, provider),
+                !provider.Enabled, provider.Enabled ? "使用中" : "启用")).ToList();
             var providerGroups = new ListCollectionView(providerRows);
             providerGroups.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ProviderRow.Kind)));
             ProvidersList.ItemsSource = providerGroups;
@@ -495,6 +526,10 @@ public partial class MainWindow
         try
         {
             var updated = editor.Result;
+            // Adding a key is not applying it: when this vendor already has an
+            // active key, the new one stays on standby and nothing switches over.
+            if (provider == null && ProviderActivation.StaysOnStandby(providers, updated))
+                updated = updated with { Enabled = false };
             if (provider == null && providers.Any(item => item.Name == updated.Name))
             {
                 var baseName = updated.Name;
@@ -515,14 +550,19 @@ public partial class MainWindow
             }
             StoreProvider(updated);
             // A voice whose service is gone must not keep showing "no API" once the
-            // user adds one: point those orphans at the newly added service so the
-            // library shows them as usable again. Existing bindings are untouched.
+            // user adds one: point those orphans at the key that is actually active
+            // for this vendor. Voices of other vendors are never re-pointed.
             var rebound = 0;
             if (provider == null)
             {
-                var bound = VoiceLibraryMigration.BindOrphanVoices(library, providers, updated, out rebound);
-                library.Clear();
-                library.AddRange(bound);
+                var active = updated.Enabled ? updated
+                    : providers.FirstOrDefault(item => item.Kind == updated.Kind && item.Enabled);
+                if (active != null)
+                {
+                    var bound = VoiceLibraryMigration.BindOrphanVoices(library, providers, active, out rebound);
+                    library.Clear();
+                    library.AddRange(bound);
+                }
             }
             RefreshLibrary(); SaveNow();
             var bindingNote = rebound > 0 ? $" 已将 {rebound} 个音色关联到这项服务。" : "";
@@ -535,15 +575,65 @@ public partial class MainWindow
     {
         if (sender is not Button { Tag: ProviderRow row }) return;
         // No entry is built in or protected: every service the user sees can be
-        // removed. Voices that pointed at it are kept (never silently discarded);
-        // the library labels them "未关联服务", and the next service the user adds
-        // picks them up automatically. They can also be re-pointed by hand.
+        // removed. Voices that pointed at it are kept (never silently discarded),
+        // and they keep their vendor name so the library can show a "missing API"
+        // style instead of dropping the vendor. They remain editable/deletable.
+        var deleted = providers.FirstOrDefault(item => item.Id == row.Id);
+        if (deleted != null)
+            for (var i = 0; i < library.Count; i++)
+                if (library[i].ProviderId == row.Id && library[i].ProviderKind is null)
+                    library[i] = library[i] with { ProviderKind = deleted.Kind };
         var boundVoices = library.Count(voice => voice.ProviderId == row.Id);
         providers.RemoveAll(item => item.Id == row.Id);
+        // If another key of this vendor remains, its voices follow that key
+        // immediately: any valid key of the vendor runs the same voice ids.
+        // A vendor left with only standby keys has nothing to choose between, so
+        // its remaining key becomes active (deleting is not "adding applies it").
+        var replacement = deleted is not null
+            ? providers.FirstOrDefault(item => item.Kind == deleted.Kind && item.Enabled)
+                ?? providers.FirstOrDefault(item => item.Kind == deleted.Kind)
+            : null;
+        if (replacement != null)
+        {
+            if (!replacement.Enabled)
+            {
+                var index = providers.IndexOf(replacement);
+                replacement = replacement with { Enabled = true };
+                providers[index] = replacement;
+            }
+            var rebound = VoiceLibraryMigration.UseActiveKey(library, providers, replacement, out _);
+            library.Clear();
+            library.AddRange(rebound);
+        }
         RefreshLibrary(); SaveNow();
         notice = boundVoices > 0
-            ? $"服务已删除。它的 {boundVoices} 个音色仍保留在音色库，可在「编辑音色」里改绑到其他服务。"
+            ? $"服务已删除。它的 {boundVoices} 个音色仍保留厂商名与可编辑状态，可在「编辑音色」里改绑。"
             : "服务已删除。";
+        Render();
+    }
+
+    /// <summary>
+    /// Only needed when one vendor has more than one key: pick which one is in
+    /// use. Other vendors keep their own active key, untouched. The vendor's
+    /// voices follow the chosen key.
+    /// </summary>
+    private void ActivateProviderClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: ProviderRow row }) return;
+        var target = providers.FirstOrDefault(item => item.Id == row.Id);
+        if (target is null || !ProviderActivation.NeedsActivation(providers, target)) return;
+        var activated = ProviderActivation.Activate(providers, target.Id);
+        providers.Clear();
+        providers.AddRange(activated);
+        var rebound = VoiceLibraryMigration.UseActiveKey(library, providers, target, out var count);
+        library.Clear();
+        library.AddRange(rebound);
+        speechFactory.ResetFailures();
+        RefreshLibrary(); SaveNow();
+        var label = string.IsNullOrWhiteSpace(target.Name)
+            ? SpeechProviderFactory.Label(target.Kind) : target.Name;
+        notice = $"已启用「{label}」；{SpeechProviderFactory.Label(target.Kind)} 的其它 Key 保持待用。" +
+            (count > 0 ? $" {count} 个音色已跟随切换。" : "");
         Render();
     }
     private void TestVoiceChanged(object sender, SelectionChangedEventArgs e)
@@ -555,12 +645,15 @@ public partial class MainWindow
     {
         var voice = snapshot.Voices.FirstOrDefault(item => item.Id == voiceProfileId)
             ?? throw new BridgeException("联系人尚未绑定有效音色，请在首页选择音色库中的音色。");
-        var provider = snapshot.Providers.FirstOrDefault(item => item.Id == voice.ProviderId)
-            ?? throw new BridgeException("这款音色所属的 API 不存在，请在高级设置中添加它。");
+        // Any enabled key of the same vendor can synthesize this voice id, so a
+        // deleted or standby key does not make the voice unusable.
+        var provider = ActiveProviderFor(voice, snapshot.Providers)
+            ?? throw new BridgeException("这款音色所属的 API 尚未启用，请在高级设置中添加并启用同厂商的服务。");
         if (contact != null) provider = contact.ApplySpeechPreferences(provider);
         var key = snapshot.Credentials.GetValueOrDefault(provider.CredentialId, "");
         SpeechProviderFactory.ValidateCredential(provider, key);
-        return speechFactory.Create(provider, voice, () => key);
+        var effectiveVoice = voice with { ProviderId = provider.Id };
+        return speechFactory.Create(provider, effectiveVoice, () => key);
     }
 
     private void PreviewSettingChanged(object sender, RoutedEventArgs e)

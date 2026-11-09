@@ -699,7 +699,7 @@
 
 
               <TextBlock Text="我的音色" Style="{StaticResource Caption}"/>
-              <TextBlock Text="软件不预置音色，这里只显示你自己添加的音色。补上 API 服务后，尚未关联的音色会自动变为可用。" Style="{StaticResource Footnote}" Margin="0,4,0,10" TextWrapping="Wrap"/>
+              <TextBlock Text="软件不预置音色，这里只显示你自己添加的音色。删除 API 后音色仍保留厂商名、可继续编辑或删除，只是换成缺失样式；补上同厂商服务会自动恢复可用。" Style="{StaticResource Footnote}" Margin="0,4,0,10" TextWrapping="Wrap"/>
 
                 <ItemsControl x:Name="VoiceLibraryList">
                   <ItemsControl.GroupStyle><GroupStyle HeaderTemplate="{StaticResource LibraryGroupHeader}" ContainerStyle="{StaticResource LibraryGroupContainer}"/></ItemsControl.GroupStyle>
@@ -708,7 +708,10 @@
                     <Grid>
                       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                       <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="VoiceName" Text="{Binding Name}" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="VoiceHint" Text="{Binding ProviderHint}" FontSize="11"
+                                   Foreground="{StaticResource Caution}" Margin="0,4,0,0"
+                                   TextWrapping="Wrap" Visibility="Collapsed"/>
                       </StackPanel>
                       <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Content="编辑" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="EditLibraryVoiceClick"/>
@@ -716,6 +719,13 @@
                       </StackPanel>
                     </Grid>
                   </Border>
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding ProviderMissing}" Value="True">
+                      <Setter TargetName="VoiceName" Property="Foreground" Value="{StaticResource Secondary}"/>
+                      <Setter TargetName="VoiceName" Property="FontStyle" Value="Italic"/>
+                      <Setter TargetName="VoiceHint" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
                 </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                 <Button Content="＋ 添加音色" Style="{StaticResource AccentButton}" HorizontalAlignment="Center" Margin="0,12" Click="AddLibraryVoiceClick"/>
               <TextBlock x:Name="VoiceLibraryNotice" Foreground="{StaticResource Caution}" Style="{StaticResource Footnote}" Margin="14,8,14,0" AutomationProperties.LiveSetting="Polite"/>
@@ -819,7 +829,7 @@
                     <TextBlock Text="语音服务" FontSize="16" FontWeight="SemiBold"/>
                     <TextBlock Grid.Column="1" Text="{Binding Items.Count, ElementName=ProvidersList, StringFormat={}{0} 项配置}" FontSize="12" Foreground="{StaticResource Secondary}" VerticalAlignment="Center"/>
                   </Grid>
-              <TextBlock Text="每款音色使用所属服务，可同时配置多个 API。软件不预置任何服务、密钥或音色，首次使用请点下方按钮添加自己的 API。" Style="{StaticResource Footnote}" Margin="0,8,0,16" TextWrapping="Wrap"/>
+              <TextBlock Text="每款音色归属一个厂商，可同时配置多个 API。软件不预置任何服务、密钥或音色。同一厂商添加多个 Key 时，用「启用」按钮选择当前使用哪一个；新加的 Key 默认待用，不会自动切换。不同厂商各可启用一个。" Style="{StaticResource Footnote}" Margin="0,8,0,16" TextWrapping="Wrap"/>
                 <ItemsControl x:Name="ProvidersList">
                   <ItemsControl.GroupStyle><GroupStyle HeaderTemplate="{StaticResource LibraryGroupHeader}" ContainerStyle="{StaticResource LibraryGroupContainer}"/></ItemsControl.GroupStyle>
                   <ItemsControl.ItemTemplate><DataTemplate>
@@ -831,6 +841,10 @@
                         <TextBlock Text="{Binding State}" FontSize="11" Foreground="{StaticResource Secondary}" Margin="0,4,0,0"/>
                       </StackPanel>
                       <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="{Binding ActivateLabel}" Style="{StaticResource PlainButton}"
+                                IsEnabled="{Binding CanActivate}" Tag="{Binding}" Click="ActivateProviderClick"
+                                Visibility="{Binding ShowActivate, Converter={StaticResource BoolToVis}}"
+                                ToolTip="同一厂商有多个 Key 时，选择当前使用哪一个"/>
                         <Button Content="编辑" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="EditProviderClick"/>
                         <Button Content="删除" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="DeleteProviderClick"/>
                       </StackPanel>

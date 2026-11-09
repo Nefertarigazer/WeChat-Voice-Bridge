@@ -70,9 +70,60 @@ public static class VoiceLibraryMigration
             ? "" : id ?? "";
 
     /// <summary>
+    /// The vendor of a voice: the cached value when present, otherwise derived
+    /// from the connection it currently points at. Null only when both are gone,
+    /// which happens for settings written by a build that knew no vendor field.
+    /// </summary>
+    public static SpeechProviderKind? VendorOf(
+        VoiceProfile? voice, IEnumerable<SpeechProviderProfile>? providers)
+    {
+        if (voice is null)
+            return null;
+        if (voice.ProviderKind is { } cached)
+            return cached;
+        return (providers ?? Array.Empty<SpeechProviderProfile>())
+            .FirstOrDefault(item => item is not null && item.Id == voice.ProviderId)?.Kind;
+    }
+
+    /// <summary>
+    /// Fill in the vendor on voices saved by older builds. Called once at load
+    /// time, while their connections still exist, so deleting a connection later
+    /// cannot lose the vendor name shown in the library.
+    /// </summary>
+    public static List<VoiceProfile> CacheVendor(
+        IEnumerable<VoiceProfile>? voices,
+        IEnumerable<SpeechProviderProfile>? providers,
+        out int cached)
+    {
+        cached = 0;
+        var connections = (providers ?? Array.Empty<SpeechProviderProfile>())
+            .Where(item => item is not null && !string.IsNullOrEmpty(item.Id))
+            .ToList();
+        var result = new List<VoiceProfile>();
+        foreach (var voice in voices ?? Array.Empty<VoiceProfile>())
+        {
+            if (voice is null)
+                continue;
+            if (voice.ProviderKind is null)
+            {
+                var kind = connections.FirstOrDefault(item => item.Id == voice.ProviderId)?.Kind;
+                if (kind is { } found)
+                {
+                    result.Add(voice with { ProviderKind = found });
+                    cached++;
+                    continue;
+                }
+            }
+            result.Add(voice);
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Once the user adds an API service, voices whose service is missing become
     /// usable again by pointing them at that service instead of showing a missing
-    /// API. Voices already bound to a live service are never touched.
+    /// API. Voices already bound to a live service are never touched, and a voice
+    /// known to belong to a DIFFERENT vendor is never re-pointed across vendors.
     /// </summary>
     public static List<VoiceProfile> BindOrphanVoices(
         IEnumerable<VoiceProfile>? voices,
@@ -81,9 +132,9 @@ public static class VoiceLibraryMigration
         out int bound)
     {
         bound = 0;
-        var live = new HashSet<string>((providers ?? Array.Empty<SpeechProviderProfile>())
-            .Where(item => item is not null && !string.IsNullOrEmpty(item.Id))
-            .Select(item => item.Id), StringComparer.Ordinal);
+        var all = (providers ?? Array.Empty<SpeechProviderProfile>())
+            .Where(item => item is not null && !string.IsNullOrEmpty(item.Id)).ToList();
+        var live = new HashSet<string>(all.Select(item => item.Id), StringComparer.Ordinal);
         var result = new List<VoiceProfile>();
         foreach (var voice in voices ?? Array.Empty<VoiceProfile>())
         {
@@ -93,11 +144,49 @@ public static class VoiceLibraryMigration
             {
                 result.Add(voice);
             }
+            else if (VendorOf(voice, all) is { } vendor && vendor != target.Kind)
+            {
+                // A different vendor's voice ids cannot be used by this service.
+                result.Add(voice);
+            }
             else
             {
-                result.Add(voice with { ProviderId = target.Id });
+                result.Add(voice with { ProviderId = target.Id, ProviderKind = target.Kind });
                 bound++;
             }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// When the user picks which key of a vendor is active, every voice of that
+    /// vendor follows the active key. A public voice id works with any valid key
+    /// of the same vendor, so the voice itself never needs to be re-created.
+    /// Other vendors are left completely alone.
+    /// </summary>
+    public static List<VoiceProfile> UseActiveKey(
+        IEnumerable<VoiceProfile>? voices,
+        IEnumerable<SpeechProviderProfile>? providers,
+        SpeechProviderProfile target,
+        out int rebound)
+    {
+        rebound = 0;
+        var all = (providers ?? Array.Empty<SpeechProviderProfile>())
+            .Where(item => item is not null && !string.IsNullOrEmpty(item.Id)).ToList();
+        var result = new List<VoiceProfile>();
+        foreach (var voice in voices ?? Array.Empty<VoiceProfile>())
+        {
+            if (voice is null)
+                continue;
+            if (VendorOf(voice, all) != target.Kind)
+            {
+                result.Add(voice);
+                continue;
+            }
+            var updated = voice with { ProviderId = target.Id, ProviderKind = target.Kind };
+            if (updated != voice)
+                rebound++;
+            result.Add(updated);
         }
         return result;
     }

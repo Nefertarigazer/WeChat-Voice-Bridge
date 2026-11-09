@@ -174,9 +174,12 @@ internal sealed class ProviderEditor : ProfileEditor
         var activeModel = selected == SpeechProviderKind.Fish
             ? models!.Contains(Result.Model) ? Result.Model : models![0]
             : model.Text.Trim();
+        // Editing a standby key must not silently make it active. Which key is in
+        // use is chosen with the "启用" button; adding a key never applies it.
         var candidate = Result with { Kind = selected, Name = label, Endpoint = address,
             Model = activeModel, AvailableModels = models,
-            CredentialId = key, ResourceId = resource.Text.Trim(), AppId = appId.Text.Trim(), Enabled = true,
+            CredentialId = key, ResourceId = resource.Text.Trim(), AppId = appId.Text.Trim(),
+            Enabled = Result.Enabled,
             TimeoutSeconds = seconds, Latency = latency.SelectedValue as string ?? "balanced", AudioFormat = format.SelectedItem as string ?? "mp3" };
         _ = SpeechProviderFactory.ResolveEndpoint(candidate);
         if (selected == SpeechProviderKind.OpenAiCompatible && string.IsNullOrWhiteSpace(candidate.Model)) throw new BridgeException("请填写服务支持的模型名称。");
@@ -187,10 +190,11 @@ internal sealed class ProviderEditor : ProfileEditor
     }
 }
 
-internal sealed record VoiceServiceChoice(SpeechProviderProfile Profile, string Label);
+internal sealed record VoiceServiceChoice(SpeechProviderProfile Profile, string Label, bool Placeholder = false);
 internal sealed class VoiceEditor : ProfileEditor
 {
     private readonly ComboBox provider;
+    private bool offerRebind;
     private string builtId = "";
     private TextBox name = null!, voiceId = null!, language = null!, audioPath = null!, referenceText = null!, promptLanguage = null!, instructions = null!, speed = null!;
     private readonly CheckBox customVoice = new() { Content = "使用自定义 voice 对象", Margin = new(0,12,0,0) };
@@ -198,8 +202,21 @@ internal sealed class VoiceEditor : ProfileEditor
     public VoiceEditor(VoiceProfile? original, IReadOnlyList<SpeechProviderProfile> providers) : base(original == null ? "添加音色" : "编辑音色", original == null)
     {
         Result = original ?? new() { Id = Guid.NewGuid().ToString("N") };
-        provider = new ComboBox { ItemsSource = providers.Select(p => new VoiceServiceChoice(p, p.Name)).ToArray(), DisplayMemberPath = "Label" };
-        provider.SelectedIndex = Math.Max(0, providers.ToList().FindIndex(p => p.Id == original?.ProviderId));
+        var choices = providers.Select(p => new VoiceServiceChoice(p, p.Name)).ToList();
+        var index = original is null ? 0 : choices.FindIndex(choice => choice.Profile.Id == original.ProviderId);
+        if (original != null && index < 0)
+        {
+            // Its API was deleted. Offer a placeholder built from the cached vendor
+            // so the voice stays editable instead of the dialog failing to open.
+            var kind = Result.ProviderKind ?? SpeechProviderKind.Fish;
+            choices.Insert(0, new VoiceServiceChoice(
+                new SpeechProviderProfile { Id = Result.ProviderId, Kind = kind, Enabled = false },
+                SpeechProviderFactory.Label(kind) + "（原服务已删除）", true));
+            index = 0;
+            offerRebind = choices.Count > 1;
+        }
+        provider = new ComboBox { ItemsSource = choices, DisplayMemberPath = "Label" };
+        provider.SelectedIndex = Math.Max(0, index);
         Choice.Children.Add(new TextBlock { Text = "选择音色所属的服务", Margin = new(0,12,0,10) }); Choice.Children.Add(provider);
         if (providers.Count == 0) Choice.Children.Add(new TextBlock { Text = "请先在高级设置中添加 API 服务。", Margin = new(0,12,0,0) });
         if (original != null) BuildDetails();
@@ -208,9 +225,20 @@ internal sealed class VoiceEditor : ProfileEditor
     {
         if (provider.SelectedItem is not VoiceServiceChoice choice) throw new BridgeException("请先添加并选择语音服务。");
         var selected = choice.Profile;
-        if (builtId == selected.Id) return;
-        builtId = selected.Id; Detach(customVoice); Fields.Children.Clear();
-        var same = Result.ProviderId.Length == 0 || Result.ProviderId == selected.Id;
+        var key = choice.Placeholder ? "__deleted-service__" : selected.Id;
+        if (builtId == key) return;
+        builtId = key; Detach(customVoice); Fields.Children.Clear();
+        // Editing an existing voice skips the first (service choice) page. When
+        // its service was deleted, surface the same ComboBox on the details page
+        // so the voice can still be re-pointed to a live service.
+        if (offerRebind)
+        {
+            Detach(provider);
+            Fields.Children.Add(new TextBlock { Text = "改绑到 API 服务（可选）",
+                Style = (Style)FindResource("FieldLabel"), Margin = new(0,0,0,5) });
+            Fields.Children.Add(provider);
+        }
+        var same = choice.Placeholder || Result.ProviderId.Length == 0 || Result.ProviderId == selected.Id;
         name = new TextBox { Text = same ? Result.Name : "", MaxLength = 64 };
         voiceId = new TextBox { Text = same ? Result.VoiceId : "", MaxLength = 256 };
         Field("音色名称", name);
@@ -233,6 +261,8 @@ internal sealed class VoiceEditor : ProfileEditor
             { Field("语气指令（模型支持时生效）", instructions); customVoice.IsChecked = same && Result.IsCustomVoice; FieldsForAdvanced(customVoice); }
             if (selected.Kind is SpeechProviderKind.OpenAiCompatible or SpeechProviderKind.GptSoVits) Field("语速", speed);
         });
+        if (choice.Placeholder)
+            Hint("原 API 已删除：仍可修改名称与音色 ID，保存后保持缺失样式；补上同厂商服务会自动恢复可用。");
     }
     // Use Field so advanced controls stay in their collapsed section.
     private void FieldsForAdvanced(UIElement control) => Field("音色格式", control);
@@ -248,10 +278,19 @@ internal sealed class VoiceEditor : ProfileEditor
         { var parts = voiceId.Text.Split('-'); if (parts.Length >= 3) locale = parts[0] + "-" + parts[1]; }
         var id = voiceId.Text.Trim();
         var candidate = Result with { Name = name.Text.Trim(),
-            ProviderId = selected.Id, VoiceId = id, Language = locale, ReferenceAudioPath = audioPath.Text.Trim(),
+            ProviderId = choice.Placeholder ? Result.ProviderId : selected.Id,
+            ProviderKind = choice.Placeholder ? Result.ProviderKind : selected.Kind,
+            VoiceId = id, Language = locale, ReferenceAudioPath = audioPath.Text.Trim(),
             ReferenceText = referenceText.Text.Trim(), PromptLanguage = promptLanguage.Text.Trim(),
             Instructions = selected.Kind == SpeechProviderKind.OpenAiCompatible ? instructions.Text.Trim() : "",
             Speed = rate, IsCustomVoice = selected.Kind == SpeechProviderKind.OpenAiCompatible && customVoice.IsChecked == true };
-        SpeechProviderFactory.Validate(selected with { Enabled = true }, candidate); Result = candidate;
+        if (choice.Placeholder)
+        {
+            // No live connection to validate against; keep the old binding as-is.
+            // SpeechFor() still refuses to synthesize until a key is available.
+            if (string.IsNullOrWhiteSpace(id)) throw new BridgeException("请填写音色 ID。");
+        }
+        else SpeechProviderFactory.Validate(selected with { Enabled = true }, candidate);
+        Result = candidate;
     }
 }

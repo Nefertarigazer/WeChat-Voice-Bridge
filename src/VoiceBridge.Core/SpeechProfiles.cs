@@ -21,12 +21,19 @@ public sealed record SpeechProviderProfile
     public string AudioFormat { get; init; } = "mp3";
 }
 
-/// <summary>A voice belongs to exactly one connection, even if two connections use the same protocol.</summary>
+/// <summary>A voice is tied to a vendor, not to one particular key of that vendor.</summary>
 public sealed record VoiceProfile
 {
     public string Id { get; init; } = "";
     public string Name { get; init; } = "";
     public string ProviderId { get; init; } = "";
+    /// <summary>
+    /// Cached vendor so the library can still show the vendor name after the
+    /// connection that created the voice is deleted. Null on settings written by
+    /// older builds; LocalSettings.Load() fills it in where the connection still
+    /// exists. Any enabled key of this vendor can synthesize the same voice id.
+    /// </summary>
+    public SpeechProviderKind? ProviderKind { get; init; }
     public string VoiceId { get; init; } = "";
     public string Language { get; init; } = "zh-CN";
     public string ReferenceAudioPath { get; init; } = "";

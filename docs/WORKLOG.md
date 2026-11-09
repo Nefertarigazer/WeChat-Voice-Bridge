@@ -4,6 +4,44 @@
 
 ---
 
+## 1.4.7 r3 · 2026-11-09（删 API 后保留厂商名换样式 + 同厂商多 Key 自选启用）
+
+> 仍在同一未发布版本号 1.4.7 上迭代；**线上仍是 1.4.6，本轮未上线、未联系 Muse**。上一节的 r2 产物哈希作废，以本节为准。本轮按用户明确指令**更新了桌面快捷方式**（指向 r3），此前「留在 1.4.5 体验自升级」的约定就此结束。
+
+用户指令三点：① 删除 API 后该厂商音色仍保留厂商名、但换成缺失样式，编辑与删除按钮照常可用；② 同一厂商有多个 Key 时多一个「启用」按钮选择用哪个，不同厂商各可启用一个，只有同厂商 ≥2 个 Key 才出现该按钮；③ 添加第二个/第三个 Key 只添加、不自动应用，原来在用的保持不变。并补充事实前提：**Fish 的音色 ID 是平台公共的，任何有效 Key 都能跑**。
+
+### 改动清单
+
+| 文件 | 改动 |
+| --- | --- |
+| `src/VoiceBridge.Core/SpeechProfiles.cs` | `VoiceProfile` 新增可空 `ProviderKind`（缓存厂商）。删掉连接后音色仍知道自己属于哪个厂商 |
+| `src/VoiceBridge.Core/VoiceLibraryMigration.cs` | 新增 `VendorOf()` / `CacheVendor()` / `UseActiveKey()`；`BindOrphanVoices()` 增加厂商保护（已知厂商与目标不同绝不改绑）并在绑定时写入 `ProviderKind` |
+| `src/VoiceBridge.Core/ProviderActivation.cs`（新增） | 三条规则下沉到数据层便于单测：`StaysOnStandby()`（同厂商已有启用 Key 时新 Key 待用）、`NeedsActivation()`（同厂商 ≥2 个 Key 才显示按钮）、`Activate()`（只切换同厂商 Enabled，其它厂商原样返回） |
+| `src/VoiceBridge.App/LocalSettings.cs` | `Load()` 在 provider/音色迁移后调用 `CacheVendor()`，趁连接还在把厂商写进老音色，发生变化时 `Save()` 一次；DPAPI 凭据库仍不读不写不删 |
+| `MainWindow.Library.cs` | `LibraryRow` 加 `ProviderMissing` / `ProviderHint`，`ProviderRow` 加 `ShowActivate` / `CanActivate` / `ActivateLabel`；`RefreshLibrary()` 按「厂商名 + 是否可用」生成分组与状态；新增 `VendorName()` / `ActiveProviderFor()`；`ChooseContactVoice()`、`SpeechFor()`、`RefreshContactSpeech()` 改为按厂商回退到启用的 Key（`SpeechFor` 用 `voice with { ProviderId = provider.Id }` 满足 `Validate` 的归属校验） |
+| `MainWindow.Library.cs` `EditProvider()` | 新增服务若 `StaysOnStandby()` 为真则 `Enabled=false`（添加不应用）；孤儿音色只绑到该厂商**实际启用**的 Key |
+| `MainWindow.Library.cs` `DeleteProviderClick()` / `ActivateProviderClick()`（新增） | 删除前把厂商缓存到音色；同厂商若还有 Key，音色立即跟随仍可用/自动启用的那个；点「启用」用 `ProviderActivation.Activate()` 只切同厂商，并 `UseActiveKey()` 让该厂商音色跟随 |
+| `ProfileEditors.cs` | `ProviderEditor.Save()` 不再强制 `Enabled=true`（编辑待用 Key 不会偷偷启用）；`VoiceEditor` 在原服务已删时插入「（原服务已删除）」占位选项，编辑弹窗可正常打开、保存并保留原绑定；若有其它服务，把服务选择框移到详情页实现真正改绑 |
+| `MainWindow.xaml` | 「我的音色」行用 `DataTemplate.Triggers` + `DataTrigger ProviderMissing`：名称灰化斜体、显示警示状态标签，编辑/删除按钮不变；「语音服务」行新增「启用」按钮（`ShowActivate` + `BoolToVis`，已启用显示「使用中」并禁用）；两处说明文案同步 |
+
+### 三条规则的确切语义
+
+- **同厂商互斥、跨厂商独立**：`Activate()` 先按 Id 找到目标，只改写 `Kind == target.Kind` 的条目；其它厂商的对象原样返回（`Assert.Same` 单测锁定）。只有一个 Key 的厂商没有按钮、也不需要选择。
+- **添加不应用**：第一个 Key 默认启用；此后任何新增 Key 在同厂商已有启用 Key 时一律 `Enabled=false`，包括用户手动切到第二个后再加第三个。
+- **任意 Key 都能跑音色**：音色只存 Voice ID（合成时是 `reference_id`），鉴权用启用 Key。切换启用 / 删除某 Key 后，只要同厂商还有启用的 Key，`SpeechFor()` 就自动回退过去，无需手工改绑；只有该厂商一个 Key 都不剩时才显示缺失样式。
+
+### 验证与产物
+
+- Release 构建 **0 警告 0 错误**；`Test.ps1` **179/179 C# PASS**（新增 `ProviderActivationTests` 12 个）+ **54/54 Python PASS**；`Verify-Source.ps1` **PASS**。
+- 新增单测覆盖：第一个 Key 启用、加第二/第三个不切换、跨厂商各启用一个、激活幂等、未知 Id 无副作用、删除连接后厂商名仍在、老 JSON 无厂商字段时回填并可反序列化、同厂商音色跟随、跨厂商音色零损伤、孤儿音色不跨厂商误绑。
+- 静态结构核查：从真实 `MainWindow.xaml` 抽取两个 `DataTemplate`，核对所有 `{Binding ...}` 路径都能在 `LibraryRow` / `ProviderRow` 字段中解析，`DataTemplate.Triggers` 的 `TargetName` 与 `x:Name`（`VoiceName` / `VoiceHint`）一一对应，启用按钮的事件与 `BoolToVis` 转换器齐全。⚠️ 本轮**未做运行时隔离 WPF 渲染验证**：验证脚本需要临时编译 .NET 代码，被环境安全策略拦下，未绕过；样式行为请在桌面端目视确认。
+- ZIP / Setup 打包门禁各一次 `PASS (1619 files, no per-user data, no live API key; 2 local credential(s) compared)`。
+- 发布物（**以这一组为准**）：`WeChat-Voice-Bridge-V1.4.7-win-x64.zip` **89,462,225 字节** / SHA-256 `F2F58514A93E63148166845E5CFA982F8056D9EE6ECC29BFDA51784DE408635C`，1621 项；`WeChat-Voice-Bridge-V1.4.7-Setup.exe` **65,299,128 字节** / SHA-256 `2139EDB3521D6C8A89D4284C891FEEC974A371BBB2C12747AF219A857A21B51E`。出厂 DLL 含 `ProviderActivation` / `StaysOnStandby` / `UseActiveKey` / `ActivateProviderClick` / `ProviderMissing` 等符号，且含本轮新增的版本日志文案（发布 DLL 与构建 DLL 哈希一致）；无个人配置与密钥残留。
+- 旧 r2 产物改名留档为 `...-r2-win-x64.zip` / `...-r2-Setup.exe`；r1 的 Setup 仍在。`ReleaseHistory.cs` 在首轮打包后才补上本轮条目，因此首轮 r3 包改名留档为 `...-r3-prelog-win-x64.zip` / `...-r3-prelog-Setup.exe`，标准名包已按最终源码重出。打包时用户正运行 r2 的 exe（PID 11884），**未强杀进程、未覆盖其目录**，改发布到 `artifacts\win-x64-v1.4.7-r3`。
+- **桌面快捷方式已按用户指令更新**：`D:\OneDrive\桌面\微信语音桥.lnk` → `artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`（已核对 .lnk 二进制只含 r3 路径、不含 1.4.5）。
+
+---
+
 ## 1.4.7 修订 · 2026-11-09（清空内置音色 + 添加 API 后音色自动可用）
 
 > 1.4.7 **从未上线**，本轮在同一版本号上迭代。下面旧的 1.4.7 段是首轮记录，其中「预置音色本次不动」的要求与该段产物哈希均已作废；**以本节的产物哈希和新包为准**。线上仍是 1.4.6，桌面快捷方式未动。

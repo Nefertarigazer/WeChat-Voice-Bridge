@@ -8,7 +8,7 @@ public partial class MainWindow
     private bool RefreshContactSpeech(ContactCard card)
     {
         var voice = library.FirstOrDefault(item => item.Id == card.Profile.VoiceProfileId);
-        var provider = providers.FirstOrDefault(item => item.Id == voice?.ProviderId);
+        var provider = voice is null ? null : ActiveProviderFor(voice, providers);
         return card.RefreshSpeechOptions(provider, providers.Count > 1);
     }
 

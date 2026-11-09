@@ -81,6 +81,9 @@ internal sealed record LocalSettings
         // data at read time; every service and voice the user added is kept.
         var providers = ProviderMigration.RemoveFactoryDefault(settings.Providers, out var removedFactoryDefault);
         var voices = VoiceLibraryMigration.RemoveFactoryVoices(settings.VoiceLibrary, out var removedVoiceIds);
+        // Remember each voice's vendor while its connection still exists. Deleting
+        // that connection later must not erase the vendor name from the library.
+        var voicesWithVendor = VoiceLibraryMigration.CacheVendor(voices, providers, out var cachedVendors);
         var contacts = VoiceLibraryMigration.CleanContactReferences(settings.ContactProfiles, removedVoiceIds);
         var testVoice = VoiceLibraryMigration.CleanTestVoiceReference(settings.TestVoiceProfileId, removedVoiceIds);
         var migrated = settings with
@@ -89,14 +92,14 @@ internal sealed record LocalSettings
             Lexicon = new List<WordEntry>(),
             CacheLimitBytes = settings.CacheLimitBytes > 0 ? settings.CacheLimitBytes : CacheLimits.DefaultBytes,
             Providers = providers,
-            VoiceLibrary = voices,
+            VoiceLibrary = voicesWithVendor,
             ContactProfiles = contacts,
             TestVoiceProfileId = testVoice
         };
         // Persist the cleanup once, so an upgraded settings.json no longer carries
         // factory entries or references to them. A failed write must never lose the
         // user's other settings.
-        if (removedFactoryDefault || removedVoiceIds.Count > 0)
+        if (removedFactoryDefault || removedVoiceIds.Count > 0 || cachedVendors > 0)
         {
             try { migrated.Save(); }
             catch (Exception) { /* The in-memory lists are already clean; retry next start. */ }
