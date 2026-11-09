@@ -1,7 +1,18 @@
-# 微信语音桥 · 当前交接（2026-11-09，v1.4.8）
+# 微信语音桥 · 当前交接（2026-11-10，v1.4.8 已上线）
 
-> 本文是**最新接手入口**。旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
-> 完整改动流水见 [WORKLOG.md](WORKLOG.md)，用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
+> **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录见 `.workbuddy/memory/2026-11-10.md`。
+> 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
+> 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
+
+## 0. 当前正在做的任务（2026-11-10 00:45 GMT+1 用户新指令，进行中）
+
+**A. 合并微信多版本适配（wx-multi）**：成果包 `wx-multi-handoff\package-v1\`（已由 Muse 在 `c917c6c` 提交进仓库）。合并入口是包内 `README.md`，**清单以 `docs/review-crouton.md` §4 为准绳**，修复说明看 `docs/fix-round1.md`（R1–R8 已修，自检 58 项）。硬要求：① 严格支持 4.1.11–4.2.0.13，范围外走 `unsupported_version` 通道，不静默失败/不乱读；② 密钥掩码与原切片逐字节一致、不改原切片行为，58 项等价性自检合并后仍成立；③ 不回退 1.4.7/1.4.8 三条已上线改动。`WeChatSession.cs` 按 review §2.2：基底 impl 版 + 并入 discovery 版三常量三方法。
+
+**B. 更新页面 UI 优化**：删掉安装进度页「点确定才会进入更新应用」这类啰嗦解释文案（只删文案、不改 1.4.8 行为）；优化下载完成后绿色安装按钮的上下居中与「版本更新文字 + 按钮」区域美观；**保留截图**。
+
+**C. 流程**：合并完先 `dotnet build` 必须 0 报错；**先不打包**，等用户检查效果合格后再打包、再推新；告诉用户新版软件位置；**桌面快捷方式先不用更新**。每完成一部分立刻回写本文、WORKLOG 与当日 memory 并 commit。
+
+> 阶段进度与已完成项见 `WORKLOG.md` 最新段与 `.workbuddy/memory/2026-11-10.md`（中断后据此接上）。
 
 ## 1. 一句话现状
 
