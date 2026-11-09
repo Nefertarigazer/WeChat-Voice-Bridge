@@ -19,7 +19,8 @@ internal sealed class AnnouncementDialog : Window
         var panel = new StackPanel { Margin = new(28,8,28,24) };
         panel.Children.Add(new TextBlock { Text = Title, FontSize = 22, FontWeight = FontWeights.SemiBold, Margin = new(0,0,0,20) });
         panel.Children.Add(new TextBlock { Text = "提示词", Style = (Style)FindResource("FieldLabel") });
-        phrase = new TextBox { Text = profile.CustomAnnouncement, MaxLength = 128, Tag = "例如：小熊说" };
+        // A fresh phrase every time: never prefill the last one, so "添加并使用" always adds what is typed now.
+        phrase = new TextBox { Text = "", MaxLength = 128, Tag = "例如：小熊说" };
         panel.Children.Add(phrase);
         panel.Children.Add(new TextBlock { Text = "放置位置", Style = (Style)FindResource("FieldLabel"), Margin = new(0,16,0,6) });
         position = new ComboBox { ItemsSource = new[] { "句首", "句尾" }, SelectedIndex = newPhrase ? 0 : (int)profile.CustomPosition };

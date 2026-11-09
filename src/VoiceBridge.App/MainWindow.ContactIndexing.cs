@@ -40,15 +40,21 @@ public partial class MainWindow
         if (!Directory.Exists(folder)) return;
         var cancel = new CancellationTokenSource();
         indexCancellation = cancel;
+        // Watch only the main database. WAL/SHM churn is constant while WeChat is
+        // writing (and especially during a call) and must not tear down the helper.
         var watcher = new FileSystemWatcher(folder)
         {
-            Filter = "contact.db*", NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size | NotifyFilters.LastWrite,
+            Filter = "contact.db", NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size | NotifyFilters.LastWrite,
             IncludeSubdirectories = false
         };
         contactIndexWatcher = watcher;
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         contactIndexDebounce = timer;
-        var nextRefresh = DateTimeOffset.UtcNow.AddSeconds(15);
+        // Rebuilding the index starts a browse Worker, and each new Worker re-runs the
+        // audited key scan on every WeChat process. Keep that rare and never on a timer
+        // tighter than a few minutes.
+        const int RefreshMinutes = 5;
+        var nextRefresh = DateTimeOffset.UtcNow.AddMinutes(RefreshMinutes);
         void QueueRefresh()
         {
             if (closing || ListeningActive || cancel.IsCancellationRequested || !ReferenceEquals(indexCancellation, cancel)) return;
@@ -66,7 +72,7 @@ public partial class MainWindow
             timer.Stop();
             if (cancel.IsCancellationRequested || !ReferenceEquals(indexCancellation, cancel)) return;
             if (!indexWork.IsCompleted) { QueueRefresh(); return; }
-            nextRefresh = DateTimeOffset.UtcNow.AddSeconds(15);
+            nextRefresh = DateTimeOffset.UtcNow.AddMinutes(RefreshMinutes);
             indexWork = BuildContactIndexAsync(account, cancel.Token);
         };
         watcher.EnableRaisingEvents = true;
@@ -90,6 +96,10 @@ public partial class MainWindow
                 await reader.SearchAsync(account, "", cancellation);
                 return true;
             }, token);
+            // Profiles saved by builds before avatar support have no AvatarUrl. The
+            // verified metadata index already holds the real URL, so recover it here
+            // without a new database Worker or any extra contact search.
+            await Dispatcher.InvokeAsync(() => RestoreMissingAvatars(account));
         }
         catch (OperationCanceledException) { }
         catch (Exception) { /* Optional acceleration: the normal search path still reports actual errors. */ }

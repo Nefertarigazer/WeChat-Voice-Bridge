@@ -59,8 +59,11 @@ public partial class MainWindow
         SetRestriction(StartButton, controller.Status.State == BridgeState.Stopping ? "正在结束监听，请稍候。" : null);
         foreach (var button in Descendants(this).OfType<Button>())
         {
-            if (button.Name is "RemovePeerButton" or "UseHistoryButton" or "UseSearchButton")
-                SetRestriction(button, active ? listen + "再修改监听名单。" : null);
+            if (button.Name is "UseHistoryButton" or "UseSearchButton")
+                SetRestriction(button, active ? listen + "再添加联系人。" : null);
+            else if (button.Name == "RemovePeerButton")
+                // Removing a peer only narrows the routing snapshot, so it can be applied while listening.
+                SetRestriction(button, null);
             else if (button.Name == "PreviewPeerButton")
             {
                 var ownPreview = manualCancel != null && button.Tag is ContactCard card && manualPreviewContact == card.Profile.ConversationId;

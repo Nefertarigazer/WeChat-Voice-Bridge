@@ -39,11 +39,17 @@ public sealed record ContactProfile
         _ => (string.IsNullOrWhiteSpace(Name) ? "联系人" : Name.Trim()) + "说"
     };
 
-    public string Prepare(string text, int people)
+    /// <param name="renderPrefix">
+    /// Optional word-book rendering of the announcement itself. The message body has
+    /// already been rendered by the worker, but the prefix is composed here, after that.
+    /// </param>
+    public string Prepare(string text, int people, Func<string, string>? renderPrefix = null)
     {
         var prefix = Prefix(people);
         if (prefix.Length == 0) return text;
+        if (renderPrefix is not null) prefix = renderPrefix(prefix);
         var phrase = prefix.TrimEnd('，', ',', '：', ':', '。', ' ');
+        if (phrase.Length == 0) return text;
         return Announcement == AnnouncementMode.NicknameSuffix ||
             Announcement == AnnouncementMode.Custom && CustomPosition == AnnouncementPosition.End
             ? text + "，" + phrase : phrase + "，" + text;

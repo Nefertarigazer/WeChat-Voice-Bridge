@@ -645,7 +645,11 @@ public partial class MainWindow : Window
             foreach (var contact in snapshot.Contacts) RememberContact(contact);
             SaveNow();
             controller.Start(targets, true, settings.Capacity, settings.Preview, () => new SessionSource(this, fixture), speech, player,
-                fixture.RenderSpeechAsync);
+                fixture.RenderSpeechAsync,
+                // Removing a contact while listening only narrows the routing snapshot.
+                // Keep the worker baseline, but stop admitting messages from peers no longer on the list.
+                message => Volatile.Read(ref routing).Contacts.Any(contact =>
+                    contact.AccountId == message.AccountId && contact.ConversationId == message.ConversationId));
         }
         catch (BridgeException error) { notice = error.Message; }
         catch (Exception) { notice = "无法开始，请检查高级设置。"; }
@@ -721,7 +725,13 @@ public partial class MainWindow : Window
                 notice = "这个联系人暂时没有可试听的消息。";
                 return;
             }
-            await SpeakAsync(speech, player, contact.Prepare(text, contactCards.Count), token, completeManual: false);
+            // The preview reads the raw last message, so render both the body and the
+            // announcement here; listening does the same through the worker.
+            var rules = Volatile.Read(ref activeReadings);
+            var body = rules.Length == 0 ? text : ReadingText.Apply(text, rules);
+            await SpeakAsync(speech, player, contact.Prepare(body, contactCards.Count,
+                rules.Length == 0 ? null : prefix => ReadingText.Apply(prefix, rules, ignoreScope: true)),
+                token, completeManual: false);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { notice = "试听已取消。"; }
         catch (BridgeException error) { notice = error.Message; }
@@ -1110,17 +1120,40 @@ public partial class MainWindow : Window
     private void FocusReading(ReadingItem item, bool editPronunciation = false)
     {
         ReadingList.ScrollIntoView(item);
-        ReadingList.Dispatcher.BeginInvoke(new Action(() =>
+        var name = editPronunciation ? "SayBox" : "MatchBox";
+        var attempts = 0;
+        void TryFocus()
         {
             if (!item.IsEditing || ReadingList.ItemContainerGenerator.ContainerFromItem(item) is not ListBoxItem container)
                 return;
-            var presenter = FindVisualChild<ContentPresenter>(container);
-            var box = presenter?.ContentTemplate?.FindName(editPronunciation ? "SayBox" : "MatchBox", presenter) as TextBox;
-            if (box == null)
+            // Find the box in the visual tree, not through ContentTemplate.FindName:
+            // ListBox supplies the template through ItemTemplate, so the presenter's
+            // own ContentTemplate is often null and the old lookup always failed.
+            var box = Descendants(container).OfType<TextBox>().FirstOrDefault(candidate => candidate.Name == name);
+            if (box is null)
+            {
+                if (attempts++ < 3)
+                    ReadingList.Dispatcher.BeginInvoke(new Action(TryFocus), System.Windows.Threading.DispatcherPriority.Input);
                 return;
-            box.Focus();
-            box.Select(editPronunciation ? box.Text.Length : 0, 0);
-        }), DispatcherPriority.Loaded);
+            }
+            if (!box.IsVisible)
+            {
+                // IsEditing flips the boxes from Collapsed to Visible in a later layout pass.
+                void OnVisible(object? sender, DependencyPropertyChangedEventArgs args)
+                {
+                    // A recycled ListBox container can become visible for another row.
+                    if (!item.IsEditing) { box.IsVisibleChanged -= OnVisible; return; }
+                    if (!box.IsVisible) return;
+                    box.IsVisibleChanged -= OnVisible;
+                    ReadingList.Dispatcher.BeginInvoke(new Action(TryFocus), System.Windows.Threading.DispatcherPriority.Input);
+                }
+                box.IsVisibleChanged += OnVisible;
+                return;
+            }
+            Keyboard.Focus(box);
+            box.Select(box.Text.Length, 0);
+        }
+        ReadingList.Dispatcher.BeginInvoke(new Action(TryFocus), DispatcherPriority.Loaded);
     }
 
     /// <summary>

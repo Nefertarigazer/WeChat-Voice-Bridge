@@ -16,8 +16,13 @@ internal sealed record VoiceChoice(string Id, string Name, string ProviderName)
 }
 internal sealed class AnnouncementChoice(string id, string label) : INotifyPropertyChanged
 {
+    public const string NewId = "custom";
+    public const string CurrentId = "current";
     public string Id { get; } = id;
-    public bool IsCustomPreset => Id is not ("none" or "say" or "leave" or "custom");
+    /// <summary>Only a saved preset can be deleted from the menu.</summary>
+    public bool IsCustomPreset => Id is not ("none" or "say" or "leave" or NewId or CurrentId);
+    /// <summary>The last menu entry opens the editor; it is not a saved choice.</summary>
+    public bool IsAddNew => Id == NewId;
     public string Label { get; private set; } = label;
     public event PropertyChangedEventHandler? PropertyChanged;
     public void UpdateLabel(string value)
@@ -33,7 +38,6 @@ internal sealed class ContactCard : INotifyPropertyChanged
     private readonly Action<ContactCard> changed;
     private ImageSource? avatar;
     private int people = 1;
-    private bool customRequestPending;
     private string speechSignature = "", speechProviderId = "", defaultModel = "", defaultLatency = "balanced", connectionName = "";
     private bool speechReady, fishOptions, showConnection;
     public ContactProfile Profile { get; private set; }
@@ -120,6 +124,13 @@ internal sealed class ContactCard : INotifyPropertyChanged
             Profile = Profile with { VoiceProfileId = value }; Notify(); changed(this);
         }
     }
+    /// <summary>
+    /// Legacy profiles can hold a custom phrase without a saved preset. Give it a
+    /// real menu entry so the closed ComboBox never falls back to the word "自定义".
+    /// </summary>
+    private bool HasTransientCustom => Profile.Announcement == AnnouncementMode.Custom &&
+        !(Profile.AnnouncementPresets ?? new()).Any(item => item.Id == Profile.AnnouncementPresetId) &&
+        Profile.CustomAnnouncement.Trim().Length > 0;
     public string AnnouncementChoiceId
     {
         get => Profile.Announcement switch
@@ -128,17 +139,17 @@ internal sealed class ContactCard : INotifyPropertyChanged
             AnnouncementMode.Off => "none",
             AnnouncementMode.Nickname => "say",
             AnnouncementMode.NicknameSuffix => "leave",
-            _ => Profile.AnnouncementPresetId.Length > 0 ? Profile.AnnouncementPresetId : "custom"
+            _ => (Profile.AnnouncementPresets ?? new()).Any(item => item.Id == Profile.AnnouncementPresetId)
+                ? Profile.AnnouncementPresetId : HasTransientCustom ? AnnouncementChoice.CurrentId : "none"
         };
         set
         {
             if (string.IsNullOrEmpty(value)) return; // Collection refresh must not alter saved preferences.
             if (value == AnnouncementChoiceId) return;
-            if (value == "custom" && CustomRequested != null)
-            {
-                if (!customRequestPending) { customRequestPending = true; CustomRequested(this); }
-                return;
-            }
+            // "自定义" is an action row, never a selectable choice. The ComboBox's
+            // SelectionChanged handler puts the closed box straight back and opens the
+            // editor, so the source must never adopt this sentinel value.
+            if (value == AnnouncementChoice.NewId) return;
             var preset = (Profile.AnnouncementPresets ?? new()).FirstOrDefault(item => item.Id == value);
             var mode = value switch { "none" => AnnouncementMode.Off, "say" => AnnouncementMode.Nickname,
                 "leave" => AnnouncementMode.NicknameSuffix, _ => AnnouncementMode.Custom };
@@ -197,7 +208,6 @@ internal sealed class ContactCard : INotifyPropertyChanged
         Notify(nameof(CanDeleteAnnouncement)); Notify(nameof(CustomAnnouncement)); changed(this);
         return true;
     }
-    public void FinishCustomRequest() { customRequestPending = false; Notify(nameof(AnnouncementChoiceId)); }
     public void AddCustom(string text, AnnouncementPosition position)
     {
         Profile = Profile with { CustomAnnouncement = text, CustomPosition = position };
@@ -205,7 +215,6 @@ internal sealed class ContactCard : INotifyPropertyChanged
     }
     public ImageSource? Avatar { get => avatar; set { avatar = value; Notify(); } }
     public event PropertyChangedEventHandler? PropertyChanged;
-    public event Action<ContactCard>? CustomRequested;
     public void RefreshAnnouncement() => Notify(nameof(AnnouncementChoiceId));
     public void RefreshVoice() => Notify(nameof(VoiceProfileId));
     public void SetPeopleCount(int count)
@@ -223,6 +232,13 @@ internal sealed class ContactCard : INotifyPropertyChanged
             Profile = Profile with { Announcement = AnnouncementMode.Off };
         else return;
         Notify(nameof(AnnouncementChoiceId));
+        changed(this);
+    }
+    /// <summary>Recover a portrait URL for a profile saved before avatars existed, without changing the name.</summary>
+    public void UpdateAvatar(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || url == Profile.AvatarUrl) return;
+        Profile = Profile with { AvatarUrl = url };
         changed(this);
     }
     public void UpdateIdentity(string name, string alias, string? url)
@@ -247,8 +263,15 @@ internal sealed class ContactCard : INotifyPropertyChanged
             new("none", "无提示词"), new("say", $"“{Name}”说+消息"), new("leave", $"消息+“{Name}”留言")
         };
         foreach (var preset in Profile.AnnouncementPresets ?? new())
-            desired.Add(new(preset.Id, preset.Text + (preset.Position == AnnouncementPosition.End ? "（句尾）" : "（句首）")));
-        desired.Add(new("custom", "自定义"));
+            desired.Add(new(preset.Id, AnnouncementLabel(preset.Text, preset.Position)));
+        if (HasTransientCustom)
+            desired.Add(new(AnnouncementChoice.CurrentId,
+                AnnouncementLabel(Profile.CustomAnnouncement.Trim(), Profile.CustomPosition)));
+        desired.Add(new(AnnouncementChoice.NewId, "自定义"));
+        // Drop entries that no longer apply (e.g. the transient one after it was saved),
+        // without clearing the collection and losing the ComboBox selection.
+        for (var index = Announcements.Count - 1; index >= 0; index--)
+            if (!desired.Any(item => item.Id == Announcements[index].Id)) Announcements.RemoveAt(index);
         for (var index = 0; index < desired.Count; index++)
         {
             var next = desired[index];
@@ -261,7 +284,10 @@ internal sealed class ContactCard : INotifyPropertyChanged
             }
             else Announcements.Insert(index, next);
         }
-        while (Announcements.Count > desired.Count) Announcements.RemoveAt(Announcements.Count - 1);
     }
+
+    /// <summary>Show the reading order the same way as the built-in "说+消息" entries.</summary>
+    private static string AnnouncementLabel(string text, AnnouncementPosition position) =>
+        position == AnnouncementPosition.End ? "消息+" + text : text + "+消息";
     private void Notify([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new(name));
 }

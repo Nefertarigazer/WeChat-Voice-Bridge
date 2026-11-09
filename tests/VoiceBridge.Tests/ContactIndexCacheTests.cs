@@ -38,4 +38,40 @@ public sealed class ContactIndexCacheTests
         }
         finally { temporary.Delete(recursive: true); }
     }
+
+    [Fact]
+    public void Wal_churn_keeps_the_index_and_a_saved_avatar_is_findable_by_id()
+    {
+        var temporary = Directory.CreateTempSubdirectory("wvb-contact-index-avatar-");
+        try
+        {
+            var folder = Path.Combine(temporary.FullName, "account", "db_storage", "contact");
+            Directory.CreateDirectory(folder);
+            var database = Path.Combine(folder, "contact.db");
+            File.WriteAllText(database, "simulated encrypted database, no real data");
+            var session = new WeChatSession(temporary.FullName, "account", "unused", [], DateTime.UtcNow);
+            var cachePath = Path.Combine(temporary.FullName, "index-cache");
+            var cache = new ContactSearchCache(cachePath);
+            // Row 79 is beyond TrySearch's 60-result cap but must still be recoverable.
+            var rows = Enumerable.Range(0, 80).Select(index => new ContactSearchCache.Row(
+                new ContactEntry("peer-" + index, "name" + index, "alias" + index,
+                    index == 79 ? "https://qlogo.cn/last.png" : null),
+                ["peer-" + index, "name" + index], index)).ToArray();
+            cache.Save(session, ContactSearchCache.Fingerprint(session)!, rows);
+            var restarted = new ContactSearchCache(cachePath);
+            // WeChat rewrites the WAL constantly, especially during a call. It must not
+            // invalidate the index, or every write would launch a new key-scanning Worker.
+            File.WriteAllText(database + "-wal", "wal bytes");
+            File.SetLastWriteTimeUtc(database + "-wal", DateTime.UtcNow.AddMinutes(1));
+            Assert.True(restarted.TryFind(session, "peer-79", out var last));
+            Assert.Equal("https://qlogo.cn/last.png", last!.AvatarUrl);
+            Assert.True(restarted.TrySearch(session, "", out var visible));
+            Assert.Equal(60, visible.Count);
+            Assert.False(restarted.TryFind(session, "absent", out _));
+            // A real change to the main database must still invalidate the cache.
+            File.AppendAllText(database, "changed");
+            Assert.False(restarted.TryFind(session, "peer-79", out _));
+        }
+        finally { temporary.Delete(recursive: true); }
+    }
 }

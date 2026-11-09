@@ -1,15 +1,11 @@
 <Window x:Class="VoiceBridge.App.ReleaseNotesDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="更新说明" Width="544" SizeToContent="Height"
-        WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
-        Background="#EEF2EF" FontFamily="Microsoft YaHei UI" FontSize="14"
+        WindowStyle="None" AllowsTransparency="True" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="Transparent"
+        FontFamily="Microsoft YaHei UI" FontSize="14"
         TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
-  <shell:WindowChrome.WindowChrome>
-    <shell:WindowChrome CaptionHeight="50" CornerRadius="14" GlassFrameThickness="1"
-                        ResizeBorderThickness="0" UseAeroCaptionButtons="False"/>
-  </shell:WindowChrome.WindowChrome>
   <Window.Resources>
     <!-- Overlay scrollbar: reveal on hover without changing the text width. -->
     <Style x:Key="NotesScrollViewer" TargetType="ScrollViewer">
@@ -71,22 +67,23 @@
     </Style>
   </Window.Resources>
   <Grid>
-    <!-- Shadow only the surface, keeping the text itself crisp at each DPI. -->
-    <Border x:Name="SurfaceShadow" Margin="12" Background="#FFFEFB" CornerRadius="14" IsHitTestVisible="False">
+    <!-- Shadow only the surface, keeping the text itself crisp at each DPI.
+         The outer 16 DIP stays transparent, so no tinted frame surrounds the card. -->
+    <Border x:Name="SurfaceShadow" Margin="16" Background="#FFFEFB" CornerRadius="14" IsHitTestVisible="False">
       <Border.Effect>
-        <DropShadowEffect BlurRadius="18" ShadowDepth="4" Direction="270" Opacity="0.18" Color="#263B2E"/>
+        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Opacity="0.24" Color="#20262B"/>
       </Border.Effect>
     </Border>
-    <Border x:Name="DialogSurface" Margin="12" Background="#FFFEFB" BorderBrush="#CAD4CD"
+    <Border x:Name="DialogSurface" Margin="16" Background="#FFFEFB" BorderBrush="#DCE3DF"
             BorderThickness="1" CornerRadius="14">
     <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="36"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
-    <Grid x:Name="CaptionBar" Background="Transparent">
+    <Grid x:Name="CaptionBar" Background="Transparent" MouseLeftButtonDown="CaptionDrag">
       <Button x:Name="CloseNotesButton" Style="{StaticResource NotesCloseButton}"
-              HorizontalAlignment="Right" shell:WindowChrome.IsHitTestVisibleInChrome="True"
+              HorizontalAlignment="Right"
               AutomationProperties.Name="关闭更新说明" ToolTip="关闭" Click="DismissClick"/>
     </Grid>
     <Grid Grid.Row="1" Margin="28,8,28,24">

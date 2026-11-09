@@ -22,3 +22,7 @@
 本次未调用 Fish、其他云端 API 或真实微信数据库。完整主窗口集成、首次配置判定和多服务/多人业务测试由相应模块的集成验收覆盖。
 
 窗口边框使用 WPF 的 [WindowChrome](https://learn.microsoft.com/en-us/dotnet/api/system.windows.shell.windowchrome)；阴影背景与正文分离，避免给正文添加模糊效果。
+
+## 后续变更（2026-11-08）
+
+用户要求清除弹窗四周的浅绿色底框，并让更新完成窗口与更新说明窗口保持同一套设计。`DialogShell.cs` 与 `ReleaseNotesDialog.xaml` 现改为透明窗口（`AllowsTransparency=True`、`Background=Transparent`），只保留暖白圆角卡片、细边框和中性色柔和阴影；外层 16 DIP 完全透明。由于不再使用 WindowChrome，标题栏拖动改由 `DragMove()` 提供，另补 Alt+F4 关闭。上文「未启用 AllowsTransparency」「原生 HTCAPTION 命中」是本次改动之前的验收记录，不再是当前实现。

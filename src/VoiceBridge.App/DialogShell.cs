@@ -2,40 +2,37 @@ using System;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
-using System.Windows.Shell;
 using System.Windows.Threading;
 
 namespace VoiceBridge.App;
 
 /// <summary>The same surface and caption treatment as the release notes, for app-owned dialogs.</summary>
+/// <remarks>Only the rounded card is opaque; the window around it is transparent, so no tinted frame shows.</remarks>
 internal static class DialogShell
 {
     public static void Apply(Window window, UIElement body)
     {
         window.Content = null;
         window.WindowStyle = WindowStyle.None;
+        window.AllowsTransparency = true;
         window.ResizeMode = ResizeMode.NoResize;
         window.ShowInTaskbar = false;
         window.UseLayoutRounding = true;
-        window.Background = Brush("#EEF2EF");
+        window.Background = Brushes.Transparent;
         TextOptions.SetTextFormattingMode(window, TextFormattingMode.Display);
-        WindowChrome.SetWindowChrome(window, new WindowChrome
-        {
-            CaptionHeight = 50, CornerRadius = new(14), GlassFrameThickness = new(1),
-            ResizeBorderThickness = new(0), UseAeroCaptionButtons = false
-        });
         var root = new Grid();
         root.Children.Add(new Border
         {
-            Margin = new(12), Background = Brush("#FFFEFB"), CornerRadius = new(14), IsHitTestVisible = false,
-            Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 4, Direction = 270,
-                Opacity = .18, Color = (Color)ColorConverter.ConvertFromString("#263B2E") }
+            Margin = new(16), Background = Brush("#FFFEFB"), CornerRadius = new(14), IsHitTestVisible = false,
+            Effect = new DropShadowEffect { BlurRadius = 12, ShadowDepth = 2, Direction = 270,
+                Opacity = .24, Color = (Color)ColorConverter.ConvertFromString("#20262B") }
         });
-        var surface = new Border { Margin = new(12), Background = Brush("#FFFEFB"),
-            BorderBrush = Brush("#CAD4CD"), BorderThickness = new(1), CornerRadius = new(14) };
+        var surface = new Border { Margin = new(16), Background = Brush("#FFFEFB"),
+            BorderBrush = Brush("#DCE3DF"), BorderThickness = new(1), CornerRadius = new(14) };
         var layout = new Grid();
         layout.RowDefinitions.Add(new() { Height = new(36) });
         layout.RowDefinitions.Add(new() { Height = new(1, GridUnitType.Star) });
@@ -43,11 +40,22 @@ internal static class DialogShell
         var close = new Button { Style = (Style)window.FindResource("DialogCloseButton"),
             HorizontalAlignment = HorizontalAlignment.Right, ToolTip = "关闭" };
         AutomationProperties.SetName(close, "关闭" + window.Title);
-        WindowChrome.SetIsHitTestVisibleInChrome(close, true);
         close.Click += (_, _) => window.Close();
+        // A transparent window has no native caption; dragging and Alt+F4 are provided here instead.
+        caption.MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.ButtonState != MouseButtonState.Pressed) return;
+            if (e.OriginalSource is DependencyObject source && close.IsAncestorOf(source)) return;
+            window.DragMove();
+        };
         caption.Children.Add(close); layout.Children.Add(caption);
         Grid.SetRow(body, 1); layout.Children.Add(body);
         surface.Child = layout; root.Children.Add(surface); window.Content = root;
+        window.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.System && e.SystemKey == Key.F4 &&
+                (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt) window.Close();
+        };
         window.SourceInitialized += (_, _) =>
         {
             var handle = new WindowInteropHelper(window).Handle;

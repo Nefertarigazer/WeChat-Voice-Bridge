@@ -19,6 +19,7 @@ public partial class MainWindow
     private const string DefaultFishId = "fish-default";
     private readonly SpeechProviderFactory speechFactory = new();
     private readonly AvatarCache avatars = new();
+    private readonly ContactSearchCache contactIndexCache = new();
     private readonly CancellationTokenSource avatarStop = new();
     private readonly List<SpeechProviderProfile> providers = new();
     private readonly List<VoiceProfile> library = new();
@@ -109,7 +110,6 @@ public partial class MainWindow
         var card = new ContactCard(profile, voiceChoices, ChooseContactVoice, ContactPreferenceChanged)
             { Avatar = avatars.Cached(profile.AccountId, profile.ConversationId) };
         RefreshContactSpeech(card);
-        card.CustomRequested += requested => Dispatcher.BeginInvoke(new Action(() => EditCustomAnnouncement(requested, newPhrase: true)));
         return card;
     }
 
@@ -233,6 +233,24 @@ public partial class MainWindow
         Render();
     }
 
+    /// <summary>
+    /// Builds before avatar support saved no AvatarUrl, so an upgraded profile can
+    /// never reach AvatarCache.GetAsync. The verified contact index already stores
+    /// the real URL keyed by conversation id: recover it once, which also persists it.
+    /// </summary>
+    private void RestoreMissingAvatars(WeChatSession account)
+    {
+        if (closing) return;
+        foreach (var card in contactCards.Where(item => string.IsNullOrWhiteSpace(item.Profile.AvatarUrl)).ToArray())
+        {
+            if (avatars.Cached(card.Profile.AccountId, card.Profile.ConversationId) is not null) continue;
+            if (!contactIndexCache.TryFind(account, card.Profile.ConversationId, out var entry) ||
+                string.IsNullOrWhiteSpace(entry?.AvatarUrl)) continue;
+            card.UpdateAvatar(entry!.AvatarUrl);
+            _ = FetchAvatarAsync(card);
+        }
+    }
+
     private async Task FetchAvatarAsync(ContactCard card)
     {
         try
@@ -246,14 +264,17 @@ public partial class MainWindow
 
     private void RemoveContactClick(object sender, RoutedEventArgs e)
     {
-        if (ListeningActive || sender is not Button { Tag: ContactCard card }) return;
-        contactCards.Remove(card);
+        if (closing || sender is not Button { Tag: ContactCard card }) return;
+        if (!contactCards.Remove(card)) return;
         UpsertContact(card.Profile with { Selected = false });
         if (contactCards.Count == 1) contactCards[0].AdaptDefaultAnnouncement(addingSecond: false);
         SetPrimaryContact(contactCards.FirstOrDefault()?.Profile);
         UpdateContactsCaption();
+        // PublishRouting replaces the immutable snapshot; the running session reads it
+        // on every message, so this person stops being read without restarting the baseline.
         PublishRouting();
         SaveNow();
+        notice = contactCards.Count == 0 ? "朗读名单已空，添加联系人后才会继续朗读。" : null;
         Render();
     }
 
@@ -361,9 +382,46 @@ public partial class MainWindow
         if (sender is Button { Tag: ContactCard card }) EditCustomAnnouncement(card);
     }
 
+    /// <summary>
+    /// The last menu row is an action, not a choice. Put the closed ComboBox back to
+    /// the real selection immediately (SetCurrentValue does not write to the TwoWay
+    /// source), then open the editor. Nothing has to be "restored" afterwards when the
+    /// user cancels or closes the dialog, because the selection never left.
+    /// </summary>
+    private void AnnouncementSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ComboBox combo) return;
+        // Identify the action row by the item the user actually picked. SelectedValue is
+        // unreliable: the TwoWay binding reverts it to the source value immediately,
+        // while SelectedItem (and therefore the closed box) still shows "自定义".
+        if (!e.AddedItems.OfType<AnnouncementChoice>().Any(item => item.Id == AnnouncementChoice.NewId)) return;
+        if (combo.DataContext is not ContactCard card) return;
+        RestoreAnnouncementItem(combo, card);
+        // Normal priority: ContextIdle is starved by the window's repeating timers,
+        // which used to leave the editor unopened in the real main window.
+        Dispatcher.BeginInvoke(new Action(() => EditCustomAnnouncement(card, newPhrase: true)));
+    }
+
+    /// <summary>
+    /// Put both the value and the visible item back. SetCurrentValue changes the
+    /// control without writing into the TwoWay source, so the action row can never
+    /// become a persisted or displayed selection.
+    /// </summary>
+    private static void RestoreAnnouncementItem(ComboBox combo, ContactCard card)
+    {
+        var id = card.AnnouncementChoiceId;
+        var item = card.Announcements.FirstOrDefault(entry => entry.Id == id);
+        combo.SetCurrentValue(System.Windows.Controls.Primitives.Selector.SelectedItemProperty, item);
+        combo.SetCurrentValue(System.Windows.Controls.Primitives.Selector.SelectedValueProperty, id);
+    }
+
     private void EditCustomAnnouncement(ContactCard card, bool newPhrase = false)
     {
-        if (announcementEditorOpen || closing || !contactCards.Contains(card)) { card.FinishCustomRequest(); return; }
+        if (announcementEditorOpen || closing || !contactCards.Contains(card))
+        {
+            SyncAnnouncementSelection(card);
+            return;
+        }
         announcementEditorOpen = true;
         try
         {
@@ -374,8 +432,27 @@ public partial class MainWindow
         }
         finally
         {
-            card.RefreshAnnouncement();
-            Dispatcher.BeginInvoke(new Action(() => { card.FinishCustomRequest(); announcementEditorOpen = false; }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+            // Cancel/close leaves the profile untouched, so the ComboBox already shows
+            // the previous entry. A successful add changes the getter to the new
+            // preset id, so point the ComboBox at it.
+            announcementEditorOpen = false;
+            SyncAnnouncementSelection(card);
+            Dispatcher.BeginInvoke(new Action(() => SyncAnnouncementSelection(card)));
+        }
+    }
+
+    private void SyncAnnouncementSelection(ContactCard card)
+    {
+        if (closing) return;
+        card.RefreshAnnouncement();
+        // Match by ItemsSource: x:Name and DataContext are unreliable inside a
+        // DataTemplate generated by ContentControl / ListBox.
+        foreach (var combo in Descendants(this).OfType<ComboBox>()
+            .Where(entry => ReferenceEquals(entry.ItemsSource, card.Announcements)))
+        {
+            RestoreAnnouncementItem(combo, card);
+            BindingOperations.GetBindingExpression(combo,
+                System.Windows.Controls.Primitives.Selector.SelectedValueProperty)?.UpdateTarget();
         }
     }
 
@@ -514,7 +591,11 @@ public partial class MainWindow
             var snapshot = Volatile.Read(ref owner.routing);
             var contact = snapshot.Contacts.FirstOrDefault(item => item.AccountId == message.AccountId &&
                 item.ConversationId == message.ConversationId) ?? throw new BridgeException("联系人已不在获准名单中。");
-            var spoken = contact.Prepare(text, snapshot.Contacts.Length);
+            // The worker applies the word book to the message body. Apply the same
+            // rules to the announcement, which is only composed here, before joining.
+            var rules = Volatile.Read(ref owner.activeReadings);
+            var spoken = contact.Prepare(text, snapshot.Contacts.Length,
+                rules.Length == 0 ? null : prefix => ReadingText.Apply(prefix, rules, ignoreScope: true));
             if (spoken.Length > SpeechText.MaximumLength) throw new BridgeException("加上提示词后超过两万字，已跳过这条消息。");
             return new(owner.SpeechFor(contact.VoiceProfileId, snapshot, contact), spoken);
         }

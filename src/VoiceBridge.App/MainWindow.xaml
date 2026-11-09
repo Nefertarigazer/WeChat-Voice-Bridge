@@ -11,26 +11,44 @@
         Closing="WindowClosing" StateChanged="WindowStateChanged">
   <Window.Resources>
     <DataTemplate x:Key="AnnouncementMenuTemplate">
-      <Grid>
-        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
-        <Button Grid.Column="1" Content="×" Tag="{Binding}" ToolTip="删除这个自定义提示词"
-                MinWidth="28" Padding="7,2" Margin="10,0,0,0"
-                PreviewMouseLeftButtonDown="DeleteAnnouncementFromMenuMouse" Click="DeleteAnnouncementFromMenu">
-          <Button.Style>
-            <Style TargetType="Button" BasedOn="{StaticResource PlainButton}">
-              <Setter Property="Visibility" Value="Collapsed"/>
-              <Style.Triggers><MultiDataTrigger>
-                <MultiDataTrigger.Conditions>
-                  <Condition Binding="{Binding IsCustomPreset}" Value="True"/>
-                  <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Value="True"/>
-                </MultiDataTrigger.Conditions>
-                <Setter Property="Visibility" Value="Visible"/>
-              </MultiDataTrigger></Style.Triggers>
-            </Style>
-          </Button.Style>
-        </Button>
-      </Grid>
+      <StackPanel>
+        <!-- The "自定义" entry is an action, not a saved choice: give it a rule and a plus. -->
+        <Border x:Name="AddNewRule" Height="1" Margin="0,5,0,5" Background="{StaticResource Separator}"
+                Visibility="Collapsed"/>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="AddNewPlus" Text="＋" Foreground="{StaticResource Accent}" FontWeight="SemiBold"
+                     FontSize="15" Margin="0,0,7,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+          <TextBlock x:Name="ChoiceLabel" Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center"
+                     TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+          <Button Grid.Column="2" Content="×" Tag="{Binding}" ToolTip="删除这个自定义提示词"
+                  MinWidth="28" Padding="7,2" Margin="10,0,0,0"
+                  PreviewMouseLeftButtonDown="DeleteAnnouncementFromMenuMouse" Click="DeleteAnnouncementFromMenu">
+            <Button.Style>
+              <Style TargetType="Button" BasedOn="{StaticResource PlainButton}">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers><MultiDataTrigger>
+                  <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding IsCustomPreset}" Value="True"/>
+                    <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Value="True"/>
+                  </MultiDataTrigger.Conditions>
+                  <Setter Property="Visibility" Value="Visible"/>
+                </MultiDataTrigger></Style.Triggers>
+              </Style>
+            </Button.Style>
+          </Button>
+        </Grid>
+      </StackPanel>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding IsAddNew}" Value="True">
+          <Setter TargetName="AddNewRule" Property="Visibility" Value="Visible"/>
+          <Setter TargetName="AddNewPlus" Property="Visibility" Value="Visible"/>
+          <Setter TargetName="ChoiceLabel" Property="Foreground" Value="{StaticResource Accent}"/>
+          <Setter TargetName="ChoiceLabel" Property="FontWeight" Value="SemiBold"/>
+        </DataTrigger>
+      </DataTemplate.Triggers>
     </DataTemplate>
     <Style x:Key="ContactPreviewAction" TargetType="Button">
       <Setter Property="Cursor" Value="Hand"/><Setter Property="MinHeight" Value="32"/>
@@ -325,7 +343,7 @@
               <Grid Margin="0,10,0,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBlock Text="提示词" Style="{StaticResource RowLabel}"/>
-                <ComboBox Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Announcements}" ItemTemplate="{StaticResource AnnouncementMenuTemplate}" SelectedValuePath="Id" SelectedValue="{Binding AnnouncementChoiceId, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="此联系人提示词"/>
+                <ComboBox x:Name="AnnouncementBox" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Announcements}" ItemTemplate="{StaticResource AnnouncementMenuTemplate}" SelectedValuePath="Id" SelectedValue="{Binding AnnouncementChoiceId, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False" SelectionChanged="AnnouncementSelectionChanged" AutomationProperties.Name="此联系人提示词"/>
               </Grid>
               <Button Content="编辑自定义…" Style="{StaticResource PlainButton}" HorizontalAlignment="Left" Margin="64,6,0,0" Visibility="{Binding CustomEnabled, Converter={StaticResource BoolToVis}}" Tag="{Binding}" Click="EditAnnouncementClick"/>
             </StackPanel>
@@ -372,7 +390,8 @@
           <Grid Margin="0,10,0,0">
             <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock Text="提示词" Style="{StaticResource RowLabel}"/>
-            <ComboBox Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Announcements}" ItemTemplate="{StaticResource AnnouncementMenuTemplate}" SelectedValuePath="Id" IsSynchronizedWithCurrentItem="False"
+            <ComboBox x:Name="AnnouncementBox" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Announcements}" ItemTemplate="{StaticResource AnnouncementMenuTemplate}" SelectedValuePath="Id" IsSynchronizedWithCurrentItem="False"
+                      SelectionChanged="AnnouncementSelectionChanged"
                       SelectedValue="{Binding AnnouncementChoiceId, Mode=TwoWay}" AutomationProperties.Name="此联系人提示词"/>
           </Grid>
           <Button Content="编辑自定义…" Style="{StaticResource PlainButton}" HorizontalAlignment="Left" Margin="64,6,0,0"

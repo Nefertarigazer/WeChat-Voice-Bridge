@@ -21,12 +21,14 @@ public sealed class SessionController : IAsyncDisposable
 
     public bool Start(Target target, bool consent, int capacity, bool preview,
         Func<IMessageSource> sourceFactory, ISpeech speech, IPlayer player,
-        Func<ChatMessage, CancellationToken, Task<string>>? prepareSpeech = null) =>
-        Start(new[] { target }, consent, capacity, preview, sourceFactory, speech, player, prepareSpeech);
+        Func<ChatMessage, CancellationToken, Task<string>>? prepareSpeech = null,
+        Func<ChatMessage, bool>? admitFilter = null) =>
+        Start(new[] { target }, consent, capacity, preview, sourceFactory, speech, player, prepareSpeech, admitFilter);
 
     public bool Start(IReadOnlyList<Target> targets, bool consent, int capacity, bool preview,
         Func<IMessageSource> sourceFactory, ISpeech speech, IPlayer player,
-        Func<ChatMessage, CancellationToken, Task<string>>? prepareSpeech = null)
+        Func<ChatMessage, CancellationToken, Task<string>>? prepareSpeech = null,
+        Func<ChatMessage, bool>? admitFilter = null)
     {
         lock (gate)
         {
@@ -42,7 +44,7 @@ public sealed class SessionController : IAsyncDisposable
                 throw new BridgeException("请选择同一账号下的 1–8 个不同的一对一联系人，并确认授权与队列容量。");
 
             var session = new Session(new(Guid.NewGuid(), ++generation), selected, capacity, preview, speech, player,
-                prepareSpeech);
+                prepareSpeech, admitFilter);
             current = session;
             Set(BridgeState.Starting, 0, "正在建立消息基线", null);
             session.Completion = Task.Run(() => SuperviseAsync(session, sourceFactory));
@@ -184,8 +186,9 @@ public sealed class SessionController : IAsyncDisposable
                 return Admission.Closed;
             if (message.AccountId != session.Targets[0].AccountId)
                 throw new BridgeException("检测到账号变化，监听已停止。", true);
-            if (!session.Conversations.Contains(message.ConversationId) || message.Direction != Direction.Incoming ||
-                !message.IsText || string.IsNullOrWhiteSpace(message.Text))
+            if (!session.Conversations.Contains(message.ConversationId) ||
+                session.AdmitFilter is { } admit && !admit(message) ||
+                message.Direction != Direction.Incoming || !message.IsText || string.IsNullOrWhiteSpace(message.Text))
                 return Admission.Ignored;
             if (string.IsNullOrWhiteSpace(message.Key))
                 throw new BridgeException("消息缺少可验证的标识，监听已停止。", true);
@@ -373,10 +376,13 @@ public sealed class SessionController : IAsyncDisposable
     }
 
     private sealed class Session(SessionStamp stamp, Target[] targets, int capacity, bool preview,
-        ISpeech speech, IPlayer player, Func<ChatMessage, CancellationToken, Task<string>>? prepareSpeech)
+        ISpeech speech, IPlayer player, Func<ChatMessage, CancellationToken, Task<string>>? prepareSpeech,
+        Func<ChatMessage, bool>? admitFilter)
     {
         public SessionStamp Stamp { get; } = stamp;
         public Target[] Targets { get; } = targets;
+        /// <summary>Re-checked per message so a peer removed while running is ignored without rebuilding the baseline.</summary>
+        public Func<ChatMessage, bool>? AdmitFilter { get; } = admitFilter;
         public HashSet<string> Conversations { get; } = targets.Select(target => target.ConversationId).ToHashSet(StringComparer.Ordinal);
         public bool Preview { get; set; } = preview;
         public ISpeech Speech { get; } = speech;

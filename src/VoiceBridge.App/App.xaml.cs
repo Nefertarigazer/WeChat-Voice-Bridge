@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,9 +13,19 @@ public partial class App : Application
 {
     private IHost? host;
     private SingleInstance? instance;
+    private const string AppUserModelId = "WeChatVoiceBridge";
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+    private static extern void SetCurrentProcessExplicitAppUserModelID(
+        [MarshalAs(UnmanagedType.LPWStr)] string appId);
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // The update helper runs from staging and the restarted build from the install
+        // directory, so Windows would otherwise give each process its own taskbar button.
+        // One explicit id groups all three windows under the same button.
+        try { SetCurrentProcessExplicitAppUserModelID(AppUserModelId); }
+        catch (Exception) { /* Taskbar grouping is optional; never block startup. */ }
         base.OnStartup(e);
         if (e.Args.Length > 0 && e.Args[0] == "--apply-update")
         {

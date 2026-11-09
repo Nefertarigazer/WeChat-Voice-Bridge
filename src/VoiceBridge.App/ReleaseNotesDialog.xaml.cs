@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 
@@ -18,6 +19,19 @@ public partial class ReleaseNotesDialog : Window
         MaxHeight = Math.Max(320, SystemParameters.WorkArea.Height - 48);
         Loaded += (_, _) => UpdateScrollEdges();
         NotesScroller.ScrollChanged += (_, _) => UpdateScrollEdges();
+        // No native caption on a transparent window: keep Alt+F4 working.
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.System && e.SystemKey == Key.F4 &&
+                (Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt) Close();
+        };
+    }
+
+    private void CaptionDrag(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState != MouseButtonState.Pressed) return;
+        if (e.OriginalSource is DependencyObject source && CloseNotesButton.IsAncestorOf(source)) return;
+        DragMove();
     }
 
     protected override void OnSourceInitialized(EventArgs e)

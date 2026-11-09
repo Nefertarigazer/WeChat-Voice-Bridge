@@ -41,6 +41,21 @@ public sealed class PythonFixtureSource(WatchOptions options, string python, str
     private SessionStamp stamp;
     private string[] peers = [];
     private bool stopped;
+    private long nextProcessCheck;
+
+    /// <summary>
+    /// Querying WeChat's process on every poll (about once a second) keeps an open
+    /// handle on it for the whole session. WeChat checks its own process during
+    /// voice/video call setup, so only re-validate at most every 10 seconds.
+    /// </summary>
+    private void CheckWeChatOccasionally()
+    {
+        if (wechat is null) return;
+        var now = Stopwatch.GetTimestamp();
+        if (now < Volatile.Read(ref nextProcessCheck)) return;
+        Volatile.Write(ref nextProcessCheck, now + Stopwatch.Frequency * 10);
+        wechat.CheckRunning();
+    }
 
     public event Action<string>? Warning;
     public event Action<IReadOnlyList<ContactEntry>>? ContactsReady;
@@ -281,7 +296,7 @@ public sealed class PythonFixtureSource(WatchOptions options, string python, str
 
     private async Task<int> QueryAsync(Func<ChatMessage, Admission> admit, long notice, CancellationToken token)
     {
-        wechat?.CheckRunning();
+        CheckWeChatOccasionally();
         var requested = Stopwatch.GetTimestamp();
         var packet = await ExchangeAsync("query", token, "message", "heartbeat", "warning");
         var kind = packet.GetProperty("type").GetString();

@@ -23,22 +23,30 @@ public sealed class ContactSearchCache
         {
             var database = Path.Combine(session.Root, session.Account, "db_storage", "contact", "contact.db");
             if (!File.Exists(database)) return null;
-            var stamps = new StringBuilder();
-            foreach (var path in new[] { database, database + "-wal" })
-            {
-                var file = new FileInfo(path);
-                if (!file.Exists) { stamps.Append("absent;"); continue; }
-                stamps.Append(file.Length).Append(':').Append(file.CreationTimeUtc.Ticks).Append(':').Append(file.LastWriteTimeUtc.Ticks).Append(';');
-            }
-            return stamps.ToString();
+            // Only the main database invalidates the index. WeChat rewrites contact.db-wal
+            // constantly (and heavily during a voice/video call); including it here made
+            // every write look like a schema change and forced a new browse Worker, which
+            // re-ran the audited full-address-space key scan on every WeChat process.
+            var file = new FileInfo(database);
+            return string.Concat(file.Length, ":", file.CreationTimeUtc.Ticks, ":", file.LastWriteTimeUtc.Ticks);
         }
         catch (IOException) { return null; }
         catch (UnauthorizedAccessException) { return null; }
     }
 
-    public bool TrySearch(WeChatSession session, string query, out IReadOnlyList<ContactEntry> results)
+    /// <summary>Find one saved contact by its stable conversation id, without the 60-result search cap.</summary>
+    public bool TryFind(WeChatSession session, string peerId, out ContactEntry? contact)
     {
-        results = Array.Empty<ContactEntry>();
+        contact = null;
+        if (!TryLoad(session)) return false;
+        var row = current!.Rows.FirstOrDefault(item =>
+            string.Equals(item.Contact.Id, peerId, StringComparison.Ordinal));
+        contact = row?.Contact;
+        return contact is not null;
+    }
+
+    private bool TryLoad(WeChatSession session)
+    {
         var binding = Binding(session);
         var stamp = Fingerprint(session);
         if (stamp == null) return false;
@@ -54,19 +62,32 @@ public sealed class ContactSearchCache
                 if (saved is not { Schema: 1 } || saved.Binding != binding || saved.Fingerprint != stamp || saved.Rows.Length > 50_000) return false;
                 current = saved;
             }
+            return true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or CryptographicException or JsonException or ArgumentException or NullReferenceException or IndexOutOfRangeException)
+        { current = null; return false; }
+    }
+
+    public bool TrySearch(WeChatSession session, string query, out IReadOnlyList<ContactEntry> results)
+    {
+        results = Array.Empty<ContactEntry>();
+        try
+        {
+            if (!TryLoad(session)) return false;
+            var snapshot = current!;
             var normalized = query.Trim().ToUpperInvariant();
-            IEnumerable<int> candidates = Enumerable.Range(0, current.Rows.Length);
+            IEnumerable<int> candidates = Enumerable.Range(0, snapshot.Rows.Length);
             if (normalized.Length > 0)
             {
                 HashSet<int>? matches = null;
                 foreach (var gram in Grams(normalized).Distinct(StringComparer.Ordinal))
                 {
-                    if (!current.Postings.TryGetValue(gram, out var ids)) { results = []; return true; }
+                    if (!snapshot.Postings.TryGetValue(gram, out var ids)) { results = []; return true; }
                     if (matches == null) matches = ids.ToHashSet(); else matches.IntersectWith(ids);
                 }
                 candidates = matches ?? [];
             }
-            results = candidates.Select(index => current.Rows[index])
+            results = candidates.Select(index => snapshot.Rows[index])
                 .Where(row => row.Fields.Any(field => field.Contains(normalized, StringComparison.OrdinalIgnoreCase)))
                 .OrderBy(row => row.Fields.Any(field => field.Equals(normalized, StringComparison.OrdinalIgnoreCase)) ? 0
                     : row.Fields.Any(field => field.StartsWith(normalized, StringComparison.OrdinalIgnoreCase)) ? 1 : 2)

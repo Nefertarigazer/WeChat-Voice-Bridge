@@ -48,7 +48,11 @@ if ((Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash -ne $expected) {
 if ($LASTEXITCODE -ne 0) { throw 'CPython package signature verification failed.' }
 
 $unpacked = Join-Path $toolsRoot 'python-3.12.10'
-Expand-Archive -LiteralPath $package -DestinationPath $unpacked -Force
+# Reuse the already verified unpacked runtime. Expand-Archive -Force clears the
+# destination first, which some hosts block as a destructive delete on a cached tree.
+if (!(Test-Path -LiteralPath (Join-Path $unpacked 'tools\python.exe'))) {
+    Expand-Archive -LiteralPath $package -DestinationPath $unpacked -Force
+}
 $python = Join-Path $output 'runtime\python'
 New-Item -ItemType Directory -Force $python | Out-Null
 foreach ($item in @('python.exe', 'python312.dll', 'python3.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'Lib', 'DLLs', 'LICENSE.txt')) {
@@ -67,8 +71,9 @@ $zstandard = Get-VerifiedWheel -Name 'zstandard-0.25.0-cp312-cp312-win_amd64.whl
     -Hash 'FFEF5A74088F1E09947AECF91011136665152E0B4B359C42BE3373897FB39B01' -LocalPath $ZstandardPackage
 
 $workerDeps = Join-Path $output 'worker\deps'
-if (Test-Path -LiteralPath $workerDeps) { Remove-Item -LiteralPath $workerDeps -Recurse -Force }
 New-Item -ItemType Directory -Force $workerDeps | Out-Null
+# zipfile -e overwrites individual files, so a re-publish does not need to clear
+# the directory (and avoids a destructive delete on an existing install tree).
 foreach ($wheel in @($sqlCipher, $zstandard)) {
     & (Join-Path $python 'python.exe') -I -B -m zipfile -e $wheel $workerDeps
     if ($LASTEXITCODE -ne 0) { throw "Wheel extraction failed: $wheel" }
