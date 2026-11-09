@@ -772,8 +772,14 @@
                     <Grid>
                       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                       <TextBlock x:Name="UpdateVersion" Style="{StaticResource RowLabel}"/>
+                      <!-- Local values win over either style, so switching from
+                           "检查更新" to "重启安装更新" only changes colour and text:
+                           the button keeps the row's 36 DIP inner height. -->
                       <Button x:Name="UpdateAction" Grid.Column="1" Content="检查更新"
-                              Style="{StaticResource SecondaryButton}" Click="UpdateClick"/>
+                              Style="{StaticResource SecondaryButton}" Click="UpdateClick"
+                              MinHeight="36" MinWidth="120" Padding="18,7"
+                              HorizontalAlignment="Right" VerticalAlignment="Center"
+                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                     </Grid>
                   </Border>
                   <Border x:Name="UpdatePackage" Style="{StaticResource Row}" Visibility="Collapsed">

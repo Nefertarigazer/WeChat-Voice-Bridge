@@ -1,13 +1,21 @@
-# 微信语音桥 · 当前交接（2026-11-09，v1.4.5）
+# 微信语音桥 · 当前交接（2026-11-09，v1.4.6）
 
 > 本文是**最新接手入口**。旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 完整改动流水见 [WORKLOG.md](WORKLOG.md)，用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
 ## 1. 一句话现状
 
-源码停在 **1.4.5**（`Directory.Build.props` 是版本唯一来源）。本地试用版发布在 `artifacts/win-x64-v1.4.5`，桌面快捷方式 `D:\OneDrive\桌面\微信语音桥.lnk` 指向该目录的 `WeChatVoiceBridge.exe`。**线上正式版本仍是 1.3.3**，本轮没有向 Muse 发布任何东西，也没有生成新的 Setup.exe / ZIP（发布上线必须先取得用户授权）。
+源码停在 **1.4.6**（`Directory.Build.props` 是版本唯一来源）。发布产物 `artifacts/WeChat-Voice-Bridge-V1.4.6-win-x64.zip` 与 `artifacts/WeChat-Voice-Bridge-V1.4.6-Setup.exe` 已生成，按用户指令通过 Muse 通道推到线上（本代理不自行上传）。**线上发布前的版本是 1.4.3**。
 
-## 2. 最新一轮（1.4.5）：自定义提示词选中状态根治
+⚠️ **桌面快捷方式刻意保持在 `artifacts/win-x64-v1.4.5`，不要改**：用户要在 Muse 上线后亲自从桌面端点「检查更新 → 下载 → 重启安装」体验完整自升级流程。任何后续构建都不要调用 `Install-DesktopShortcut.ps1`，除非用户明确要求。
+
+## 2.0 最新一轮（1.4.6）：更新按钮三态配色
+
+用户要求「软件更新」区有升级时的按钮更美观、上下居中，且三种状态颜色各不相同。根因：`Row` 内高 36 DIP（`MinHeight 52 − Padding 16`），而 `SecondaryButton` 是 `MinHeight 34`、`PrimaryButton` 是 `MinHeight 38 / MinWidth 96 / Padding 24,8`——状态切换时按钮高度与宽度都跳变，把整行撑高、左右失配。
+
+修复：`App.xaml` 新增浅绿描边 `UpdateReadyButton` 与实心绿 `UpdateInstallButton`，二者与灰色 `SecondaryButton` 共用 36 DIP 高度、`MinWidth 120`、`Padding 18,7`、圆角 9、内容居中；`MainWindow.xaml` 给 `UpdateAction` 设本地尺寸（本地值优先于样式）；`MainWindow.Updates.cs` 的 `RenderUpdate` 按三态选样式与字色，按钮文字禁换行并居中。隔离工程 `D:\USERNAME\CodexScratch\Temp\wvb-update-row-20261109` 截图确认三态三色、尺寸一致、上下居中。详见 WORKLOG 1.4.6 段。
+
+## 2. 上一轮（1.4.5）：自定义提示词选中状态根治
 
 用户第三次反馈同一问题，1.4.3 的修复在真实主窗口里无效。**真实原因**：提示词 ComboBox 在 `DataTemplate` 内由 `ContentControl`/`ListBox` 生成，用户点「自定义」时 `SelectedItem`（以及收起框的 `SelectionBoxItem`）变成该项，而 `SelectedValue` 的 TwoWay 绑定会**立刻把值改回源值**——于是「值已经是旧的、显示还是『自定义』」。1.4.3 只在对话框关闭后 `Notify`/`UpdateTarget()`，既拉不回 `SelectedItem`，`ContextIdle` 优先级又被主窗口重复定时器饿死。当时的验证工程用的是裸 ComboBox + 直接赋值 `SelectedValue`，没有复现真实点击行为，所以误判为通过。
 
@@ -59,9 +67,11 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-live\runtime\p
 
 # 发布到独立目录并更新桌面快捷方式（不会强关运行中的程序）
 & 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Publish.ps1' -Dotnet $sdk `
-    -OutputDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.5'
-& 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Install-DesktopShortcut.ps1' `
-    -InstallDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.5'
+    -OutputDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.6' `
+    -ZipPath 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\WeChat-Voice-Bridge-V1.4.6-win-x64.zip'
+& 'D:\OneDrive\文档\ChatGPT\微信语音\scripts\Build-Installer.ps1' `
+    -PayloadDirectory 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-v1.4.6'
+# 不要运行 Install-DesktopShortcut.ps1：用户要保留桌面 1.4.5 以体验自升级。
 ```
 
 `Publish.ps1` 会复用 `artifacts/build-tools` 里已校验的 Python 3.12.10 NuGet 包与 sqlcipher3/zstandard wheel；`-ZipPath` 可选，本轮未用。
@@ -72,7 +82,8 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64-live\runtime\p
 - `Test.ps1` 全量：**141/141 C# PASS + 54/54 Python PASS**（worker 本轮未改，仍复跑确认）。
 - `Verify-Source.ps1`：**PASS**。
 - **1.4.5 专项 UI 验证**：隔离 WPF 工程 `D:\USERNAME\CodexScratch\Temp\wvb-announcement-rootfix-20261109`，`ContentControl` + `DataTemplate` 渲染、链接真实源码、模拟真实 `SelectedItem` 点击，7 组场景全部通过（含 `shows 自定义=False`）。
-- 发布物检查：exe/程序集 `1.4.5`、Python 运行时与两个 wheel 齐全、无 `.db`/WAL/SHM/`settings.json`/密钥残留；快捷方式回读确认新目标、旧目标消失。
+- **1.4.6 专项 UI 验证**：`D:\USERNAME\CodexScratch\Temp\wvb-update-row-20261109` 截图确认三态三种颜色、尺寸一致、上下居中、无文字换行。
+- 发布物检查：ZIP 内 exe/程序集 `1.4.6`、1621 项、Python 运行时与两个 wheel 齐全、无 `.db`/WAL/SHM/`settings.json`/密钥残留、程序集含本轮全部修复符号；ZIP 实算 SHA-256 与字节数见 WORKLOG 1.4.6 段。
 - 未做：实机真实微信头像 CDN 实测、更新流程真实跨进程任务栏分组的目视确认、词库焦点修复的实机点击验证。这些都需要用户在实际桌面确认。
 
 ## 7. 下一步（按优先级）

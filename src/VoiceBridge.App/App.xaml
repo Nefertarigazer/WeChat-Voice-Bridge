@@ -20,6 +20,13 @@
     <SolidColorBrush x:Key="Positive" Color="#1D9A5B"/>
     <SolidColorBrush x:Key="Caution" Color="#B2760A"/>
     <SolidColorBrush x:Key="Danger" Color="#D33B3B"/>
+    <!-- Three update states, three distinct colours, one shared geometry. -->
+    <SolidColorBrush x:Key="UpdateReadyText" Color="#0E7351"/>
+    <SolidColorBrush x:Key="UpdateReadyFill" Color="#E9F6EF"/>
+    <SolidColorBrush x:Key="UpdateReadyBorder" Color="#9CCBB4"/>
+    <SolidColorBrush x:Key="UpdateInstallFill" Color="#0B8F66"/>
+    <SolidColorBrush x:Key="UpdateInstallBorder" Color="#0A7C59"/>
+    <SolidColorBrush x:Key="WhiteText" Color="#FFFFFF"/>
 
     <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     <local:InverseBoolToVis x:Key="InverseBoolToVis"/>
@@ -191,6 +198,74 @@
       <Setter Property="Foreground" Value="{StaticResource Label}"/>
       <Setter Property="Padding" Value="16,7"/>
       <Setter Property="MinHeight" Value="34"/>
+    </Style>
+    <!-- Available update. Shares the row's 36 DIP height with SecondaryButton, so
+         switching state changes colour only, never the layout or the baseline. -->
+    <Style x:Key="UpdateReadyButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{StaticResource UpdateReadyText}"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Padding" Value="18,7"/>
+      <Setter Property="MinHeight" Value="36"/>
+      <Setter Property="MinWidth" Value="120"/>
+      <Setter Property="Template">
+        <Setter.Value><ControlTemplate TargetType="Button">
+          <Border x:Name="Frame" CornerRadius="9" Padding="{TemplateBinding Padding}"
+                  Background="{StaticResource UpdateReadyFill}"
+                  BorderBrush="{StaticResource UpdateReadyBorder}" BorderThickness="1">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Frame" Property="Background" Value="#D8EDE1"/>
+              <Setter TargetName="Frame" Property="BorderBrush" Value="#7EB99C"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Frame" Property="Background" Value="#C6E2D2"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Frame" Property="Opacity" Value="0.5"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value>
+      </Setter>
+    </Style>
+    <!-- Verified package: the strongest of the three, but exactly the same size. -->
+    <Style x:Key="UpdateInstallButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Padding" Value="18,7"/>
+      <Setter Property="MinHeight" Value="36"/>
+      <Setter Property="MinWidth" Value="120"/>
+      <Setter Property="Template">
+        <Setter.Value><ControlTemplate TargetType="Button">
+          <Border x:Name="Frame" CornerRadius="9" Padding="{TemplateBinding Padding}"
+                  Background="{StaticResource UpdateInstallFill}"
+                  BorderBrush="{StaticResource UpdateInstallBorder}" BorderThickness="1">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Frame" Property="Background" Value="#097A57"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Frame" Property="Background" Value="#076B4C"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Frame" Property="Opacity" Value="0.5"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value>
+      </Setter>
     </Style>
     <Style x:Key="PlainButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
       <Setter Property="Foreground" Value="{StaticResource Secondary}"/>

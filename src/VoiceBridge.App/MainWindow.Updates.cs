@@ -253,9 +253,23 @@ public partial class MainWindow
         SidebarUpdate.ToolTip = manifest is null ? null : $"查看 v{manifest.Version} 更新";
         var label = verifiedUpdate is not null ? (restartConfirmed ? "确认结束并重启" : "重启安装更新")
             : manifest is null ? "检查更新" : $"更新到 v{manifest.Version}";
-        UpdateAction.Style = (Style)FindResource(verifiedUpdate is null ? "SecondaryButton" : "PrimaryButton");
-        UpdateAction.Content = new TextBlock { Text = label, Foreground = verifiedUpdate is null ? (Brush)FindResource("Label") : Brushes.White,
-            FontSize = 14, VerticalAlignment = VerticalAlignment.Center };
+        // Three states, three distinct colours: grey "up to date", mint outline
+        // "download available", solid green "ready to install". All three share the
+        // row's 36 DIP inner height, so nothing shifts vertically.
+        var style = manifest is null ? "SecondaryButton"
+            : verifiedUpdate is null ? "UpdateReadyButton" : "UpdateInstallButton";
+        var ink = manifest is null ? "Label" : verifiedUpdate is null ? "UpdateReadyText" : "WhiteText";
+        UpdateAction.Style = (Style)FindResource(style);
+        UpdateAction.Content = new TextBlock
+        {
+            Text = label,
+            Foreground = (Brush)FindResource(ink),
+            FontSize = 14,
+            TextWrapping = TextWrapping.NoWrap,
+            TextAlignment = TextAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
         UpdateAction.IsEnabled = !closing && !updateHandoff && updateCancel is null;
         UpdatePackage.Visibility = manifest is null ? Visibility.Collapsed : Visibility.Visible;
         if (manifest is null)

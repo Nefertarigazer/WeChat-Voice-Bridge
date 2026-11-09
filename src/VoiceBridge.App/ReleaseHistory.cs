@@ -14,6 +14,11 @@ internal static class ReleaseHistory
 {
     public static IReadOnlyList<ReleaseEntry> Entries { get; } = Array.AsReadOnly(new[]
     {
+        new ReleaseEntry("1.4.6", "更新按钮三态配色与居中", new[]
+        {
+            "「软件更新」的按钮按三种状态使用三种不同颜色：无更新为灰色、发现新版为浅绿描边、已下载可安装为实心绿。",
+            "三种状态共用同一套尺寸与内边距，按钮与「当前版本」文字始终上下居中对齐，切换状态时不再撑高整行。"
+        }),
         new ReleaseEntry("1.4.5", "自定义提示词选中状态彻底修复", new[]
         {
             "点下拉菜单里的「自定义」时，收起框立即保持打开前选中的提示词，不再显示「自定义」三个字。",
