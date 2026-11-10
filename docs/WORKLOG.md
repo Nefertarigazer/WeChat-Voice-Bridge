@@ -4,6 +4,24 @@
 
 ---
 
+## 1.5.1 · 2026-11-10（续）：更新说明标题与体积的**基线对齐**
+
+> 状态：代码完成、构建通过、实机像素测量验证。**未打包、未上线、未改版本号**。
+
+**用户要求**：截图里「v1.5.2」与「0.0 MB」的下限没在同一条水平线上，要求修复。
+
+**根因**：两段文字是 **两个平级的 TextBlock**，只能用 `VerticalAlignment="Bottom"` 做底边对齐。字号不同（13 vs 11）时下降部深度不同，底边对齐并不能让基线对齐，实测「0.0 MB」的基线比「v1.5.2」**高 3 物理像素（1.5 DIP，DPI 2.0）**。
+
+**改法**：把两段文字改成 **同一个 TextBlock 的两个内联 Run**（`UpdateNoteTitle` / `UpdateNoteSize` 由 TextBlock 改为 Run，名字不变所以 code-behind 的 `.Text` 赋值不用改），WPF 内联 Run 天然共用一条基线；间距由体积那一 Run 的前导两个空格表达（内联 Run 没有 Margin）。顺带删掉不再用的 `Footnote` 样式引用与 `Margin="8,0,0,2"`。
+
+**验证**：
+- `dotnet build -c Release`：**0 警告 0 错误**。
+- 像素测量（`PrintWindow` 截图像素级扫描）：标题墨迹行 359–378、「0.0 MB」墨迹行 362–378——**下缘完全相同（378）**；修前为 359–378 vs 359–375（差 3 px）。
+- 三个状态重拍：`font-state-uptodate(-crop).png`（绿点、无标题行）、`font-state-red(-crop).png`（红点）、`font-state-orange.png` + `font-state-orange-crop.png`（橙点）；局部放大 `font-baseline-zoom.png` / `font-baseline-zoom-red.png`。
+- 收尾：假 pending 包已删、`updates` 目录为空、应用已退出、未点安装、`settings.json` 指针未变。
+
+---
+
 ## 1.5.1 · 2026-11-10（续）：软件更新卡片字号层级（当前版本最大）+ 圆点微调到 10px
 
 > 状态：代码完成、构建通过、三态（无更新 / 有更新待下载 / 有更新待安装）实机截图验证通过。**未打包、未上线、未改版本号**。

@@ -16,6 +16,7 @@
 **工作区未发布改动（第二项，2026-11-10 傍晚）**：更新卡片字号层级。
 - 「当前版本」`UpdateVersion` 15 → **17 SemiBold**；新版本标题 `UpdateNoteTitle` 从 `SectionTitle`（16）改为 **13 SemiBold**，体积小字 12 → **11**；状态圆点 9px → **10px**。
 - 目的：用户反馈「当前版本」比下面的新版本标题还小；现在三级阶梯 = 17（当前版本）/ 13（待装版本）/ 11（体积），三态都验证过（`artifacts/screenshots/font-state-{uptodate,red,orange}(-crop).png`）。卡片高度与按钮居中结构未变。
+- 基线对齐：标题「v1.5.2」与体积「0.0 MB」改成**同一个 TextBlock 的两个内联 Run**（原来是两个 TextBlock 只能底边对齐，小字号基线会高 1.5 DIP）。以后要改这两处的字色/字号，改 Run 的属性；名字 `UpdateNoteTitle` / `UpdateNoteSize` 不变，code-behind 的 `.Text` 赋值照旧。
 
 **当前一节（v1.5.1，源码完成、已发布）**：
 - 「软件更新」状态行只留一行：9px 圆点 + `当前版本 vX.Y.Z`，水平 `StackPanel`、两者 `VerticalAlignment=Center`，灰/琥珀/绿三态只换 `Fill`；第二行说明（「已是最新版本」「发现新版本」「更新包已就绪」）已删除，状态由卡片下方状态行与按钮文案承载。

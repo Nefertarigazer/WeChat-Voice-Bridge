@@ -281,9 +281,10 @@ public partial class MainWindow
             return;
 
         // The version heads its own notes as a title; the size rides beside it as
-        // quiet metadata instead of a caption line above the copy.
+        // quiet metadata on the same baseline (two leading spaces stand in for the
+        // gap that inline Runs cannot express as a margin).
         UpdateNoteTitle.Text = $"v{manifest.Version}";
-        UpdateNoteSize.Text = $"{manifest.Size / 1_000_000d:0.0} MB";
+        UpdateNoteSize.Text = $"  {manifest.Size / 1_000_000d:0.0} MB";
         UpdatePackage.ToolTip = $"v{manifest.Version} · {manifest.Size / 1_000_000d:0.0} MB";
         FillNotes(manifest.Notes);
     }

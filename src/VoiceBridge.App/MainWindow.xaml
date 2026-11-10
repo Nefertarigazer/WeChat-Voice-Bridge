@@ -824,16 +824,18 @@
                                      FontSize="17" FontWeight="SemiBold"/>
                         </StackPanel>
                       </Border>
-                      <!-- The version itself heads the notes, with the package size as
-                           quiet metadata beside it. Both are deliberately smaller than the
-                           current-version line above, which stays the primary line. -->
-                      <StackPanel x:Name="UpdateNoteHeader" Orientation="Horizontal"
-                                  Margin="16,0,16,12" Visibility="Collapsed">
-                        <TextBlock x:Name="UpdateNoteTitle" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{StaticResource Label}" TextWrapping="NoWrap"/>
-                        <TextBlock x:Name="UpdateNoteSize" Style="{StaticResource Footnote}"
-                                   FontSize="11" Margin="8,0,0,2" VerticalAlignment="Bottom"/>
-                      </StackPanel>
+                      <!-- The version heads the notes with the package size beside it. Both
+                           live as inline Runs of ONE TextBlock: that is the only way in WPF
+                           to put two font sizes on a shared baseline. Two sibling TextBlocks
+                           can only be bottom-aligned, which left the smaller size's baseline
+                           ~1.5 DIP above the title's (measured 3 device px at 200% DPI).
+                           Both are deliberately smaller than the current-version line above. -->
+                      <TextBlock x:Name="UpdateNoteHeader" Margin="16,0,16,12"
+                                 TextWrapping="NoWrap" Visibility="Collapsed">
+                        <Run x:Name="UpdateNoteTitle" FontSize="13" FontWeight="SemiBold"
+                             Foreground="{StaticResource Label}"/><Run x:Name="UpdateNoteSize"
+                             FontSize="11" Foreground="{StaticResource Secondary}"/>
+                      </TextBlock>
                     </StackPanel>
                     <!-- Local Height/Padding beat every state style: all three states
                          keep one exact size, and the 0 vertical padding lets
