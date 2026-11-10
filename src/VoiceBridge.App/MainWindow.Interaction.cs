@@ -74,7 +74,9 @@ public partial class MainWindow
             return;
 
         var editing = readingItems.FirstOrDefault(row => row.IsEditing);
-        if (editing is not null)
+        // A dropdown's list lives in its own popup: picking an entry is not "clicking
+        // away", so it must not end the edit before the selection lands.
+        if (editing is not null && !IsInsideDropDown(source))
         {
             var insideTable = IsWithin(source, ReadingList);
             var clickedRow = insideTable ? ReadingItemAt(source) : null;
@@ -85,6 +87,15 @@ public partial class MainWindow
 
         if (ReadingList.SelectedItem is not null && !IsWithin(source, ReadingList))
             ReadingList.SelectedItem = null;
+    }
+
+    /// <summary>True when the click belongs to a combo box dropdown (its popup).</summary>
+    private static bool IsInsideDropDown(DependencyObject node)
+    {
+        for (var current = node; current is not null; current = ParentOf(current))
+            if (current is ComboBoxItem or System.Windows.Controls.Primitives.Popup)
+                return true;
+        return false;
     }
 
     private ReadingItem? ReadingItemAt(DependencyObject node)

@@ -328,40 +328,41 @@
       <Grid MinHeight="34">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/><ColumnDefinition Width="76"/>
+          <ColumnDefinition Width="152"/><ColumnDefinition Width="70"/><ColumnDefinition Width="70"/>
         </Grid.ColumnDefinitions>
 
         <!-- 原文 -->
         <Border Grid.Column="0" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
+                Cursor="IBeam" Tag="{Binding}" MouseLeftButtonDown="ReadingFieldClick"
                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
           <TextBlock Text="{Binding Match}" VerticalAlignment="Center" TextWrapping="NoWrap" HorizontalAlignment="Center"
                      TextTrimming="CharacterEllipsis"/>
         </Border>
         <TextBox x:Name="MatchBox" Grid.Column="0" Text="{Binding Match, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                 MaxLength="64" TextAlignment="Center" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
+                 MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                  AutomationProperties.Name="原文"/>
         <TextBlock Grid.Column="1" Text="→" Foreground="{StaticResource Tertiary}" Margin="10,0"
                    VerticalAlignment="Center"/>
 
         <!-- 读作 -->
         <Border Grid.Column="2" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
+                Cursor="IBeam" Tag="{Binding}" MouseLeftButtonDown="ReadingFieldClick"
                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
           <TextBlock Text="{Binding Say}" VerticalAlignment="Center" TextWrapping="NoWrap" HorizontalAlignment="Center"
                      TextTrimming="CharacterEllipsis"/>
         </Border>
         <TextBox x:Name="SayBox" Grid.Column="2" Text="{Binding Say, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                 MaxLength="64" TextAlignment="Center" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
+                 MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                  AutomationProperties.Name="读作"/>
 
         <!-- 出现方式 -->
         <Border Grid.Column="3" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="13,0,10,0"
-                Margin="12,0,10,0"
+                Margin="12,0,10,0" Cursor="Hand" Tag="{Binding}" MouseLeftButtonDown="ReadingFieldClick"
                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
           <TextBlock Text="{Binding ScopeLabel}" VerticalAlignment="Center" TextWrapping="NoWrap"
                      HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
         </Border>
         <ComboBox x:Name="ScopeBox" Grid.Column="3" Margin="12,0,10,0" MinWidth="120" VerticalAlignment="Center"
-                  HorizontalContentAlignment="Center"
                   ItemsSource="{x:Static local:RuleScopes.Options}"
                   SelectedValuePath="Value" DisplayMemberPath="Label"
                   SelectedValue="{Binding Scope, Mode=TwoWay}"
@@ -897,7 +898,7 @@
                     <Grid>
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/><ColumnDefinition Width="76"/>
+                        <ColumnDefinition Width="152"/><ColumnDefinition Width="70"/><ColumnDefinition Width="70"/>
                       </Grid.ColumnDefinitions>
                       <TextBlock Text="原文" Style="{StaticResource TableHead}" HorizontalAlignment="Center"/>
                       <TextBlock Grid.Column="2" Text="读作" Style="{StaticResource TableHead}" HorizontalAlignment="Center"/>

@@ -1161,6 +1161,44 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Clicking a row's plain field is the same as pressing 编辑 on that row: the row
+    /// opens for editing and the caret goes into the field that was clicked.
+    /// </summary>
+    private void ReadingFieldClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: ReadingItem item } field || item.IsEditing)
+            return;
+        item.IsEditing = true;
+        ShowReadingNotice(null);
+        var column = field is Border border ? Grid.GetColumn(border) : 0;
+        e.Handled = true;
+        if (column == 3)
+            FocusScope(item);
+        else
+            FocusReading(item, editPronunciation: column == 2);
+    }
+
+    /// <summary>Opens the scope picker of the row that was just clicked.</summary>
+    private void FocusScope(ReadingItem item)
+    {
+        ReadingList.ScrollIntoView(item);
+        void TryOpen()
+        {
+            if (!item.IsEditing || ReadingList.ItemContainerGenerator.ContainerFromItem(item) is not ListBoxItem container)
+                return;
+            var box = Descendants(container).OfType<ComboBox>().FirstOrDefault(candidate => candidate.Name == "ScopeBox");
+            if (box is null || !box.IsVisible)
+            {
+                ReadingList.Dispatcher.BeginInvoke(new Action(TryOpen), System.Windows.Threading.DispatcherPriority.Input);
+                return;
+            }
+            Keyboard.Focus(box);
+            box.IsDropDownOpen = true;
+        }
+        ReadingList.Dispatcher.BeginInvoke(new Action(TryOpen), System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    /// <summary>
     /// The edit button of a row. The row stays plain text until the button is
     /// pressed; the caret is not parked in either box, so the user chooses the
     /// field by clicking it.
