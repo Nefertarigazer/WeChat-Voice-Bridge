@@ -540,7 +540,7 @@
           <Grid MaxWidth="660">
 
             <!-- ========================= 首页 ========================= -->
-            <StackPanel Margin="0,0,0,0"
+            <StackPanel Margin="0,0,0,24"
                         Visibility="{Binding IsChecked, ElementName=NavHome, Converter={StaticResource BoolToVis}}">
               <TextBlock Text="首页" Style="{StaticResource Title}" Margin="0,0,0,12"/>
 
@@ -671,7 +671,7 @@
                     <!-- Measured: with two contact cards the page leaves 216 DIP under the
                        「朗读记录」 header; 176 keeps the card inside the window with a little
                        air left, so the home page never needs a scroll. -->
-                    <ListBox x:Name="Results" Height="120" ItemContainerStyle="{StaticResource LogItem}">
+                    <ListBox x:Name="Results" Height="96" ItemContainerStyle="{StaticResource LogItem}">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <TextBlock Text="{Binding}" FontSize="13" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
@@ -682,8 +682,8 @@
                   <!-- Empty state fills the same card the log list uses: the card keeps
                        its height when there is nothing to show yet, so the page does not
                        collapse the moment you clear the log. -->
-                  <TextBlock x:Name="ResultsEmpty" Style="{StaticResource Hint}" Margin="28" Height="112"
-                             VerticalAlignment="Center" TextAlignment="Center"
+                  <TextBlock x:Name="ResultsEmpty" Style="{StaticResource Hint}" Margin="28" Height="88"
+                             FontSize="14" LineHeight="22" VerticalAlignment="Center" TextAlignment="Center"
                              Text="还没有朗读记录。对方发来新消息后，这里会显示朗读过的内容。"
                              Visibility="Collapsed"/>
                 </Grid>
@@ -1123,10 +1123,10 @@
          corners never show the rectangular halo a transparent popup draws around them. -->
     <Border x:Name="HintToast" Panel.ZIndex="40" Grid.Column="1"
             HorizontalAlignment="Center" VerticalAlignment="Bottom"
-            Margin="20,0,20,26" MaxWidth="760" Padding="18,10" CornerRadius="12" Opacity="0"
-            Background="#80E8EAE8" BorderBrush="#A0D2D8D4" BorderThickness="1"
+            Margin="20,0,20,26" MaxWidth="720" Padding="16,9" CornerRadius="12" Opacity="0"
+            Background="#6EE4E7E5" BorderBrush="#8CCBD2CE" BorderThickness="1"
             IsHitTestVisible="False" Visibility="Collapsed">
-      <TextBlock x:Name="HintText" FontSize="13" LineHeight="19" Foreground="#6B7B75" TextWrapping="Wrap"
+      <TextBlock x:Name="HintText" FontSize="13" LineHeight="20" Foreground="#5C6B64" TextWrapping="Wrap"
                  TextAlignment="Center" AutomationProperties.AutomationId="HintPopupText"/>
     </Border>
   </Grid>

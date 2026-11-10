@@ -20,7 +20,8 @@
 - 右键菜单定位改为 `PlacementMode.MousePoint`（原来按输入框底边定位，宽字段下离指针很远）。
 - 字幕条配色：半透明偏灰绿（`#CCEDEDEB` 底 + `#6B7B75` 文字），更低调。
 - 右键菜单改为 **XAML 样式直挂**：App.xaml 定义 `x:Key="FieldMenu"`（ContextMenu，复用 RowMenu/RowMenuItem 原样），在隐式 TextBox/PasswordBox 样式里 `Setter ContextMenu`。**不要**再走 `EventManager.RegisterClassHandler` + 运行时建菜单那条路（`RowMenu` 的 `Width=112` 会压窄，`Dispatcher.BeginInvoke` 有吞弹出风险）。`FieldMenu.cs` 已删除。
-- 朗读记录区最终 **120 DIP**（空状态 112，约三行），配合首页标题下边距 12、记录标题上边距 14、首页底部边距 0；UIA 复测页面**不再可滚动**。改高度务必用 `wvb-scrollcheck.ps1` 验证，不要凭感觉。
+- 朗读记录区最终 **96 DIP**（空状态 88）+ 首页底部边距 **24**；配合标题下边距 12、记录标题上边距 14，UIA 复测**不再可滚动**。改高度必须用 `wvb-scrollcheck.ps1` 迭代验证（100 时 99.93% 仍临界）。空提示字号 **14**。
+- 气泡：`#6EE4E7E5` 底、`#5C6B64` 字、`Padding 16,9`、`MaxWidth 720`、距底 26、右栏居中。
 - **更新服务故障（2026-11-10 晚）**：`iceland.de5.net` 的 443 不完成 TLS 握手；TCP 可连、DNS 公网解析到 服务器IP、ICMP 通，但 `r.jina.ai`（外部）报 `ERR_ADDRESS_UNREACHABLE`、`allorigins` 返回 522 → **A1 服务器侧问题**，与用户 VPN 无关（早前误判为本机代理，已更正）。已用 muse-call 通知 Muse。应用内文案改为「服务器没有完成握手，稍后再试」。
 - 朗读记录空状态根因：`Render()` 无记录时折叠 `ResultsBox`，页面矮卡其实是 `ResultsEmpty`；已给 `ResultsEmpty` 设 `Height=512 + VerticalAlignment=Center`，空/有记录卡片同高。列表 `Results` `Height=520`。
 - 字幕条：底色 `#80E8EAE8`（更透偏灰绿）、距底 26px、右栏内居中（`Grid.Column=1`）、文字 `TrimEnd('。')`。
