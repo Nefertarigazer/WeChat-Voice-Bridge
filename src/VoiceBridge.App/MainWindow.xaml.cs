@@ -15,6 +15,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using VoiceBridge.Audio;
 using VoiceBridge.Core;
@@ -52,6 +53,8 @@ public partial class MainWindow : Window
     private readonly Forms.ToolStripMenuItem trayStop;
     private readonly DispatcherTimer searchTimer;
     private readonly DispatcherTimer saveTimer;
+    private Storyboard? updateBreath;
+    private Storyboard? pillBreath;
     private readonly List<NamedVoice> userVoices = new();
     private readonly List<NamedKey> userKeys = new();
     /// <summary>
@@ -136,6 +139,10 @@ public partial class MainWindow : Window
         this.http = http;
         InitializeComponent();
         InitializeUpdates(updateNotice);
+        // The update dot breathes for the whole session; only the pill's breath is
+        // state-dependent (see SetPillBreathing).
+        updateBreath = BreathingLight.Create(UpdateStateDot, UpdateDotScale, UpdateStateHalo, UpdateHaloScale);
+        updateBreath.Begin();
         searchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(160) };
         searchTimer.Tick += SearchTimerTick;
         saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
@@ -251,6 +258,28 @@ public partial class MainWindow : Window
 
     // ---------------------------------------------------------------- status
 
+    /// <summary>Runs the pill's breathing light only while the bridge is listening.</summary>
+    private void SetPillBreathing(bool live)
+    {
+        if (live == (pillBreath != null))
+            return;
+        if (!live)
+        {
+            pillBreath?.Stop();
+            pillBreath = null;
+            // Dropping the animations restores the painted values: dot fully lit, halo off.
+            StatusPillDot.BeginAnimation(OpacityProperty, null);
+            StatusPillHalo.BeginAnimation(OpacityProperty, null);
+            PillDotScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            PillDotScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            PillHaloScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            PillHaloScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            return;
+        }
+        pillBreath = BreathingLight.Create(StatusPillDot, PillDotScale, StatusPillHalo, PillHaloScale);
+        pillBreath.Begin();
+    }
+
     private void Render()
     {
         var state = controller.Status;
@@ -288,6 +317,8 @@ public partial class MainWindow : Window
             BridgeState.Error => ("已停止", ErrorDot, ErrorDot, ErrorFill),
             _ => ("未开始", SecondaryBrush, IdleDot, IdleFill)
         };
+        // Only a live connection breathes; every other state holds the dot still.
+        SetPillBreathing(state.State == BridgeState.Running);
 
         StartButton.Content = state.State switch
         {
