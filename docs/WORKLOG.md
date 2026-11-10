@@ -537,14 +537,15 @@
 1. **语音服务标题与首个分组太近**：`ProvidersList` 加 `Margin="0,12,0,0"`。分组头是绿色 `LibraryGroupHeader`，原来几乎贴着标题。
 2. **试听卡片加字段标题**：原来两个输入框直接在白卡里，没有名字。现在每块用 `StackPanel`（`Margin=16,14,16,0` / `16,16,16,0`）+ `FieldLabel`（12 灰，与对话框字段一致）包住：「音色」在音色下拉上方、「文本」在文本框上方；块间距 16，标签到控件 6。
 3. **删掉文本行下的横线**：`<Border Style="{StaticResource Hairline}"/>` 去掉；顺带删掉按钮行里那个空的占位 `TextBlock`，按钮改 `HorizontalAlignment=Right` 直接右对齐。
-4. **「⋮」菜单方向**：原来 `HorizontalOffset = -(ActualWidth - buttonWidth - 10)` 是「菜单右缘对齐按钮右缘」→ 向左展开，用户觉得「往左歪」。改为从按钮**向右下**展开：`Placement=Bottom` 本身已左对齐，只需 `HorizontalOffset = -2`（-10 抵阴影留白、再右推 8），白面板左缘落在按钮左缘附近。宽度从 `MinWidth 116` 改为 `MinWidth 0 + Width 80`。
-5. **菜单与按钮「粘在一起」**：`VerticalOffset` 从 -6 改到 -1，让白面板顶部与按钮底之间留出约 5px。原来白面板顶几乎压着按钮底边，阴影盖在按钮上，看着脏；实测间隙从 -1.3 DIP 变成 +5.4 DIP。
+4. **「⋮」菜单方向**：原来 `HorizontalOffset = -(ActualWidth - buttonWidth - 10)` 是「菜单右缘对齐按钮右缘」→ 向左展开，用户觉得「往左歪」。改为从按钮**向右下**展开：`Placement=Bottom` 本身已左对齐，把 offset 改成「右缘固定、宽度变化时向左吃」的形式即可。宽度从 `MinWidth 116` 改为 `MinWidth 0` + 显式 `Width`。
+5. **菜单与按钮「粘在一起」**：`VerticalOffset` 从 -6 改到 -4，让白面板顶部与按钮底之间留出约 6px。原来白面板顶几乎压着按钮底边，阴影盖在按钮上，看着脏。
+6. **按参考图调比例**（用户给了一张「新建任务」的下拉截图，说那个比例最合适、可以再宽一些、接近正方形更像样）：`Width` → 112，`RowMenu` 圆角 10 → 12，菜单项 `Padding` 12 → 16。定位改成 `HorizontalOffset = 79.5 - menu.ActualWidth`——79.5 = 按钮左缘到窗口右缘 95.5 减去右边距 16，于是**宽度怎么变，右缘都稳定在距窗口 16 DIP**，加宽的部分全部向左吃，不会出框。**这个 95.5 是布局常数**（卡片右边距 + 行内边距），改窗口外边距或列表内边距时要跟着改。
 
 **验证**（用户已说明测试他自己看，所以只做最低限度）：
 - `dotnet build` 0/0。
-- 真实截图：`artifacts/screenshots/advanced-test-bottom.png`（试听卡片：音色/文本标题、无横线、按钮右下）、`artifacts/screenshots/menu-final.png`（菜单最终位置）。
-- `UiSmokeTest menu` 现在会打印 ⋮ 与菜单的矩形、以及菜单距窗口右/下边界的余量。最终实测：菜单 popup **160×204 物理像素（106.7 DIP）**，右缘距窗口右边 **23 DIP**（收窄前 155 DIP 时几乎贴边、只有 7 DIP，更早的左向版本是 139 DIP），顶部间隙约 5 DIP。
-- 宽度与「不出框」是耦合的：窗口固定、⋮ 距窗口右约 127 DIP，`Width` 每加 12 DIP，右缘余量就少 12 DIP——所以 92 时只剩 4 DIP，最后定在 80。以后要加第三个菜单项需重新算这个余量。
+- 真实截图：`artifacts/screenshots/advanced-test-bottom.png`（试听卡片：音色/文本标题、无横线、按钮右下）、`artifacts/screenshots/menu-square3.png`（菜单最终比例）。
+- `UiSmokeTest menu` 现在会打印 ⋮ 与菜单的矩形、以及菜单距窗口右/下边界的余量。最终实测：菜单 popup **224×204 物理像素 = 112×102 DIP**（宽高比 1.1，接近方形），右缘距窗口右 **32 物理 = 16 DIP**，与按钮垂直间隙约 6 DIP。
+- **DPI 是 2.0**（窗口 1880×1560 物理 = 940×780 DIP，⋮ 按钮 43×60 物理 = 21.5×30 DIP）。早期几条记录里按 1.5 换算出的「106.7 DIP 宽 / 右缘 23 DIP / ⋮ 距窗口右 127 DIP」全部作废，以 2.0 的数字为准。
 - `tools/UiSmokeTest` 顺带增强：`shot` 支持 `NavId#bottom`（自动把页面滚到底再截），`shot`/`menu`/`nohover` 截图或测量前都 `ShowWindow(SW_RESTORE)`——窗口最小化时 `BoundingRectangle` 会变成 -32000，菜单会量出 0,0。
 
 **按钮下方留白**：用户先说「太近」，调到 `Margin="0,2,0,6"` 后回看又说「现在合适了，不用改」，保持现状。

@@ -14,7 +14,7 @@
 - 联系人「移除」按钮**不再有悬停提示**：`ContactRemoveAction` 样式里的 `ToolTip` Setter 已删除（两处使用点共用该样式，按钮自身未写 ToolTip），悬停只保留配色变化。
 - 「高级 → 试听」改为**字段标题在控件上方**：`FieldLabel`（12 灰）标「音色」「文本」，块内边距 16/14，块间距 16；文本行下方那条 `Hairline` 已删除，按钮直接在卡片内右对齐（`Row` + `Margin 0,2,0,6`）。
 - 「语音服务」标题与首个分组头之间加 `Margin="0,12,0,0"`（`ProvidersList`）。
-- 「⋮」更多菜单改为**向右下展开**：`HorizontalOffset = -2`（-10 抵阴影留白、再右推 8），`VerticalOffset = -1`（让白面板顶部离按钮底约 5px，别压着阴影）；`RowMenu` 用 `MinWidth 0 + Width 80` 收窄，实测 106.7 DIP 宽、右缘距窗口右边约 23 DIP。**宽度和「不出框」是耦合的**：⋮ 距窗口右约 127 DIP，`Width` 每加 12 DIP 余量就少 12 DIP（92 时只剩 4 DIP），加菜单项要重算。**不要再改回「右缘对齐、向左展开」**，用户明确说那样「往左歪」。
+- 「⋮」更多菜单改为**向右下展开、接近方形**：`HorizontalOffset = 79.5 - ActualWidth`（右缘固定距窗口 16 DIP，加宽部分向左吃，绝不顶边），`VerticalOffset = -4`（与按钮留约 6px，别压着阴影）；`RowMenu` 用 `MinWidth 0 + Width 112`、圆角 12、菜单项 `Padding 16`，实测 112×102 DIP。**注意 DPI 是 2.0**，早期记录里按 1.5 换成 DIP 的旧数字（106.7 / 23 / 127）都已作废。79.5 里的 95.5 是「⋮ 左缘→窗口右缘」的布局常数，改外边距要同步。**不要再改回「右缘对齐、向左展开」**，用户明确说那样「往左歪」。
 - 验证：`dotnet build` 0/0、`Test.ps1` **.NET + Python 全 PASS**（直接 `dotnet test` 会因缺 `WVB_PYTHON` 有 7 项环境性失败，必须走 `Test.ps1`）、`Verify-Source` PASS、58 项 PASS；真实应用截图（见 WORKLOG 最新节）；`UiSmokeTest nohover` 实测「移除」按钮悬停 4 秒无 tooltip。
 - **下一步**：用户确认样式后 → 打包（`Publish.ps1` → `Build-Installer.ps1`）→ Muse `publish-voicebridge` → 公网友核 → 回写记录并 push。
 

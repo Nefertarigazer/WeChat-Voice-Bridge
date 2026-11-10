@@ -347,17 +347,16 @@
          里面一层细边框 + 4px 内边距，菜单项自己负责悬停底色。 -->
     <Style x:Key="RowMenu" TargetType="ContextMenu">
       <Setter Property="SnapsToDevicePixels" Value="True"/>
-      <!-- The panel opens to the right of the ⋮ button, so its width is capped: 80
-           includes the 10px transparent ring the shadow needs, leaving a 60px white
-           panel. Narrow on purpose — the panel must still clear the window's right
-           edge, and two short labels fit. -->
+      <!-- The panel opens to the right of the ⋮ button. Width is tuned so the panel
+           reads as roughly square rather than a tall sliver (two 34px rows), while its
+           right edge still keeps a margin from the window border. -->
       <Setter Property="MinWidth" Value="0"/>
-      <Setter Property="Width" Value="80"/>
+      <Setter Property="Width" Value="112"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="ContextMenu">
             <Border Padding="10" Background="Transparent">
-              <Border CornerRadius="10" Padding="4"
+              <Border CornerRadius="12" Padding="4"
                       Background="{StaticResource CardBg}"
                       BorderBrush="#E9EEEC" BorderThickness="1">
                 <Border.Effect>
@@ -376,7 +375,7 @@
       <Setter Property="FontSize" Value="13"/>
       <Setter Property="Foreground" Value="#2E3A33"/>
       <Setter Property="Background" Value="{StaticResource Fill}"/>
-      <Setter Property="Padding" Value="12,0"/>
+      <Setter Property="Padding" Value="16,0"/>
       <Setter Property="Height" Value="34"/>
       <Setter Property="Margin" Value="0,1"/>
       <Setter Property="Template">

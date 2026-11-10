@@ -662,14 +662,17 @@ public partial class MainWindow
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
             // The panel keeps a transparent ring for its shadow. Sitting flush under the
             // button makes that ring overlap the button and the two look glued together,
-            // so the panel is pushed down until roughly 5px of air shows between them.
-            VerticalOffset = -1,
+            // so the panel is pushed down until a little air shows between them.
+            VerticalOffset = -4,
         };
-        // The panel hangs to the right of the ⋮ button, the way a menu opened from a
-        // button usually does. PlacementMode.Bottom already left-aligns the popup with
-        // the button; -10 cancels the transparent shadow ring, and the extra +8 pushes
-        // the white panel a little past the button so it reads as opening rightward.
-        menu.Opened += (_, _) => menu.HorizontalOffset = -2;
+        // The panel hangs below the ⋮ button and opens rightward, but it is parked so
+        // that its right edge keeps ~16px from the window border: a wider panel is
+        // allowed to reach back to the left, which is what makes it read as square
+        // instead of a tall sliver.
+        // 79.5 = the gap from the button's left edge to the window's right edge (95.5)
+        // minus that 16px margin; subtracting the panel's own width turns it into the
+        // left-aligned popup offset WPF expects.
+        menu.Opened += (_, _) => menu.HorizontalOffset = 79.5 - menu.ActualWidth;
         var edit = new MenuItem { Header = "编辑", Style = (Style)FindResource("RowMenuItem") };
         edit.Click += (_, _) => EditProvider(providers.FirstOrDefault(item => item.Id == row.Id));
         var delete = new MenuItem { Header = "删除", Style = (Style)FindResource("RowMenuItemDanger") };
