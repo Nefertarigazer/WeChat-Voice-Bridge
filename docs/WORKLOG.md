@@ -16,9 +16,9 @@
 ### B. 1.5.2 打包与上线
 - 版本号 `Directory.Build.props` → **1.5.2**；`ReleaseHistory` 新增 1.5.2 条目（状态点颜色语义、呼吸灯、字号层级与基线、右键菜单、提示行行为、去掉启动噪音）。
 - `Test.ps1`：**.NET 209/209 PASS · Python 54 PASS（41 skipped 基线）**；`Verify-Source` PASS。
-- `Publish.ps1` → `artifacts\win-x64-v1.5.2\` + ZIP **90,820,181 字节 / `48aaac26ec534a0decf5e6842b64ea2b3152b8b0ad41e3c0bc441c1e55e65d67`**；Clean-payload PASS（1733 文件）。
-- `Build-Installer.ps1 -PayloadDirectory` → Setup **66,216,199 字节 / `d2106217248cf4b96b636209addc1b1b10b3041d37752127ea3cdc3d432e14eb`**。
-- 产物核验：`ProductVersion=1.5.2+ccc643f`、`FileVersion=1.5.2.0`；1.5.2 > 线上 1.5.1。
+- `Publish.ps1` → `artifacts\win-x64-v1.5.2\` + ZIP **90,820,155 字节 / `dad840a1ab28cd5ffb6cc086fcf3769900df95b491ff56b0fd6d84ee9813fb9b`**；Clean-payload PASS（1733 文件）。
+- `Build-Installer.ps1 -PayloadDirectory` → Setup **66,215,244 字节 / `a9689e16fb1719ce234ccab9f55d71329d87cc354f680ef18a7952fc25791f88`**。
+- 产物核验：`ProductVersion=1.5.2+4ae22b4`（源码 commit `4ae22b4`，先提交再打包）、`FileVersion=1.5.2.0`；1.5.2 > 线上 1.5.1。
 - 备注：旧文档里的「211 项」与实际一致性的偏差（现为 209 项、0 失败）已在本节按实测记录；自 1.5.0 以来 `tests/` 没有改动过，不是本轮引入的。
 
 ---
