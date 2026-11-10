@@ -1115,7 +1115,7 @@
          reading like a caption. It lives inside the window rather than in a Popup, so it
          travels with the window, vanishes when the window is minimised, and the rounded
          corners never show the rectangular halo a transparent popup draws around them. -->
-    <Border x:Name="HintToast" Panel.ZIndex="40" Grid.ColumnSpan="2"
+    <Border x:Name="HintToast" Panel.ZIndex="40" Grid.Column="1"
             HorizontalAlignment="Center" VerticalAlignment="Bottom"
             Margin="20,0,20,26" MaxWidth="760" Padding="18,10" CornerRadius="12" Opacity="0"
             Background="#80E8EAE8" BorderBrush="#A0D2D8D4" BorderThickness="1"
