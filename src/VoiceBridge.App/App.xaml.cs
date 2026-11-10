@@ -30,6 +30,9 @@ public partial class App : Application
         try { SetCurrentProcessExplicitAppUserModelID(AppUserModelId); }
         catch (Exception) { /* Taskbar grouping is optional; never block startup. */ }
         base.OnStartup(e);
+        // Every text field gets the app's own cut/copy/paste panel instead of the
+        // framework's grey boxy (and framework-localised) default menu.
+        FieldMenu.Install();
         if (e.Args.Length > 0 && e.Args[0] == "--apply-update")
         {
             var installer = new UpdateInstallationWindow();

@@ -74,19 +74,18 @@ Console.WriteLine("invoking 试听这段文字 ...");
 (testButton.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();
 Thread.Sleep(1500);
 
-// The hint is shown on the page that raised it (高级 here) and clears itself after a
-// few seconds, so read the slots without navigating away first.
+// The hint is a chip in its own popup window, shown under the control that raised it
+// (the 试听 button here) and gone again after a few seconds.
 var terminal = new Regex("试听完成|遇到异常|配置有误|已取消|失效|失败|错误");
 var text = "";
+var chipCondition = new System.Windows.Automation.AndCondition(
+    new PropertyCondition(AutomationElement.AutomationIdProperty, "HintPopupText"),
+    new PropertyCondition(AutomationElement.ProcessIdProperty, pid));
 for (var i = 0; i < 90; i++)
 {
     Thread.Sleep(500);
-    foreach (var id in new[] { "ApiNotice", "NoticeText", "VoiceLibraryNotice" })
-    {
-        var candidate = ByAutomationId(root, id)?.Current.Name ?? "";
-        if (terminal.IsMatch(candidate)) { text = candidate; break; }
-    }
-    if (text.Length > 0) break;
+    var candidate = AutomationElement.RootElement.FindFirst(TreeScope.Descendants, chipCondition)?.Current.Name ?? "";
+    if (terminal.IsMatch(candidate)) { text = candidate; break; }
 }
 
 Console.WriteLine($"notice: [{text}]");

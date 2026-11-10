@@ -121,7 +121,10 @@
         </DataTrigger>
       </DataTemplate.Triggers>
     </DataTemplate>
-    <Style x:Key="VoiceChoiceItemStyle" TargetType="ComboBoxItem">
+    <!-- BasedOn matters: an explicit ItemContainerStyle replaces the app's implicit
+         ComboBoxItem style outright, which is why the voice dropdown used to fall back
+         to the stock grey item look while every other dropdown looked like the app. -->
+    <Style x:Key="VoiceChoiceItemStyle" TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
       <Setter Property="IsEnabled" Value="{Binding Usable}"/>
     </Style>
     <Style x:Key="SidebarUpdateButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -539,12 +542,7 @@
             <!-- ========================= 首页 ========================= -->
             <StackPanel Margin="0,0,0,48"
                         Visibility="{Binding IsChecked, ElementName=NavHome, Converter={StaticResource BoolToVis}}">
-              <TextBlock Text="首页" Style="{StaticResource Title}" Margin="0,0,0,2"/>
-              <!-- Every page keeps one 20 DIP hint band right under its title and fills
-                   it in place. Reserving the height (rather than collapsing it) is what
-                   stops a hint from pushing the page content down and snapping back. -->
-              <TextBlock x:Name="NoticeText" Style="{StaticResource Footnote}" Margin="0" Height="20"
-                         Foreground="{StaticResource Caution}" AutomationProperties.LiveSetting="Polite"/>
+              <TextBlock Text="首页" Style="{StaticResource Title}" Margin="0,0,0,22"/>
 
               <Border Style="{StaticResource Card}">
                 <Grid MinHeight="52">
@@ -689,9 +687,7 @@
             <StackPanel Margin="0,0,0,48"
                         Visibility="{Binding IsChecked, ElementName=NavVoice, Converter={StaticResource BoolToVis}}">
               <TextBlock Text="音效" Style="{StaticResource Title}"/>
-              <TextBlock x:Name="VoiceLibraryNotice" Foreground="{StaticResource Caution}" Style="{StaticResource Footnote}"
-                         Margin="0" Height="20" AutomationProperties.LiveSetting="Polite"/>
-              <TextBlock Text="播放" Style="{StaticResource Caption}" Margin="14,4,0,8"/>
+              <TextBlock Text="播放" Style="{StaticResource Caption}"/>
               <Border Style="{StaticResource Group}">
                 <StackPanel>
                   <Border Style="{StaticResource Row}" Visibility="Collapsed">
@@ -796,9 +792,7 @@
             <!-- ========================= 词库 ========================= -->
             <StackPanel x:Name="ReadingsPanel" Margin="0,0,0,48"
                         Visibility="{Binding IsChecked, ElementName=NavLexicon, Converter={StaticResource BoolToVis}}">
-              <TextBlock Text="词库" Style="{StaticResource Title}" Margin="0"/>
-              <TextBlock x:Name="ReadingNotice" Style="{StaticResource Footnote}" Foreground="{StaticResource Caution}"
-                         Margin="2,0,0,12" Height="20" AutomationProperties.LiveSetting="Polite"/>
+              <TextBlock Text="词库" Style="{StaticResource Title}" Margin="0,0,0,20"/>
 
               <Border Style="{StaticResource Group}">
                 <StackPanel>
@@ -816,13 +810,7 @@
             <StackPanel x:Name="SettingsPanel" Margin="0,0,0,48"
                         Visibility="{Binding IsChecked, ElementName=NavAdvanced, Converter={StaticResource BoolToVis}}">
               <TextBlock Text="高级" Style="{StaticResource Title}"/>
-              <!-- The page's hint slot: every page shows its own transient line here
-                   (under the title), so a hint never hides inside a card that has
-                   nothing to do with it and never survives a page switch. -->
-              <TextBlock x:Name="ApiNotice" Foreground="{StaticResource Caution}" Style="{StaticResource Footnote}"
-                         Margin="0" Height="20" AutomationProperties.LiveSetting="Polite"/>
-
-              <TextBlock Text="软件更新" Style="{StaticResource Caption}" Margin="14,4,0,8"/>
+              <TextBlock Text="软件更新" Style="{StaticResource Caption}"/>
               <Border Style="{StaticResource Group}">
                 <StackPanel>
                   <!-- No rule separates the status row from the notes block, so the two
@@ -1121,5 +1109,22 @@
         </Border>
       </Grid>
     </Grid>
+
+    <!-- The hint chip: one at a time, floating just under the control that raised it.
+         A Popup takes no layout space, so a hint can never push the page around, and
+         because it is anchored to the control you just used it cannot surface on a
+         page you did not touch either. -->
+    <Popup x:Name="HintPopup" AllowsTransparency="True" StaysOpen="True" Placement="Bottom"
+           IsHitTestVisible="False" Focusable="False" PopupAnimation="Fade" VerticalOffset="6">
+      <Border Background="{StaticResource CardBg}" BorderBrush="#EFE1C6" BorderThickness="1"
+              CornerRadius="9" Padding="12,7" MaxWidth="380">
+        <Border.Effect>
+          <DropShadowEffect BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="0.14" Color="#2B3A35"/>
+        </Border.Effect>
+        <TextBlock x:Name="HintText" Style="{StaticResource Footnote}" Margin="0" FontSize="12"
+                   Foreground="{StaticResource Caution}" TextWrapping="Wrap"
+                   AutomationProperties.AutomationId="HintPopupText"/>
+      </Border>
+    </Popup>
   </Grid>
 </Window>

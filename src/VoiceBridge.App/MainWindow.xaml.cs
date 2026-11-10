@@ -81,15 +81,13 @@ public partial class MainWindow : Window
     private bool lexiconSeeded;
     private string fishModel = FishSpeech.Model;
     private string? noticeField;
-    private int noticePage;
+    private UIElement? hintAnchor;
     private DispatcherTimer? noticeTimer;
-    private readonly DispatcherTimer readingNoticeTimer = new() { Interval = TimeSpan.FromSeconds(5) };
 
     /// <summary>
-    /// The one-line hint that sits under a page's content. Assigning it records which
-    /// page raised it and starts a short fuse: hints belong to their own page and clear
-    /// themselves, so a "试听完成" cannot resurface later on another page (the three
-    /// pages used to share one string and therefore all showed every hint).
+    /// The one-line hint. It is drawn as a chip floating just under the control that
+    /// raised it (a Popup takes no layout space, so nothing on the page moves), it is
+    /// the only hint on screen at a time, and it clears itself after a few seconds.
     /// </summary>
     private string? notice
     {
@@ -97,20 +95,31 @@ public partial class MainWindow : Window
         set
         {
             noticeField = string.IsNullOrWhiteSpace(value) ? null : value;
-            noticePage = CurrentPageIndex;
             noticeTimer?.Stop();
-            if (noticeField is not null)
-                noticeTimer?.Start();
+            if (noticeField is null)
+            {
+                HintPopup.IsOpen = false;
+                return;
+            }
+            // Whatever the user just clicked still has focus, which is exactly the
+            // control the hint is about.
+            hintAnchor = Keyboard.FocusedElement as UIElement;
+            HintText.Text = noticeField;
+            ShowHint();
+            noticeTimer?.Start();
         }
     }
 
-    /// <summary>0 首页 · 1 音效 · 2 词库 · 3 高级 · 4 使用说明（与各页的提示位一一对应）。</summary>
-    private int CurrentPageIndex =>
-        NavAdvanced.IsChecked == true ? 3
-        : NavVoice.IsChecked == true ? 1
-        : NavLexicon.IsChecked == true ? 2
-        : NavHelp.IsChecked == true ? 4
-        : 0;
+    /// <summary>Opens the hint chip under the anchor, or under the page when there is none.</summary>
+    private void ShowHint()
+    {
+        var anchor = hintAnchor is FrameworkElement { IsVisible: true } element && Window.GetWindow(element) == this
+            ? hintAnchor
+            : ContentScroller;
+        HintPopup.PlacementTarget = anchor;
+        HintPopup.IsOpen = false;
+        HintPopup.IsOpen = true;
+    }
     private string? selectedId;
     private string? selectedName;
     private string? selectedWechat;
@@ -178,16 +187,7 @@ public partial class MainWindow : Window
         saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         saveTimer.Tick += SaveTimerTick;
         noticeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        noticeTimer.Tick += (_, _) =>
-        {
-            notice = null;
-            Render();
-        };
-        readingNoticeTimer.Tick += (_, _) =>
-        {
-            readingNoticeTimer.Stop();
-            ShowReadingNotice(null);
-        };
+        noticeTimer.Tick += (_, _) => notice = null;
         InitializeInteraction();
 
         tray = new() { Icon = LoadTrayIcon(), Text = "微信语音桥 · 未开始", Visible = true };
@@ -372,15 +372,6 @@ public partial class MainWindow : Window
             setupCompleted = true;
             SaveNow();
         }
-        // Only the page that raised the hint shows it, and it is already on its way out
-        // after a few seconds. The line itself keeps its reserved height and stays
-        // visible: collapsing it would yank the page content up and down every time a
-        // hint appeared, which is exactly what the reserved band prevents.
-        var hint = noticePage == CurrentPageIndex ? noticeField : null;
-        NoticeText.Text = hint ?? "";
-        VoiceLibraryNotice.Text = hint ?? "";
-        ApiNotice.Text = hint ?? "";
-
         ApplySelection();
         UpdateInteractionRestrictions(active);
         StartButton.IsEnabled = !closing && state.State != BridgeState.Stopping;
@@ -1244,20 +1235,8 @@ public partial class MainWindow : Window
         RemoveReading(item);
     }
 
-    /// <summary>
-    /// The lexicon page keeps its own hint line next to the rows. It gets the same
-    /// short fuse as the other pages' hints, so "词库已更新…" does not sit there for
-    /// the rest of the session.
-    /// </summary>
-    private void ShowReadingNotice(string? text)
-    {
-        // The line keeps its reserved height (see NoticeText in MainWindow.xaml), so a
-        // hint appearing here never shifts the word list.
-        ReadingNotice.Text = text ?? "";
-        readingNoticeTimer.Stop();
-        if (!string.IsNullOrEmpty(text))
-            readingNoticeTimer.Start();
-    }
+    /// <summary>Word-book messages use the same single chip as everything else.</summary>
+    private void ShowReadingNotice(string? text) => notice = text;
 
     /// <summary>New rows start with the source; editing starts at the end of the pronunciation.</summary>
     private void FocusReading(ReadingItem item, bool editPronunciation = false)

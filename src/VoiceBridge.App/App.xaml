@@ -601,6 +601,8 @@
 
     <Style TargetType="ComboBoxItem">
       <Setter Property="Padding" Value="10,7"/>
+      <!-- No dotted focus adorner: the rounded highlight already shows the selection. -->
+      <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
       <Setter Property="Foreground" Value="{StaticResource Label}"/>
       <Setter Property="Template">
         <Setter.Value>

@@ -4,6 +4,38 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）：提示改成跟手的小气泡 + 音色下拉修复 + 右键菜单覆盖全部输入框
+
+> 状态：完成、构建通过、UIA/截图验证。**未打包、未上线**。
+
+**用户反馈三条**：① 提示跑到标题上方不对，应该在“点击的那个栏目下面”，而且只出一个；② 人物卡片的音色下拉框坏了，和其他下拉框不一样（分厂商要保留）；③ 输入框（的右键菜单）没修全。
+
+### A. 提示改为跟手小气泡（Popup）
+- 删掉四个页级提示 TextBlock（首页 `NoticeText`、音效 `VoiceLibraryNotice`、高级 `ApiNotice`、词库 `ReadingNotice`），把它们补偿过的边距全部还原（首页标题 22、词库 20、两个分组标题恢复样式默认）。
+- 新增窗口级 `Popup x:Name="HintPopup"`（`Placement=Bottom`、`IsHitTestVisible=False`、Fade）：白底圆角 9、细边框、柔和阴影，12px 琥珀色文字。
+- `notice` setter 用 `Keyboard.FocusedElement` 作为锚点——用户刚点的那个控件还握着焦点，所以气泡就出现在它正下方；找不到锚点（或它已不可见）时退回到内容区。
+- Popup 不占布局，所以**任何页面都不会被推开**；同一时刻只有一条；5 秒自动关；切页即关（`NavigationChanged` 里 `notice = null`）。
+- 词库的 `ShowReadingNotice` 也改成走同一个气泡，删掉 `readingNoticeTimer` 与页面内提示行。
+- `tools/UiSmokeTest` 改为在 RootElement 里按 `HintPopupText` 找气泡文案（气泡在独立弹层窗口里）。
+
+### B. 音色下拉框“坏了”
+- 根因：`VoiceChoiceItemStyle` 是显式 `ItemContainerStyle`，它**覆盖**了 App.xaml 的隐式 `ComboBoxItem` 样式，于是这三个音色下拉的选项退回到 WPF 默认灰方块样式。
+- 修：`BasedOn="{StaticResource {x:Type ComboBoxItem}}"`。分厂商分组（`VoiceProviderGroup`）与“失效音色灰斜体且不可选”的语义都不变。
+- 顺带给 `ComboBoxItem` 样式加了 `FocusVisualStyle=null`，去掉选中项上那圈虚线焦点框（所有下拉一致）。
+
+### C. 右键菜单覆盖全部输入框
+- 根因：之前只靠 App.xaml 的隐式 `ContextMenu`/`MenuItem` 样式，仍依赖 WPF 内部生成的文本菜单，文案还是框架本地化（曾出现英文 Cut/Copy/Paste）。
+- 修：新增 `src/VoiceBridge.App/FieldMenu.cs`，在 `App.OnStartup` 里 `EventManager.RegisterClassHandler` 挂住 `TextBoxBase` 与 `PasswordBox` 的 `ContextMenuOpening`：第一次右键时给它装上自建菜单（剪切/复制/粘贴/全选，中文 + 快捷键提示，`RowMenu`/`RowMenuItem` 样式，`CommandTarget` 指回该控件），`Handled=true` 后延迟一帧打开（在事件里同步开弹层会被吞掉）。命令仍是系统 `ApplicationCommands`，行为不变。
+- 覆盖：所有 TextBox、多行文本、词库行内输入、各对话框、以及 API 密钥的 PasswordBox。
+
+### 验证
+- `dotnet build -c Release` 0 警告 0 错误；`Test.ps1` **.NET 209/209 PASS + Python 54 PASS**；`Verify-Source` PASS。
+- 气泡：`UiSmokeTest` → `notice: [试听完成。]` **PASS**；截图 `artifacts/screenshots/hint-chip.png` 显示气泡就在“试听这段文字”按钮正下方。
+- 右键菜单：UIA 聚焦高级页输入框后按 VK_APPS，菜单项为 `剪切[False] 复制[False] 粘贴[True] 全选[True]`（无选区时前两项自动禁用）。
+- 音色下拉：UIA 展开“此联系人音色”，白底圆角面板 + 绿色分组头 `Fish Audio`、选中项浅绿、无虚线框，截图 `artifacts/screenshots/voice-dropdown.png`。
+
+---
+
 ## 1.5.2 · 2026-11-10（提示行不再挤动布局 + 打包上线）
 
 ### A. 提示行挤动布局（用户报）

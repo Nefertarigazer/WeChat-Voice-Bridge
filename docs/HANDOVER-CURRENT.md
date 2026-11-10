@@ -12,6 +12,12 @@
 - 版本 **1.5.2**（`Directory.Build.props`），`ReleaseHistory` 已有 1.5.2 条目（状态点颜色语义、呼吸灯、字号层级与基线、右键菜单、提示行行为、去噪音）。
 - 验证：`Test.ps1` **.NET 209/209 PASS + Python 54 PASS（41 skipped 基线）**、`Verify-Source` PASS、Clean-payload PASS（1733 文件）。
 
+**工作区未发布改动（1.5.2 之后，未升版本号）**：
+- 提示改成**跟手小气泡**：窗口级 `Popup x:Name="HintPopup"`（`Placement=Bottom`、不吃布局、Fade），锚点取 `Keyboard.FocusedElement`（你刚点的控件），找不到就回退到内容区；同一时刻只有一条，5 秒自动关，切页即关。四个页级提示 TextBlock 已删除，边距已还原。词库提示走同一个气泡。
+- 音色下拉框：`VoiceChoiceItemStyle` 补 `BasedOn="{StaticResource {x:Type ComboBoxItem}}"`（显式 ItemContainerStyle 会覆盖隐式样式，这就是它“和别人不一样”的原因）；`ComboBoxItem` 样式加 `FocusVisualStyle=null` 去掉虚线框。分厂商分组与失效音色语义未改。
+- 右键菜单：新增 `src/VoiceBridge.App/FieldMenu.cs`，`App.OnStartup` 用 `EventManager.RegisterClassHandler` 挂住 `TextBoxBase`/`PasswordBox` 的 `ContextMenuOpening`，自建中文菜单（剪切/复制/粘贴/全选 + 快捷键，`RowMenu` 样式）。**不要在 XAML 里再给单个输入框设 ContextMenu**，否则会绕过这套统一逻辑。
+- 验证：build 0/0；`Test.ps1` .NET 209/209 + Python 54；`Verify-Source` PASS；气泡/右键菜单/下拉框均有 UIA 或截图证据（`artifacts/screenshots/hint-chip.png`、`voice-dropdown.png`）。
+
 **1.5.2 发布台账（2026-11-10，Muse 发布单 `codex_20261110_174906_4f5a16`）**：
 - 源码 commit：`4ae22b4`；payload `1.5.2+4ae22b4be0acef8cdcfb733fe610f9e2bfd2641b`（先提交再打包）。
 - ZIP `artifacts\WeChat-Voice-Bridge-V1.5.2-win-x64.zip` = 90,820,155 字节 / `dad840a1ab28cd5ffb6cc086fcf3769900df95b491ff56b0fd6d84ee9813fb9b`。
