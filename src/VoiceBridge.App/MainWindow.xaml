@@ -802,23 +802,24 @@
                   <Border Style="{StaticResource Row}">
                     <Grid>
                       <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                       </Grid.ColumnDefinitions>
-                      <!-- A state dot and a short second line carry the status, so the
-                           row needs no paragraph of explanatory copy. -->
-                      <Ellipse x:Name="UpdateStateDot" Width="9" Height="9" Margin="0,0,12,0"
-                               VerticalAlignment="Center" Fill="{StaticResource Secondary}"/>
-                      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <!-- One line only: the dot and the version sit in a horizontal
+                           stack, both vertically centred, so the dot is on the text's
+                           line in every state (grey / amber / green). The status is
+                           carried by the line under the card and the button label. -->
+                      <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center"
+                                  Margin="0,0,12,0">
+                        <Ellipse x:Name="UpdateStateDot" Width="9" Height="9" Margin="0,0,12,0"
+                                 VerticalAlignment="Center" Fill="{StaticResource Secondary}"/>
                         <TextBlock x:Name="UpdateVersion" Style="{StaticResource RowLabel}"
                                    FontSize="15" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="UpdateSubtext" Style="{StaticResource Footnote}" Margin="0,3,0,0"/>
                       </StackPanel>
                       <!-- Local Height/Padding beat every state style: all three states
                            keep one exact size, and the 0 vertical padding lets
                            VerticalContentAlignment centre the label optically. -->
-                      <Button x:Name="UpdateAction" Grid.Column="2" Content="检查更新"
+                      <Button x:Name="UpdateAction" Grid.Column="1" Content="检查更新"
                               Style="{StaticResource SecondaryButton}" Click="UpdateClick"
                               Height="36" MinWidth="132" Padding="20,0" FontSize="14"
                               HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -827,11 +828,15 @@
                   </Border>
                   <Border x:Name="UpdatePackage" Style="{StaticResource Row}" Visibility="Collapsed">
                     <StackPanel>
-                      <!-- Notes only: the version/size caption line was dropped because the
-                           version is already on the row above and the caption made the
-                           block feel taller than the copy it introduced.
-                           The page already scrolls (ContentScroller), so the notes show in
-                           full here; a nested capped scroller used to slice a line in half. -->
+                      <!-- The version itself heads the notes as a title, with the package
+                           size as quiet metadata beside it. The page already scrolls
+                           (ContentScroller), so the notes show in full here; a nested
+                           capped scroller used to slice a line in half. -->
+                      <StackPanel Orientation="Horizontal" Margin="0,2,0,10">
+                        <TextBlock x:Name="UpdateNoteTitle" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock x:Name="UpdateNoteSize" Style="{StaticResource Footnote}"
+                                   Margin="8,0,0,2" VerticalAlignment="Bottom"/>
+                      </StackPanel>
                       <Border x:Name="UpdateNotesBox" Background="#F6F9F7" BorderBrush="#E7EEE9" BorderThickness="1"
                               CornerRadius="10" Padding="12,10">
                         <StackPanel x:Name="UpdateNotesPanel"/>

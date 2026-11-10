@@ -6,58 +6,60 @@ using System.Windows.Controls;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+using Ellipse = System.Windows.Shapes.Ellipse;
 
 namespace UpdatePanelPreview;
 
 /// <summary>
-/// Renders the real "软件更新" settings group the way the app draws it:
-/// the status row (dot + 当前版本 + subtext + button) with the version-notes
-/// block (v1.4.9 · size + release text) directly below it. Two states are
-/// rendered stacked so the button and the copy under it can be judged together.
-/// Uses the app's own App.xaml resources, so styles are not re-invented.
+/// Renders the real "软件更新" group the way the app draws it and then MEASURES the
+/// result: the status dot must centre on the version text in all three states, and
+/// the notes block now carries a version title with the size beside it.
+/// The three states are stacked so the button, the dot and the copy are judged together.
+/// Uses the app's own App.xaml resources, so styles are not re-invented here.
 /// </summary>
 internal static class Program
 {
+    private static readonly (byte R, byte G, byte B)[] DotColours =
+    {
+        (0xAE, 0xAE, 0xB2), // IdleDot  · up to date
+        (0xB2, 0x76, 0x0A), // WarnDot  · update available
+        (0x1D, 0x9A, 0x5B), // LiveDot  · ready to install
+    };
+
     [STAThread]
     private static int Main(string[] args)
     {
         var appRoot = args.Length > 0 ? args[0] : AppDomain.CurrentDomain.BaseDirectory;
-        var appXaml = System.IO.Path.Combine(appRoot, "src", "VoiceBridge.App", "App.xaml");
-        var outDir = System.IO.Path.Combine(appRoot, "artifacts", "screenshots");
+        var appXaml = Path.Combine(appRoot, "src", "VoiceBridge.App", "App.xaml");
+        var outDir = Path.Combine(appRoot, "artifacts", "screenshots");
         Directory.CreateDirectory(outDir);
 
         var dict = LoadResources(appXaml);
         Brush B(string key) => (Brush)dict[key];
         Style S(string key) => (Style)dict[key];
 
-        // Real 1.4.9 release notes, as they would arrive in latest.json "notes".
         var notes = string.Join("\n", new[]
         {
-            "真实微信模式支持范围限定为微信 Windows 4.1.11 至 4.2.0.13（含两端及其间全部小版本）。范围外的版本不再静默失败或乱读数据，而是走 unsupported_version 通道并给出明确提示。",
-            "密钥掩码保持与原有实现逐字节一致，58 项等价性自检全部通过；不回退 1.4.7 / 1.4.8 的改动。",
-            "启动识别到范围外微信版本时弹出提示窗口，显示检测到的版本与受支持区间，并给出「更新微信」与「退出应用」两个操作。",
-            "更新页精简：删去「点确定才会进入更新应用」等重复解释文案；绿色安装按钮与版本文字改为统一固定高度、文字垂直居中，三种状态尺寸一致。",
+            "更新说明上方新增版本标题：版本号以标题字号呈现，安装包体积作为次要信息跟在右侧，不再是挤在正文前的一行小字。",
+            "修正「软件更新」一行里状态圆点与文字的纵向对齐：圆点改为与版本文字同一行居中，不再偏低；未开始（灰）、发现新版（琥珀）、可安装（绿）三种状态一致对齐。",
+            "API 配置界面精简、音色不再无故消失、凭据指针与钥匙库清理等 1.5.0 的改动继续保留。",
         });
 
-        // -------- one full group, faithful to MainWindow.xaml (content width 660) --------
-        // Real dot colours from MainWindow.xaml.cs (IdleDot / WarnDot / LiveDot);
-        // the earlier preview wrongly used "Positive" for all three states.
-        Brush DotGray = Freeze(0xAE, 0xAE, 0xB2);
-        Brush DotAmber = Freeze(0xB2, 0x76, 0x0A);
-        Brush DotGreen = Freeze(0x1D, 0x9A, 0x5B);
+        var rows = new List<(Grid Left, Ellipse Dot, TextBlock Title, string Caption)>();
+        var log = new List<string>();
+        var body = new StackPanel();
 
         FrameworkElement BuildGroup(
-            string subtext, string buttonLabel, Style buttonStyle, Brush dot, Brush ink,
-            string statusText, string caption, bool hasNotes)
+            string caption, string version, string buttonLabel,
+            Style buttonStyle, Brush dot, Brush ink, string statusText,
+            string? noteVersion, string? noteSize, bool hasNotes)
         {
             var host = new StackPanel { Width = 660, Margin = new Thickness(0, 0, 0, 26) };
+            body.Children.Add(host);
 
             host.Children.Add(new TextBlock
             {
-                Text = caption,
-                Foreground = B("Secondary"),
-                FontSize = 12,
+                Text = caption, Foreground = B("Secondary"), FontSize = 12,
                 Margin = new Thickness(0, 0, 0, 8)
             });
 
@@ -65,54 +67,64 @@ internal static class Program
             var groupStack = new StackPanel();
             group.Child = groupStack;
 
-            // --- status row ---
+            // --- status row: exactly the live structure (dot + title share row 0) ---
             var row = new Border { Style = S("Row") };
             var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            grid.Children.Add(new Ellipse
+            var left = new Grid { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
+            left.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            left.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var dotShape = new Ellipse
             {
                 Width = 9, Height = 9, Margin = new Thickness(0, 0, 12, 0),
                 VerticalAlignment = VerticalAlignment.Center, Fill = dot
-            });
+            };
+            left.Children.Add(dotShape);
 
-            var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            text.Children.Add(new TextBlock
+            var title = new TextBlock
             {
-                Text = "当前版本 v1.4.9", Style = S("RowLabel"), FontSize = 15, FontWeight = FontWeights.SemiBold
-            });
-            text.Children.Add(new TextBlock { Text = subtext, Style = S("Footnote"), Margin = new Thickness(0, 3, 0, 0) });
-            Grid.SetColumn(text, 1);
-            grid.Children.Add(text);
+                Text = version, Style = S("RowLabel"), FontSize = 15, FontWeight = FontWeights.SemiBold
+            };
+            Grid.SetColumn(title, 1);
+            left.Children.Add(title);
+
+            grid.Children.Add(left);
 
             var btn = new Button
             {
-                Style = buttonStyle,
-                Height = 36,
-                MinWidth = 132,
-                Padding = new Thickness(20, 0, 20, 0),
-                FontSize = 14,
+                Style = buttonStyle, Height = 36, MinWidth = 132,
+                Padding = new Thickness(20, 0, 20, 0), FontSize = 14,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
+                Foreground = ink, Content = buttonLabel,
             };
-            // Mirror MainWindow.Updates.cs: label colour is set explicitly, so the
-            // solid-green state keeps white ink instead of inheriting dark text.
-            btn.Foreground = ink;
-            btn.Content = buttonLabel;
-            Grid.SetColumn(btn, 2);
+            Grid.SetColumn(btn, 1);
             grid.Children.Add(btn);
 
             row.Child = grid;
             groupStack.Children.Add(row);
+            rows.Add((left, dotShape, title, caption));
 
-            // --- notes block directly under the button row (no version/size caption) ---
+            // --- notes block: version title + size, then the dotted lines ---
             if (hasNotes)
             {
                 var package = new Border { Style = S("Row") };
+                var stack = new StackPanel();
+
+                var heading = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 10) };
+                heading.Children.Add(new TextBlock { Text = noteVersion!, Style = S("SectionTitle") });
+                heading.Children.Add(new TextBlock
+                {
+                    Text = noteSize!, Style = S("Footnote"),
+                    Margin = new Thickness(8, 0, 0, 2), VerticalAlignment = VerticalAlignment.Bottom
+                });
+                stack.Children.Add(heading);
+
                 var inset = new Border
                 {
                     Background = new SolidColorBrush(Color.FromRgb(0xF6, 0xF9, 0xF7)),
@@ -143,44 +155,34 @@ internal static class Program
                     notesPanel.Children.Add(line);
                 }
                 inset.Child = notesPanel;
-                package.Child = inset;
+                stack.Children.Add(inset);
+                package.Child = stack;
                 groupStack.Children.Add(package);
             }
 
             host.Children.Add(group);
-
-            // --- status line under the group (UpdateStatus, Footnote) ---
             host.Children.Add(new TextBlock
             {
                 Text = statusText, Style = S("Footnote"), Margin = new Thickness(17, 10, 17, 0)
             });
-
             return host;
         }
 
-        var body = new StackPanel();
+        // ① up to date: grey dot, grey button, no notes
+        BuildGroup("① 已是最新 · 灰点 + 灰按钮", "当前版本 v1.5.1", "检查更新",
+            S("SecondaryButton"), Freeze(DotColours[0]), B("Label"), "已是最新版本。", null, null, false);
 
-        // ① up to date: grey dot, grey button, no notes block
-        body.Children.Add(BuildGroup(
-            subtext: "已是最新版本", buttonLabel: "检查更新",
-            buttonStyle: S("SecondaryButton"), dot: DotGray, ink: B("Label"),
-            statusText: "已是最新版本。", caption: "① 已是最新 · 灰点 + 灰按钮", hasNotes: false));
+        // ② update available: amber dot, mint outline button, notes with title
+        BuildGroup("② 发现新版本 · 琥珀点 + 薄荷描边按钮", "当前版本 v1.5.1", "更新到 v1.5.2",
+            S("UpdateReadyButton"), Freeze(DotColours[1]), B("UpdateReadyText"), "正在下载 v1.5.2…",
+            "v1.5.2", "90.8 MB", true);
 
-        // ② update available: amber dot, mint outline button, notes below
-        body.Children.Add(BuildGroup(
-            subtext: "发现新版本", buttonLabel: "更新到 v1.4.9",
-            buttonStyle: S("UpdateReadyButton"), dot: DotAmber, ink: B("UpdateReadyText"),
-            statusText: "正在下载 v1.4.9…", caption: "② 发现新版本 · 琥珀点 + 薄荷描边按钮", hasNotes: true));
-
-        // ③ downloaded: green dot, solid green button, notes below
-        body.Children.Add(BuildGroup(
-            subtext: "更新包已就绪", buttonLabel: "重启安装更新",
-            buttonStyle: S("UpdateInstallButton"), dot: DotGreen, ink: B("WhiteText"),
-            statusText: "更新包已下载并通过校验，可直接重启安装。", caption: "③ 下载完成 · 绿点 + 实心绿安装按钮", hasNotes: true));
+        // ③ ready to install: green dot, solid green button
+        BuildGroup("③ 下载完成 · 绿点 + 实心绿安装按钮", "当前版本 v1.5.1", "重启安装更新",
+            S("UpdateInstallButton"), Freeze(DotColours[2]), B("WhiteText"), "更新包已下载并通过校验，可直接重启安装。",
+            "v1.5.2", "90.8 MB", true);
 
         const double scale = 2.0;
-        // Wrap in a fixed-width frame with real padding instead of setting Width on a
-        // margined element (that combination shifts the layout and crops the right edge).
         const double logicalWidth = 660 + 28 * 2;
         var frame = new Border
         {
@@ -207,24 +209,119 @@ internal static class Program
         window.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Render, new Action(() => { }));
         window.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() => { }));
         frame.UpdateLayout();
-        frame.Measure(new Size(logicalWidth, double.PositiveInfinity));
-        frame.Arrange(new Rect(0, 0, logicalWidth, frame.DesiredSize.Height));
-        var w = (int)Math.Ceiling(logicalWidth);
-        var h = (int)Math.Ceiling(frame.DesiredSize.Height);
 
+        var w = (int)Math.Ceiling(logicalWidth);
+        var h = (int)Math.Ceiling(frame.ActualHeight);
         var bmp = new RenderTargetBitmap((int)(w * scale), (int)(h * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
         bmp.Render(frame);
 
-        var outPath = System.IO.Path.Combine(outDir, "update-panel-with-notes.png");
+        // ---- measure the rendered pixels: dot centre vs title ink centre ----
+        var stride = bmp.PixelWidth * 4;
+        var pixels = new byte[stride * bmp.PixelHeight];
+        bmp.CopyPixels(pixels, stride, 0);
+
+        foreach (var (left, dotShape, title, caption) in rows)
+        {
+            var cellRect = Box(left, frame);
+            var dotRect = Box(dotShape, frame);
+            var geo = Geometry(left, dotShape, title, frame);
+            var report = Measure(pixels, bmp.PixelWidth, bmp.PixelHeight, scale, dotRect, cellRect);
+            var delta = report.DotCentreY - report.InkCentreY;
+            log.Add($"{caption}");
+            log.Add($"    layout : dot centre {geo.DotCentre:0.0} / title box centre {geo.TitleCentre:0.0} / title h {geo.TitleHeight:0.0} / block h {geo.BlockHeight:0.0}");
+            log.Add($"    pixels : dot centre {report.DotCentreY:0.0} / title ink {report.InkTop:0.0}..{report.InkBottom:0.0} centre {report.InkCentreY:0.0}");
+            log.Add($"    delta  : {delta:+0.0;-0.0;0.0} DIP   {(Math.Abs(delta) <= 1.0 ? "OK" : "OFF")}");
+        }
+
+        var outPath = Path.Combine(outDir, "update-panel-with-notes.png");
         using (var fs = File.Create(outPath)) Png(bmp, fs);
         window.Close();
-        Console.WriteLine($"WROTE {outPath} {w}x{h} (x{scale})");
+        log.Add($"WROTE {outPath} {w}x{h} (x{scale})");
+        File.WriteAllText(Path.Combine(outDir, "update-panel-check.txt"), string.Join("\n", log));
         return 0;
     }
 
-    private static Brush Freeze(byte r, byte g, byte b)
+    private readonly record struct MeasureResult(double DotCentreY, double InkTop, double InkBottom)
     {
-        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+        public double InkCentreY => (InkTop + InkBottom) / 2;
+    }
+
+    private readonly record struct Geo(double DotCentre, double TitleCentre, double TitleHeight, double BlockHeight);
+
+    /// <summary>Layout arithmetic straight from WPF, independent of the pixel scan.</summary>
+    private static Geo Geometry(Grid cell, Ellipse dot, TextBlock title, Visual root)
+    {
+        var cellTop = cell.TransformToAncestor(root).Transform(new Point(0, 0)).Y;
+        var dotTop = dot.TransformToAncestor(root).Transform(new Point(0, 0)).Y;
+        var titleTop = title.TransformToAncestor(root).Transform(new Point(0, 0)).Y;
+        return new Geo(dotTop + dot.ActualHeight / 2, titleTop + title.ActualHeight / 2,
+            title.ActualHeight, cell.ActualHeight);
+    }
+
+    /// <summary>Screen-space box of an element in the rendered frame.</summary>
+    private static Rect Box(FrameworkElement element, Visual root)
+    {
+        var topLeft = element.TransformToAncestor(root).Transform(new Point(0, 0));
+        return new Rect(topLeft, new Size(element.ActualWidth, element.ActualHeight));
+    }
+
+    /// <summary>
+    /// Reads the rendered pixels: the dot's own rows by fill colour, then the title's
+    /// ink by darkness to the right of the dot. Comparing the two centres is the same
+    /// judgement the eye makes, so it cannot be talked around by layout arithmetic.
+    /// </summary>
+    private static MeasureResult Measure(byte[] pixels, int width, int height, double scale, Rect dotRect, Rect cellRect)
+    {
+        var dx0 = (int)Math.Max(0, dotRect.Left * scale) - 2;
+        var dx1 = (int)Math.Min(width, dotRect.Right * scale) + 2;
+        var dy0 = (int)Math.Max(0, dotRect.Top * scale) - 2;
+        var dy1 = (int)Math.Min(height, dotRect.Bottom * scale) + 2;
+
+        int dotMin = int.MaxValue, dotMax = int.MinValue, found = 0;
+        for (var y = dy0; y < dy1; y++)
+        {
+            var row = 0;
+            for (var x = dx0; x < dx1; x++)
+            {
+                var i = y * width * 4 + x * 4;
+                var b = pixels[i]; var g = pixels[i + 1]; var r = pixels[i + 2];
+                if (!DotColours.Any(c => Math.Abs(c.R - r) <= 18 && Math.Abs(c.G - g) <= 18 && Math.Abs(c.B - b) <= 18))
+                    continue;
+                row++;
+            }
+            // A solid disk gives a long run; scattered antialiased glyph pixels do not.
+            if (row < 4) continue;
+            dotMin = Math.Min(dotMin, y);
+            dotMax = Math.Max(dotMax, y);
+            found += row;
+        }
+
+        var x0 = (int)Math.Min(width, (dotRect.Right + 3) * scale);
+        var x1 = (int)Math.Min(width, cellRect.Right * scale) - 2;
+        var y0 = (int)Math.Max(0, cellRect.Top * scale);
+        var y1 = (int)Math.Min(height, cellRect.Bottom * scale);
+
+        int inkMin = int.MaxValue, inkMax = int.MinValue;
+        for (var y = y0; y < y1; y++)
+        {
+            for (var x = x0; x < x1; x++)
+            {
+                var i = y * width * 4 + x * 4;
+                var b = pixels[i]; var g = pixels[i + 1]; var r = pixels[i + 2];
+                if (r > 110 || g > 110 || b > 110) continue;
+                inkMin = Math.Min(inkMin, y);
+                inkMax = Math.Max(inkMax, y);
+            }
+        }
+
+        if (found == 0 || inkMin == int.MaxValue)
+            return new MeasureResult(double.NaN, double.NaN, double.NaN);
+        return new MeasureResult((dotMin + dotMax + 1) / 2.0 / scale, inkMin / scale, (inkMax + 1) / scale);
+    }
+
+    private static Brush Freeze((byte R, byte G, byte B) colour)
+    {
+        var brush = new SolidColorBrush(Color.FromRgb(colour.R, colour.G, colour.B));
         brush.Freeze();
         return brush;
     }

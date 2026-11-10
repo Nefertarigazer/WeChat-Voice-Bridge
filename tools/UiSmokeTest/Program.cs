@@ -15,6 +15,12 @@ using System.Windows.Automation;
 if (args.Length > 0 && string.Equals(args[0], "menu", StringComparison.Ordinal))
     return MenuShot(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "menu.png");
 
+// shot <pid> <png> [navId]: selects a nav page and screenshots the window, so a
+// page's real rendering (not a preview mock) can be inspected.
+if (args.Length > 0 && string.Equals(args[0], "shot", StringComparison.Ordinal))
+    return Shot(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "shot.png",
+                args.Length > 3 ? args[3] : "NavAdvanced");
+
 // menuclick <pid> <item>: opens the ⋮ menu and invokes one item, then reports
 // whether the expected dialog appeared (the menu styling must not break clicks).
 if (args.Length > 0 && string.Equals(args[0], "menuclick", StringComparison.Ordinal))
@@ -131,6 +137,42 @@ static int MenuShot(string pidText, string outPath)
     Console.WriteLine($"menu rect: {rect.X},{rect.Y} {rect.Width}x{rect.Height}");
     Console.WriteLine($"screen: {screen.X},{screen.Y} {screen.Width}x{screen.Height}");
     Console.WriteLine($"saved: {outPath} ({w}x{h})");
+    return 0;
+}
+
+// Opens a nav page and screenshots the whole window rect.
+static int Shot(string pidText, string outPath, string navId)
+{
+    var pid = int.TryParse(pidText, out var parsed) && parsed > 0
+        ? parsed
+        : Process.GetProcessesByName("WeChatVoiceBridge").FirstOrDefault()?.Id ?? 0;
+    if (pid == 0) { Console.WriteLine("FATAL: WeChatVoiceBridge is not running"); return 4; }
+
+    var process = Process.GetProcessById(pid);
+    for (var i = 0; i < 20 && process.MainWindowHandle == IntPtr.Zero; i++)
+    {
+        Thread.Sleep(500);
+        process.Refresh();
+    }
+    if (process.MainWindowHandle == IntPtr.Zero) { Console.WriteLine("FATAL: no main window"); return 4; }
+
+    var root = AutomationElement.FromHandle(process.MainWindowHandle);
+    var nav = WaitFor(() => ByAutomationId(root, navId));
+    if (nav is null) { Console.WriteLine($"FATAL: {navId} not found"); return 4; }
+    (nav.GetCurrentPattern(SelectionItemPattern.Pattern) as SelectionItemPattern)!.Select();
+    Thread.Sleep(2500);
+
+    var rect = root.Current.BoundingRectangle;
+    var left = (int)rect.X;
+    var top = (int)rect.Y;
+    var w = (int)rect.Width;
+    var h = (int)rect.Height;
+    using var bmp = new Bitmap(w, h);
+    using (var g = Graphics.FromImage(bmp))
+        g.CopyFromScreen(left, top, 0, 0, new Size(w, h));
+    bmp.Save(outPath, ImageFormat.Png);
+    Console.WriteLine($"window rect: {left},{top} {w}x{h}");
+    Console.WriteLine($"saved: {outPath}");
     return 0;
 }
 

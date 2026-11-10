@@ -1,10 +1,19 @@
-# 微信语音桥 · 当前交接（2026-11-10，源码 v1.5.0 · 线上 v1.5.0 已上线）
+# 微信语音桥 · 当前交接（2026-11-10，源码 v1.5.1 待发 · 线上 v1.5.0 已上线）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录见 `.workbuddy/memory/2026-11-10.md`。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 0. 当前状态（2026-11-10 v1.5.0 周期，已上线）
+## 0. 当前状态（2026-11-10 · v1.5.1 已构建、等用户点头后打包推送）
+
+**当前一节（v1.5.1，源码已完成、未打包、未上线）**：
+- 「软件更新」状态行只留一行：9px 圆点 + `当前版本 vX.Y.Z`，水平 `StackPanel`、两者 `VerticalAlignment=Center`，灰/琥珀/绿三态只换 `Fill`；第二行说明（「已是最新版本」「发现新版本」「更新包已就绪」）已删除，状态由卡片下方状态行与按钮文案承载。
+- 更新说明上方改为**标题行**：`UpdateNoteTitle` = `v{版本}`（`SectionTitle`，16 Semibold）+ `UpdateNoteSize` = `{大小} MB`（12 灰、底线对齐）；原先「v1.5.0 · 90.8 MB」小字不再出现。
+- 版本 **1.5.1**（`Directory.Build.props`），`ReleaseHistory` 已加条目。
+- 验证：`dotnet build` 0/0、`dotnet test` 211/211、`Test.ps1` PASS、`Verify-Source` PASS、58 项 PASS；真实应用截图两张（见 WORKLOG 最新节）。
+- **下一步**：用户确认样式后 → 打包（`Publish.ps1` → `Build-Installer.ps1`）→ Muse `publish-voicebridge` → 公网友核 → 回写记录并 push。
+
+## 0b. 上一节（v1.5.0 周期，已上线）
 
 **A–E 全部完成并已发布上线**（下方 A–E 为细节记录）。发布单 `codex_20261110_130657_f72a7b`，Muse 回执 `status=ok`（`publishedAt=2026-11-10T12:09:47Z`），公网已复核：清单 200 / 六字段齐全 / ZIP 与 Setup HEAD 200 且长度一致 / 完整下载 ZIP 重算 SHA-256 一致。
 

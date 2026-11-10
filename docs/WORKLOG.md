@@ -485,3 +485,25 @@
 **动作**：在项目根目录 `AGENTS.md` 顶部新增《项目工作指令》，把上述要求落成可执行条目：一节的定义、每节必做的三件事（记 WORKLOG、更新 HANDOVER-CURRENT、单独 git 提交）、推送节奏与远端 HEAD 核对、中断自救（落盘优先于新活）、禁止事项、发版前四项自查与发布后回执确认（含 commit 号）。原有的 WeChat database probes 条目原样保留在文件后部。
 
 **验证**：本次只改 `AGENTS.md` 与本条 WORKLOG 记录，单独成一个提交并推送，远端 HEAD 核对一致后才算完成（结果见本提交）。当时工作区另有 5 个文件的未提交改动（小版本细节优化进行中），不属于本节，未混入本提交——该节完成后须按新规矩自行记 WORKLOG 并单独提交。
+
+---
+
+## 2026-11-10 · v1.5.1：更新页标题化 + 状态点对齐 + 删掉第二行说明
+
+用户复查 1.5.0 上线后的两处界面问题（截图对照）：
+1. 版本说明前的「v1.5.0 · 90.8 MB」是一行小字，希望「更像标题一些」；
+2. 「软件更新」一行的灰点与「当前版本」不在一条线上，要求三种状态（灰/琥珀/绿）都纵向居中与文字对齐；
+3. 追加指令：删掉第二行的「已是最新版本」，格子里只保留点和一行字、上下居中。
+
+**改动**（`MainWindow.xaml` / `MainWindow.Updates.cs`）：
+- 状态行结构改为 `StackPanel Orientation=Horizontal`：9px 圆点 + 版本号，两者 `VerticalAlignment=Center`，整行只有一行字，因此圆点必然落在文字中心线上；三种状态只换 `Fill`，几何完全一致。删掉 `UpdateSubtext` 文本块与其三处赋值（状态由卡片下方的状态行与按钮文案承载）。
+- 更新说明上方新增标题行：`UpdateNoteTitle`（`SectionTitle`，16 Semibold）+ `UpdateNoteSize`（`Footnote`，12 灰、底线对齐），内容为 `v{版本}` 与 `{大小} MB`；原来那行小字彻底不做了。
+- `RenderUpdate` 同步填标题与体积；保留 `UpdatePackage.ToolTip`。
+
+**验证**：
+- 预览工具 `tools/UpdatePanelPreview` 改为与真实布局同构，并新增**像素级测量**：按圆点自身几何范围找实心圆、按暗度找标题墨迹，比较两者中心；三态偏差 **-0.5 / -0.5 / 0.0 DIP（判定 OK）**，静态图 `artifacts/screenshots/update-panel-with-notes.png`。
+- 真实应用截图（`tools/UiSmokeTest` 新增 `shot <pid> <png> [navId]` 模式）：`artifacts/update-live-uptodate.png`（灰点、单行、已是最新）、`artifacts/update-live-newer.png`（绿点、`v1.5.2  0.0 MB` 标题 + 说明面板）。后者用**本地暂存的 pending 更新包**触发（4096 字节假包 + 6 字段 state.json），截图后已删除，线上清单未动、未点击安装。
+- `dotnet build` 0 警告 0 错误；`dotnet test` **211/211**；`Test.ps1` PASS；`Verify-Source` PASS；58 项等价性 PASS。
+- 版本 **1.5.1**，`ReleaseHistory` 新增对应条目。
+
+**尚未做**：打包与 Muse 推送（等用户看过效果点头）。桌面快捷方式未动。

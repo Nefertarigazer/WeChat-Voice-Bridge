@@ -268,16 +268,16 @@ public partial class MainWindow
         // Foreground, which would leave white text dark on the solid green state.
         UpdateAction.Foreground = (Brush)FindResource(ink);
         UpdateAction.Content = label;
-        UpdateSubtext.Text = manifest is null ? "已是最新版本"
-            : verifiedUpdate is not null ? "更新包已就绪" : "发现新版本";
         UpdateStateDot.Fill = manifest is null ? IdleDot : verifiedUpdate is not null ? LiveDot : WarnDot;
         UpdateAction.IsEnabled = !closing && !updateHandoff && updateCancel is null;
         UpdatePackage.Visibility = manifest is null ? Visibility.Collapsed : Visibility.Visible;
         if (manifest is null)
             return;
 
-        // The size/version caption line was removed for a cleaner block; the size is
-        // still surfaced on the button's tooltip so nothing is lost.
+        // The version heads its own notes as a title; the size rides beside it as
+        // quiet metadata instead of a caption line above the copy.
+        UpdateNoteTitle.Text = $"v{manifest.Version}";
+        UpdateNoteSize.Text = $"{manifest.Size / 1_000_000d:0.0} MB";
         UpdatePackage.ToolTip = $"v{manifest.Version} · {manifest.Size / 1_000_000d:0.0} MB";
         FillNotes(manifest.Notes);
     }
