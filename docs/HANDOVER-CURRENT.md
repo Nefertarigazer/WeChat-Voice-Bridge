@@ -12,7 +12,9 @@
 
 **C. 凭据指针事故修复**（完成）：当日构建覆写 `settings.json`/`fish-keys.dpapi`、服务指针被 32 位空壳占位值顶掉致 401。根因两处已修（`ProfileEditors.Save` 铸新名顶掉旧名、`KeyStore.Load` 读失败落 legacy 整库覆写）；指针已恢复到真钥匙条目 `speech-d1ee2ca3106c44d1af5b91b674944451`，自验（重启指针不变 + 真实试听成功）通过。**修复指针类操作必须在应用未运行时做**（旧构建退出会写回内存里的坏值）。
 
-**D. 凭据库自动清扫**（完成）：`fish-keys.dpapi` 只保留被引用条目（任何服务 `CredentialId` + 顶层 `FishKeyName` + 联系人/试听凭据覆盖）。时机：①启动且全部迁移完成后；②删除服务时。本次会话新建未挂载条目豁免当次、下次启动再判；只删无引用条目，条数记 `app.log`。实现：`src/VoiceBridge.Core/CredentialSweep.cs` + `MainWindow.SweepCredentials`；自验（塞两条无引用条目重启被清 + 试听照常）通过。
+**D. 凭据库自动清扫**（完成）：`fish-keys.dpapi` 只保留被引用条目（任何服务 `CredentialId` + 顶层 `FishKeyName` + 联系人/试听凭据覆盖）。时机：①启动且全部迁移完成后；②删除服务时。本次会话新建未挂载条目豁免当次、下次启动再判；只删无引用条目，条数记 `app.log`。实现：`src/VoiceBridge.Core/CredentialSweep.cs` + `MainWindow.SweepCredentials`；自验（塞两条无引用条目进库、重启后被清 + 试听照常）通过。
+
+**E. 「⋮」菜单重做**（完成，用户复查截图后追加）：默认 WPF 菜单是灰渐变边+方角，与卡片不同画风。新增 `RowMenu`/`RowMenuItem`/`RowMenuItemDanger`（App.xaml）：白底圆角 10、`#E9EEEC` 细边、柔和阴影、高 34 行、hover 铺底色（删除项淡红 + 文字警示红）；`MinWidth=116`。定位右对齐到「⋮」，见 `ProviderMoreClick`。验证工具：`tools/MenuPreview`（三态静态图）、`tools/UiSmokeTest menu|menuclick`（抓真实弹窗截图 + 真鼠标点击验证整行可命中）。
 
 **流程红线**：**不打包、不推线上、不更新桌面快捷方式**；等用户检视 `src\VoiceBridge.App\bin\Release\net8.0-windows\WeChatVoiceBridge.exe`（版本 1.5.0）后联系再打包。每完成一部分立刻回写本文、WORKLOG 与当日 memory 并 commit。
 

@@ -655,10 +655,23 @@ public partial class MainWindow
     private void ProviderMoreClick(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: ProviderRow row } button) return;
-        var menu = new ContextMenu { PlacementTarget = button, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
-        var edit = new MenuItem { Header = "编辑" };
+        var menu = new ContextMenu
+        {
+            Style = (Style)FindResource("RowMenu"),
+            PlacementTarget = button,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+            // The panel keeps a transparent ring for its shadow, so nudge it up to
+            // leave a small gap instead of a hole under the button.
+            VerticalOffset = -6,
+        };
+        // Right-align to the ⋮ button once the panel is measured, otherwise a menu
+        // opened on the last row would hang off the window edge. The +10 puts the
+        // white panel's edge — not the transparent shadow ring's — under the button.
+        menu.Opened += (_, _) =>
+            menu.HorizontalOffset = -(menu.ActualWidth - button.ActualWidth - 10);
+        var edit = new MenuItem { Header = "编辑", Style = (Style)FindResource("RowMenuItem") };
         edit.Click += (_, _) => EditProvider(providers.FirstOrDefault(item => item.Id == row.Id));
-        var delete = new MenuItem { Header = "删除" };
+        var delete = new MenuItem { Header = "删除", Style = (Style)FindResource("RowMenuItemDanger") };
         delete.Click += (_, _) => DeleteProviderById(row.Id);
         menu.Items.Add(edit);
         menu.Items.Add(delete);

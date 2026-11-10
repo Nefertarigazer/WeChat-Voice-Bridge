@@ -431,6 +431,22 @@
 | 1.4.7 | 取消出厂默认 API、删 API 保留厂商名、同厂商多 Key 自选 | 已上线（后被 1.4.8 覆盖） |
 | 1.4.8 | 更新完成后由用户决定何时打开新版 | **线上正式版**（`codex_20261109_235238_857190`，2026-11-09 22:59 UTC） |
 | 1.4.9 | wx-multi 多版本适配 + 更新页精简 | 本地，未打包 |
-| **1.5.0** | **API 配置简化 + 音色失效语义 + 凭据指针修复 + 凭据库自动清扫** | **本地 `src\VoiceBridge.App\bin\Release\net8.0-windows\`，待用户检视，未打包** |
+| **1.5.0** | **API 配置简化（含「⋮」菜单重做）+ 音色失效语义 + 凭据指针修复 + 凭据库自动清扫** | **本地 `src\VoiceBridge.App\bin\Release\net8.0-windows\`，待用户检视，未打包** |
 
 **发布状态更正（1.4.6 已上线）**：本会话确实生成了 `WeChat-Voice-Bridge-V1.4.6-win-x64.zip` 与 `...-Setup.exe`，并经 Muse 通道把 1.4.6 推到线上（详见 1.4.6 段）。此处的旧表述是 1.4.5 及更早留下的、已作废。线上正式版自 2026-11-09 起为 **1.4.6**（此前为 1.4.3）。
+
+---
+
+## 2026-11-10 · v1.5.0 追加：「⋮」更多菜单重做
+
+用户复查截图指出「点完这三个点，编辑和删除完全不是一个画风的产物」。原因是 `ProviderMoreClick` 用 `new ContextMenu()` + `new MenuItem()`，走的是 WPF 默认模板：灰渐变边框、方角、紧凑行高、无圆角面板。
+
+**改法**（`App.xaml` 新增三套样式，`MainWindow.Library.cs` 接线）：
+- `RowMenu`（TargetType=ContextMenu）：外层 10px 透明留白给阴影，内层白底 `CornerRadius=10` + `#E9EEEC` 1px 边 + `DropShadowEffect`（Blur 18 / Depth 3 / Opacity 0.16 / `#2B3A35`），`MinWidth=116`、内容 4px 内边距。
+- `RowMenuItem`：字号 13、高 34、左右 12 内边距、`Margin 0,1`（两行悬停底色不相接）、圆角 7；悬停底色由 `Background` 承载（模板里 `IsHighlighted` 时 `TemplateBinding` 取它）。
+- `RowMenuItemDanger`：`BasedOn` 上者，文字 `Danger`（#D33B3B），悬停底色 `#FCEDED`。
+- 定位：`HorizontalOffset = -(ActualWidth - button.ActualWidth - 10)`，让**白面板**右缘而不是阴影圈对齐「⋮」；`VerticalOffset = -6`，扣掉阴影留白后仍是 4px 间隙。
+
+**坑**：ControlTemplate 里用 `DataTrigger Binding=Tag` 区分危险项不生效（悬停仍是浅灰），改为「底色走 `Background`」后正常。
+
+**验证**：新建 `tools/MenuPreview`（加载 `App.xaml` 资源、反射置 `IsHighlighted`）渲染静态/编辑悬停/删除悬停三态；`tools/UiSmokeTest` 增 `menu`（抓真实弹窗截图）与 `menuclick`（`user32.mouse_event` 真点，UIA `InvokePattern` 对 MenuItem 无效）两种模式，并刻意点击行右侧留白证明整行可命中 → 「编辑语音服务」正常弹出；点后未做删除，避免动用户配置。`dotnet build` 0/0，`dotnet test` **211/211**。

@@ -341,6 +341,70 @@
         </DataTrigger>
       </Style.Triggers>
     </Style>
+    <!-- ============ 「⋮」溢出菜单 ============ -->
+    <!-- WPF 的默认菜单是灰渐变边 + 方角 + 紧凑行高，和卡片画风完全不同。
+         这里换成白底圆角小面板：外面留出阴影的空隙（那圈是透明的），
+         里面一层细边框 + 4px 内边距，菜单项自己负责悬停底色。 -->
+    <Style x:Key="RowMenu" TargetType="ContextMenu">
+      <Setter Property="SnapsToDevicePixels" Value="True"/>
+      <Setter Property="MinWidth" Value="116"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ContextMenu">
+            <Border Padding="10" Background="Transparent">
+              <Border CornerRadius="10" Padding="4"
+                      Background="{StaticResource CardBg}"
+                      BorderBrush="#E9EEEC" BorderThickness="1">
+                <Border.Effect>
+                  <DropShadowEffect BlurRadius="18" ShadowDepth="3" Direction="270" Opacity="0.16" Color="#2B3A35"/>
+                </Border.Effect>
+                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+              </Border>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <!-- 菜单里的一行：文字左对齐留足边距，悬停时铺一层底色（底色由 Background
+         承载，删除项因此能用自己的淡红），删除项文字用警示红。 -->
+    <Style x:Key="RowMenuItem" TargetType="MenuItem">
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Foreground" Value="#2E3A33"/>
+      <Setter Property="Background" Value="{StaticResource Fill}"/>
+      <Setter Property="Padding" Value="12,0"/>
+      <Setter Property="Height" Value="34"/>
+      <Setter Property="Margin" Value="0,1"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="MenuItem">
+            <Border x:Name="Hit" CornerRadius="7" Background="Transparent"
+                    Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+              <ContentPresenter ContentSource="Header" VerticalAlignment="Center">
+                <ContentPresenter.Resources>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=MenuItem}}"/>
+                  </Style>
+                </ContentPresenter.Resources>
+              </ContentPresenter>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="Hit" Property="Background"
+                        Value="{Binding Background, RelativeSource={RelativeSource TemplatedParent}}"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="RowMenuItemDanger" TargetType="MenuItem" BasedOn="{StaticResource RowMenuItem}">
+      <Setter Property="Foreground" Value="{StaticResource Danger}"/>
+      <Setter Property="Background" Value="#FCEDED"/>
+    </Style>
+
     <Style x:Key="PlainButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
       <Setter Property="Foreground" Value="{StaticResource Secondary}"/>
       <Setter Property="FontSize" Value="13"/>
