@@ -4,6 +4,20 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 16：点表格外取消词库行选中
+
+**用户反馈**：点中词库某一行会选中（淡绿），但点了表格外的区域后选中色还留着；应在点外面时取消。
+
+### 改动
+- `MainWindow.Interaction.cs` 新增 `ClearReadingSelectionOutside`，在 `InitializeInteraction` 里用 `AddHandler(Mouse.PreviewMouseDownEvent, ..., handledEventsToo: true)` 挂到窗口：若 `ReadingList.SelectedItem` 非空且点击源不在 `ReadingList` 的视觉子树内（`IsWithin` 向上找祖先），则清空选中。
+- 点到行内的输入框、下拉框、编辑/删除按钮都不会被误清（判定的是是否在 ListBox 子树里）。
+
+### 验证
+- UIA + 真实鼠标：点击前选中 0 → 点第一行 **1** → 点表格外空白 **0**。
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 15：词库回到「编辑/完成/删除」，表头贴顶并逐列对齐
 
 **用户要求**：① 表头与下方内容竖向对齐；② 恢复「编辑 / 完成 / 删除」三个按钮（沿用旧逻辑：点编辑不自动聚焦，点哪个框才聚焦），删除不要打叉；③ 表头的浅色底与卡片顶部之间的白边去掉。

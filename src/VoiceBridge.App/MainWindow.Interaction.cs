@@ -23,6 +23,9 @@ public partial class MainWindow
     private void InitializeInteraction()
     {
         ContentScroller.ScrollChanged += (_, _) => TopFade.Opacity = ContentScroller.VerticalOffset > 0.5 ? 1 : 0;
+        // A row lights up when clicked; clicking anywhere outside the table drops that
+        // selection again, so nothing stays highlighted while you work elsewhere.
+        AddHandler(Mouse.PreviewMouseDownEvent, new MouseButtonEventHandler(ClearReadingSelectionOutside), true);
         AddHandler(Mouse.QueryCursorEvent, new QueryCursorEventHandler(RestrictedQueryCursor), true);
         Closed += (_, _) => SmoothScroll.Cancel(ContentScroller);
     }
@@ -58,6 +61,23 @@ public partial class MainWindow
                 SetRestriction(button, active ? listen + "再试听。" : manualCancel != null && !ownPreview ? "另一段试听正在播放，请稍候。" : null);
             }
         }
+    }
+
+    private void ClearReadingSelectionOutside(object sender, MouseButtonEventArgs e)
+    {
+        if (ReadingList.SelectedItem is null)
+            return;
+        if (e.OriginalSource is DependencyObject source && IsWithin(source, ReadingList))
+            return;
+        ReadingList.SelectedItem = null;
+    }
+
+    private static bool IsWithin(DependencyObject node, DependencyObject ancestor)
+    {
+        for (var current = node; current is not null; current = ParentOf(current))
+            if (ReferenceEquals(current, ancestor))
+                return true;
+        return false;
     }
 
     private void SetRestriction(FrameworkElement element, string? reason)
