@@ -431,7 +431,7 @@
 | 1.4.7 | 取消出厂默认 API、删 API 保留厂商名、同厂商多 Key 自选 | 已上线（后被 1.4.8 覆盖） |
 | 1.4.8 | 更新完成后由用户决定何时打开新版 | **线上正式版**（`codex_20261109_235238_857190`，2026-11-09 22:59 UTC） |
 | 1.4.9 | wx-multi 多版本适配 + 更新页精简 | 本地，未打包 |
-| **1.5.0** | **API 配置简化（含「⋮」菜单重做）+ 音色失效语义 + 凭据指针修复 + 凭据库自动清扫** | **本地 `src\VoiceBridge.App\bin\Release\net8.0-windows\`，待用户检视，未打包** |
+| **1.5.0** | **API 配置简化（含「⋮」菜单重做）+ 音色失效语义 + 凭据指针修复 + 凭据库自动清扫** | **线上正式版**（发布单 `codex_20261110_130657_f72a7b`，2026-11-10 12:09:47 UTC） |
 
 **发布状态更正（1.4.6 已上线）**：本会话确实生成了 `WeChat-Voice-Bridge-V1.4.6-win-x64.zip` 与 `...-Setup.exe`，并经 Muse 通道把 1.4.6 推到线上（详见 1.4.6 段）。此处的旧表述是 1.4.5 及更早留下的、已作废。线上正式版自 2026-11-09 起为 **1.4.6**（此前为 1.4.3）。
 
@@ -450,3 +450,28 @@
 **坑**：ControlTemplate 里用 `DataTrigger Binding=Tag` 区分危险项不生效（悬停仍是浅灰），改为「底色走 `Background`」后正常。
 
 **验证**：新建 `tools/MenuPreview`（加载 `App.xaml` 资源、反射置 `IsHighlighted`）渲染静态/编辑悬停/删除悬停三态；`tools/UiSmokeTest` 增 `menu`（抓真实弹窗截图）与 `menuclick`（`user32.mouse_event` 真点，UIA `InvokePattern` 对 MenuItem 无效）两种模式，并刻意点击行右侧留白证明整行可命中 → 「编辑语音服务」正常弹出；点后未做删除，避免动用户配置。`dotnet build` 0/0，`dotnet test` **211/211**。
+
+---
+
+## 2026-11-10 · v1.5.0 上线（Muse 发布单 `codex_20261110_130657_f72a7b`）
+
+用户授权「推到线上最新版本，去联系 muse」。
+
+**打包**：
+- `scripts/Publish.ps1` → `artifacts\win-x64-v1.5.0\` + `artifacts\WeChat-Voice-Bridge-V1.5.0-win-x64.zip`
+  ZIP = 90,814,448 字节 / `48e2addaf9a6ffb7af19cc2dfe1943a2176b037f42f7d95397a892be6ee6cc33`
+- `scripts/Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.5.0` → `artifacts\WeChat-Voice-Bridge-V1.5.0-Setup.exe`
+  Setup = 66,213,216 字节 / `462980bde3133cf37c11edd926707d95b5ecaddc44eb1e17148a818f38b11734`
+- 门禁：Clean-payload PASS（1733 文件，无 settings.json / dpapi / 明文 Key）；`Test.ps1` PASS；`Verify-Source.ps1` PASS；58 项等价性 PASS；payload 版本 1.5.0 > 线上 1.4.8。
+
+**Muse 通道**：`muse-call -Type publish-voicebridge -Version 1.5.0 -PackagePath <zip> -Sha256 <hex> -Notes <中文>`。
+第一次回执是 `status=info`（流水线接手，预计 10 分钟），要求不退出等待；最终 `status=ok`（`publishedAt=2026-11-10T12:09:47Z`），回执称哈希链三方一致（申报 = PC 实测 = A1 落地），并备份了 `latest.json.bak-1.4.8`。
+
+**独立公网友核**（不只信回执）：
+- `latest.json` HTTP 200，version `1.5.0`、publishedAt `2026-11-10T12:09:47Z`、size 90,814,448、sha256 与本地一致；notes 1307 字，按 UTF-8 解码是正常中文（命令行长串中文经 `.cmd` 传参未损坏）。
+- ZIP HEAD 200 / 90,814,448；Setup HEAD 200 / 66,213,216。
+- **完整下载 ZIP（90,814,448 字节）重算 SHA-256 = `48e2adda…cc33`，与清单一致**。
+
+**坑**：`Build-Installer.ps1` 的 `-Output` 是「额外再复制一份到某处」，不是产物路径；第一次传成与脚本默认相同的 `artifacts\WeChat-Voice-Bridge-V1.5.0-Setup.exe`，编译完复制自己给自己触发 `IOException`（文件被占用）导致脚本非 0 退出，重跑只传 `-PayloadDirectory` 即正常。
+
+**未动**：桌面快捷方式仍指向 `artifacts\win-x64-v1.4.7-r3`（用户要求保留，让线上版本严格大于桌面版，便于亲自点一次更新实测）。
