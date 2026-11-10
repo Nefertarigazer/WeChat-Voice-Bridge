@@ -4,6 +4,22 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 17：编辑态点走即保存 + 表头/内容居中
+
+**用户要求**：① 点「编辑」后再点别的行或表格外，等同于点「完成」并保存；② 表头与列内容居中对齐（原文↔框1、出现方式↔下拉、操作↔两按钮中点）；③ 输入框与下拉框内容在编辑态和完成态都要居中（现在完成态居中、编辑态靠左，不一致）。
+
+### 改动
+- **点走即保存**：`ClearReadingSelectionOutside`（窗口级 `PreviewMouseDown`、`handledEventsToo=true`）扩展为——若存在 `IsEditing` 的行，且点击落在表格外或另一行上，直接 `CommitReading(editing)`；点击本行内部（自己的输入框、出现方式、完成、删除）不触发，交给控件本身。原来“点表格外清空选中色”的逻辑保留。
+- **表头居中**：四个列名全部 `HorizontalAlignment=Center`；「操作」跨后两列居中。同时把「编辑」「删除」两个按钮从 `Right` 改成 `Center`，这样表头「操作」的中心正好落在两按钮之间空隙的中点。
+- **内容居中**：行的两个 `TextBox` 加 `TextAlignment=Center`；只读态两个 `TextBlock` 也加 `HorizontalAlignment=Center`；出现方式只读文字居中、`ScopeBox` 加 `HorizontalContentAlignment=Center`——编辑态与完成态现在完全一致。
+
+### 验证
+- UIA + 真实鼠标：点「编辑」→ 输入框 2 个；点第 2 行 → **0**（第 1 行自动提交）；再点「编辑」→ 2；点表格外 → **0**。
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+- 截图 `artifacts/screenshots/lexicon-centered.png`、`lexicon-aligned.png`（表头居中、内容居中、操作对齐两按钮中点）。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 16：点表格外取消词库行选中
 
 **用户反馈**：点中词库某一行会选中（淡绿），但点了表格外的区域后选中色还留着；应在点外面时取消。

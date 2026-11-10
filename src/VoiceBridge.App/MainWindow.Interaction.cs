@@ -63,13 +63,36 @@ public partial class MainWindow
         }
     }
 
+    /// <summary>
+    /// Clicking away from a row that is being edited saves it, exactly as the 完成
+    /// button would: another row, another field, or anywhere outside the table. Clicking
+    /// outside the table also drops the row highlight.
+    /// </summary>
     private void ClearReadingSelectionOutside(object sender, MouseButtonEventArgs e)
     {
-        if (ReadingList.SelectedItem is null)
+        if (e.OriginalSource is not DependencyObject source)
             return;
-        if (e.OriginalSource is DependencyObject source && IsWithin(source, ReadingList))
-            return;
-        ReadingList.SelectedItem = null;
+
+        var editing = readingItems.FirstOrDefault(row => row.IsEditing);
+        if (editing is not null)
+        {
+            var insideTable = IsWithin(source, ReadingList);
+            var clickedRow = insideTable ? ReadingItemAt(source) : null;
+            // Same row (its own boxes, 完成, 删除) keeps its own handling.
+            if (!insideTable || (clickedRow is not null && !ReferenceEquals(clickedRow, editing)))
+                CommitReading(editing);
+        }
+
+        if (ReadingList.SelectedItem is not null && !IsWithin(source, ReadingList))
+            ReadingList.SelectedItem = null;
+    }
+
+    private ReadingItem? ReadingItemAt(DependencyObject node)
+    {
+        for (var current = node; current is not null; current = ParentOf(current))
+            if (current is FrameworkElement { DataContext: ReadingItem item })
+                return item;
+        return null;
     }
 
     private static bool IsWithin(DependencyObject node, DependencyObject ancestor)

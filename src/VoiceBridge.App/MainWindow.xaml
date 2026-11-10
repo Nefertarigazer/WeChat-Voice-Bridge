@@ -334,11 +334,11 @@
         <!-- 原文 -->
         <Border Grid.Column="0" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
-          <TextBlock Text="{Binding Match}" VerticalAlignment="Center" TextWrapping="NoWrap"
+          <TextBlock Text="{Binding Match}" VerticalAlignment="Center" TextWrapping="NoWrap" HorizontalAlignment="Center"
                      TextTrimming="CharacterEllipsis"/>
         </Border>
         <TextBox x:Name="MatchBox" Grid.Column="0" Text="{Binding Match, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                 MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
+                 MaxLength="64" TextAlignment="Center" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                  AutomationProperties.Name="原文"/>
         <TextBlock Grid.Column="1" Text="→" Foreground="{StaticResource Tertiary}" Margin="10,0"
                    VerticalAlignment="Center"/>
@@ -346,11 +346,11 @@
         <!-- 读作 -->
         <Border Grid.Column="2" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
-          <TextBlock Text="{Binding Say}" VerticalAlignment="Center" TextWrapping="NoWrap"
+          <TextBlock Text="{Binding Say}" VerticalAlignment="Center" TextWrapping="NoWrap" HorizontalAlignment="Center"
                      TextTrimming="CharacterEllipsis"/>
         </Border>
         <TextBox x:Name="SayBox" Grid.Column="2" Text="{Binding Say, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                 MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
+                 MaxLength="64" TextAlignment="Center" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                  AutomationProperties.Name="读作"/>
 
         <!-- 出现方式 -->
@@ -358,16 +358,17 @@
                 Margin="12,0,10,0"
                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
           <TextBlock Text="{Binding ScopeLabel}" VerticalAlignment="Center" TextWrapping="NoWrap"
-                     TextTrimming="CharacterEllipsis"/>
+                     HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
         </Border>
         <ComboBox x:Name="ScopeBox" Grid.Column="3" Margin="12,0,10,0" MinWidth="120" VerticalAlignment="Center"
+                  HorizontalContentAlignment="Center"
                   ItemsSource="{x:Static local:RuleScopes.Options}"
                   SelectedValuePath="Value" DisplayMemberPath="Label"
                   SelectedValue="{Binding Scope, Mode=TwoWay}"
                   Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                   AutomationProperties.Name="出现方式"/>
 
-        <Button Grid.Column="4" Click="EditReadingClick" Tag="{Binding}" HorizontalAlignment="Right"
+        <Button Grid.Column="4" Click="EditReadingClick" Tag="{Binding}" HorizontalAlignment="Center"
                 AutomationProperties.Name="编辑">
           <Button.Style>
             <Style TargetType="Button" BasedOn="{StaticResource RowSecondaryButton}">
@@ -382,7 +383,7 @@
           </Button.Style>
         </Button>
         <Button Grid.Column="5" Content="删除" Style="{StaticResource RowDangerButton}" Click="DeleteReadingClick"
-                Tag="{Binding}" HorizontalAlignment="Right" AutomationProperties.Name="删除"/>
+                Tag="{Binding}" HorizontalAlignment="Center" AutomationProperties.Name="删除"/>
       </Grid>
     </DataTemplate>
     <DataTemplate x:Key="AvatarTemplate">
@@ -898,9 +899,9 @@
                         <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/><ColumnDefinition Width="76"/>
                       </Grid.ColumnDefinitions>
-                      <TextBlock Text="原文" Style="{StaticResource TableHead}"/>
-                      <TextBlock Grid.Column="2" Text="读作" Style="{StaticResource TableHead}"/>
-                      <TextBlock Grid.Column="3" Text="出现方式" Style="{StaticResource TableHead}" Margin="12,0,0,0"/>
+                      <TextBlock Text="原文" Style="{StaticResource TableHead}" HorizontalAlignment="Center"/>
+                      <TextBlock Grid.Column="2" Text="读作" Style="{StaticResource TableHead}" HorizontalAlignment="Center"/>
+                      <TextBlock Grid.Column="3" Text="出现方式" Style="{StaticResource TableHead}" HorizontalAlignment="Center"/>
                       <TextBlock Grid.Column="4" Grid.ColumnSpan="2" Text="操作" Style="{StaticResource TableHead}"
                                  HorizontalAlignment="Center"/>
                     </Grid>
