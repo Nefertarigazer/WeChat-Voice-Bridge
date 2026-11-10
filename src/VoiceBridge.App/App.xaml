@@ -383,13 +383,24 @@
           <ControlTemplate TargetType="MenuItem">
             <Border x:Name="Hit" CornerRadius="7" Background="Transparent"
                     Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
-              <ContentPresenter ContentSource="Header" VerticalAlignment="Center">
-                <ContentPresenter.Resources>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=MenuItem}}"/>
-                  </Style>
-                </ContentPresenter.Resources>
-              </ContentPresenter>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <ContentPresenter ContentSource="Header" VerticalAlignment="Center">
+                  <ContentPresenter.Resources>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=MenuItem}}"/>
+                    </Style>
+                  </ContentPresenter.Resources>
+                </ContentPresenter>
+                <!-- The text box's cut/copy/paste menu carries a shortcut hint; the app's
+                     own menus leave this empty and the column collapses, so both kinds
+                     share one template without looking different. -->
+                <TextBlock x:Name="Gesture" Grid.Column="1" Text="{TemplateBinding InputGestureText}"
+                           Margin="18,0,0,0" FontSize="11" Opacity="0.55" VerticalAlignment="Center"/>
+              </Grid>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsHighlighted" Value="True">
@@ -398,6 +409,9 @@
               </Trigger>
               <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Opacity" Value="0.45"/>
+              </Trigger>
+              <Trigger Property="InputGestureText" Value="">
+                <Setter TargetName="Gesture" Property="Visibility" Value="Collapsed"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -408,6 +422,15 @@
       <Setter Property="Foreground" Value="{StaticResource Danger}"/>
       <Setter Property="Background" Value="#FCEDED"/>
     </Style>
+
+    <!-- 输入框右键的剪切/复制/粘贴，以及其它没单独指定样式的菜单，一律沿用上面
+         白底圆角面板的那一套，不再露出 WPF 默认的灰渐变方角菜单。宽度按内容自适应，
+         以便容下右侧的快捷键提示。 -->
+    <Style TargetType="ContextMenu" BasedOn="{StaticResource RowMenu}">
+      <Setter Property="Width" Value="Auto"/>
+      <Setter Property="MinWidth" Value="132"/>
+    </Style>
+    <Style TargetType="MenuItem" BasedOn="{StaticResource RowMenuItem}"/>
 
     <Style x:Key="PlainButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
       <Setter Property="Foreground" Value="{StaticResource Secondary}"/>
