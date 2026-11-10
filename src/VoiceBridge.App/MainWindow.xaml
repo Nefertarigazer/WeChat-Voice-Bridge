@@ -540,7 +540,7 @@
           <Grid MaxWidth="660">
 
             <!-- ========================= 首页 ========================= -->
-            <StackPanel Margin="0,0,0,48"
+            <StackPanel Margin="0,0,0,16"
                         Visibility="{Binding IsChecked, ElementName=NavHome, Converter={StaticResource BoolToVis}}">
               <TextBlock Text="首页" Style="{StaticResource Title}" Margin="0,0,0,22"/>
 
@@ -668,7 +668,7 @@
               <Border Style="{StaticResource Group}">
                 <Grid>
                   <Border x:Name="ResultsBox" Padding="4">
-                    <ListBox x:Name="Results" Height="190" ItemContainerStyle="{StaticResource LogItem}">
+                    <ListBox x:Name="Results" MinHeight="190" MaxHeight="420" ItemContainerStyle="{StaticResource LogItem}">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <TextBlock Text="{Binding}" FontSize="13" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
@@ -677,6 +677,7 @@
                     </ListBox>
                   </Border>
                   <TextBlock x:Name="ResultsEmpty" Style="{StaticResource Hint}" Margin="28,34" TextAlignment="Center"
+                             VerticalAlignment="Stretch"
                              Text="还没有朗读记录。对方发来新消息后，这里会显示朗读过的内容。"
                              Visibility="Collapsed"/>
                 </Grid>
@@ -1116,8 +1117,8 @@
          corners never show the rectangular halo a transparent popup draws around them. -->
     <Border x:Name="HintToast" Panel.ZIndex="40" Grid.ColumnSpan="2"
             HorizontalAlignment="Center" VerticalAlignment="Bottom"
-            Margin="24,0,24,36" MaxWidth="760" Padding="18,10" CornerRadius="12" Opacity="0"
-            Background="#CCEDEDEB" BorderBrush="#D4DCDA" BorderThickness="1"
+            Margin="20,0,20,14" MaxWidth="760" Padding="18,10" CornerRadius="12" Opacity="0"
+            Background="#80E8EAE8" BorderBrush="#A0D2D8D4" BorderThickness="1"
             IsHitTestVisible="False" Visibility="Collapsed">
       <TextBlock x:Name="HintText" FontSize="13" LineHeight="19" Foreground="#6B7B75" TextWrapping="Wrap"
                  TextAlignment="Center" AutomationProperties.AutomationId="HintPopupText"/>
