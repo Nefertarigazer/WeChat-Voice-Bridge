@@ -347,7 +347,11 @@
          里面一层细边框 + 4px 内边距，菜单项自己负责悬停底色。 -->
     <Style x:Key="RowMenu" TargetType="ContextMenu">
       <Setter Property="SnapsToDevicePixels" Value="True"/>
-      <Setter Property="MinWidth" Value="116"/>
+      <!-- The panel opens to the right of the ⋮ button, so its width is capped: 92
+           includes the 10px transparent ring the shadow needs, leaving a 72px white
+           panel that still clears the window's right edge. Two short labels fit. -->
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Width" Value="92"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="ContextMenu">

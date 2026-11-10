@@ -880,7 +880,7 @@
                     <TextBlock Text="语音服务" FontSize="16" FontWeight="SemiBold"/>
                     <TextBlock Grid.Column="1" Text="{Binding Items.Count, ElementName=ProvidersList, StringFormat={}{0} 项配置}" FontSize="12" Foreground="{StaticResource Secondary}" VerticalAlignment="Center"/>
                   </Grid>
-                <ItemsControl x:Name="ProvidersList">
+                <ItemsControl x:Name="ProvidersList" Margin="0,12,0,0">
                   <ItemsControl.GroupStyle><GroupStyle HeaderTemplate="{StaticResource LibraryGroupHeader}" ContainerStyle="{StaticResource LibraryGroupContainer}"/></ItemsControl.GroupStyle>
                   <ItemsControl.ItemTemplate><DataTemplate>
                   <Border Padding="16,12" BorderBrush="{StaticResource Separator}" BorderThickness="0,0,0,1">
@@ -967,23 +967,24 @@
               <TextBlock Text="试听" Style="{StaticResource Caption}"/>
               <Border x:Name="TestSettingsGroup" Style="{StaticResource Group}">
                 <StackPanel>
-                  <Border Style="{StaticResource Row}"><ComboBox x:Name="TestVoiceBox" ItemTemplate="{StaticResource VoiceChoiceItemTemplate}"
-                    ItemContainerStyle="{StaticResource VoiceChoiceItemStyle}"
-                    SelectedValuePath="Id" IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="试听音色" SelectionChanged="TestVoiceChanged">
-                    <ComboBox.GroupStyle><StaticResource ResourceKey="VoiceProviderGroup"/></ComboBox.GroupStyle>
-                  </ComboBox></Border>
-                  <Border Style="{StaticResource Row}">
+                  <!-- No left label column in this card, so each input carries its own
+                       label above it, the same way the dialogs label their fields. -->
+                  <StackPanel Margin="16,14,16,0">
+                    <TextBlock Text="音色" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox x:Name="TestVoiceBox" ItemTemplate="{StaticResource VoiceChoiceItemTemplate}"
+                      ItemContainerStyle="{StaticResource VoiceChoiceItemStyle}"
+                      SelectedValuePath="Id" IsSynchronizedWithCurrentItem="False" AutomationProperties.Name="试听音色" SelectionChanged="TestVoiceChanged">
+                      <ComboBox.GroupStyle><StaticResource ResourceKey="VoiceProviderGroup"/></ComboBox.GroupStyle>
+                    </ComboBox>
+                  </StackPanel>
+                  <StackPanel Margin="16,16,16,0">
+                    <TextBlock Text="文本" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="TestText" Text="你好，这是微信语音桥的试音。" MaxLength="1000" Tag="输入想试听的文字"
                              VerticalAlignment="Center" AutomationProperties.Name="试听文字"/>
-                  </Border>
-                  <Border Style="{StaticResource Hairline}"/>
-                  <Border Style="{StaticResource Row}">
-                    <Grid>
-                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                      <TextBlock Style="{StaticResource RowLabel}" Foreground="{StaticResource Secondary}"/>
-                      <Button Grid.Column="1" Content="试听这段文字" Style="{StaticResource AccentButton}"
-                              Click="TestFishClick"/>
-                    </Grid>
+                  </StackPanel>
+                  <Border Style="{StaticResource Row}" Margin="0,2,0,6">
+                    <Button Content="试听这段文字" Style="{StaticResource AccentButton}"
+                            HorizontalAlignment="Right" Click="TestFishClick"/>
                   </Border>
                 </StackPanel>
               </Border>

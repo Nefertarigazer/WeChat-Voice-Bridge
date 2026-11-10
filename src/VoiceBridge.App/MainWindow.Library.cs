@@ -664,11 +664,11 @@ public partial class MainWindow
             // leave a small gap instead of a hole under the button.
             VerticalOffset = -6,
         };
-        // Right-align to the ⋮ button once the panel is measured, otherwise a menu
-        // opened on the last row would hang off the window edge. The +10 puts the
-        // white panel's edge — not the transparent shadow ring's — under the button.
-        menu.Opened += (_, _) =>
-            menu.HorizontalOffset = -(menu.ActualWidth - button.ActualWidth - 10);
+        // The panel hangs to the right of the ⋮ button, the way a menu opened from a
+        // button usually does. PlacementMode.Bottom already left-aligns the popup with
+        // the button; -10 cancels the transparent shadow ring, and the extra +8 pushes
+        // the white panel a little past the button so it reads as opening rightward.
+        menu.Opened += (_, _) => menu.HorizontalOffset = -2;
         var edit = new MenuItem { Header = "编辑", Style = (Style)FindResource("RowMenuItem") };
         edit.Click += (_, _) => EditProvider(providers.FirstOrDefault(item => item.Id == row.Id));
         var delete = new MenuItem { Header = "删除", Style = (Style)FindResource("RowMenuItemDanger") };

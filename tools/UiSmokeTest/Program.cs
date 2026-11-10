@@ -288,6 +288,21 @@ static string FindTooltip(int pid)
     return "";
 }
 
+static AutomationElement? FindScrollable(AutomationElement root)
+{
+    foreach (AutomationElement element in root.FindAll(TreeScope.Descendants, Condition.TrueCondition))
+    {
+        try
+        {
+            if (!element.TryGetCurrentPattern(ScrollPattern.Pattern, out var raw)) continue;
+            var pattern = (ScrollPattern)raw;
+            if (pattern.Current.VerticallyScrollable) return element;
+        }
+        catch (ElementNotAvailableException) { }
+    }
+    return null;
+}
+
 // Opens a nav page and screenshots the whole window rect.
 static int Shot(string pidText, string outPath, string navId)
 {
@@ -305,10 +320,29 @@ static int Shot(string pidText, string outPath, string navId)
     if (process.MainWindowHandle == IntPtr.Zero) { Console.WriteLine("FATAL: no main window"); return 4; }
 
     var root = AutomationElement.FromHandle(process.MainWindowHandle);
-    var nav = WaitFor(() => ByAutomationId(root, navId));
-    if (nav is null) { Console.WriteLine($"FATAL: {navId} not found"); return 4; }
+    // A minimised window reports its rect around -32000, so bring it back first.
+    Native.Show(process.MainWindowHandle);
+    Thread.Sleep(700);
+    // "NavAdvanced#bottom" also scrolls the page to its end, so cards that sit below
+    // the fold can be captured without moving anything around.
+    var parts = navId.Split('#');
+    var pageId = parts[0];
+    var nav = WaitFor(() => ByAutomationId(root, pageId));
+    if (nav is null) { Console.WriteLine($"FATAL: {pageId} not found"); return 4; }
     (nav.GetCurrentPattern(SelectionItemPattern.Pattern) as SelectionItemPattern)!.Select();
     Thread.Sleep(2500);
+
+    if (parts.Length > 1 && parts[1].Equals("bottom", StringComparison.Ordinal))
+    {
+        var scroll = WaitFor(() => FindScrollable(root));
+        if (scroll is null) { Console.WriteLine("note: no scrollable container found"); }
+        else
+        {
+            var pattern = (ScrollPattern)scroll.GetCurrentPattern(ScrollPattern.Pattern);
+            pattern.SetScrollPercent(ScrollPattern.NoScroll, 100);
+            Thread.Sleep(900);
+        }
+    }
 
     var rect = root.Current.BoundingRectangle;
     var left = (int)rect.X;

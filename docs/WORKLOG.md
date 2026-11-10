@@ -526,3 +526,23 @@
 - `ReleaseHistory` 1.5.1 增补该条。
 
 **仍未做**：1.5.1 打包与 Muse 推送，等用户确认视觉后一起做（本次改动并入 1.5.1，不单独发版）。
+
+---
+
+## 2026-11-10 · v1.5.1（续）：语音服务间距 / 试听区加小标题 / ⋮ 菜单改向右展开
+
+用户对着截图提了四条，全部并入 1.5.1。
+
+**改动**：
+1. **语音服务标题与首个分组太近**：`ProvidersList` 加 `Margin="0,12,0,0"`。分组头是绿色 `LibraryGroupHeader`，原来几乎贴着标题。
+2. **试听卡片加字段标题**：原来两个输入框直接在白卡里，没有名字。现在每块用 `StackPanel`（`Margin=16,14,16,0` / `16,16,16,0`）+ `FieldLabel`（12 灰，与对话框字段一致）包住：「音色」在音色下拉上方、「文本」在文本框上方；块间距 16，标签到控件 6。
+3. **删掉文本行下的横线**：`<Border Style="{StaticResource Hairline}"/>` 去掉；顺带删掉按钮行里那个空的占位 `TextBlock`，按钮改 `HorizontalAlignment=Right` 直接右对齐。
+4. **「⋮」菜单方向**：原来 `HorizontalOffset = -(ActualWidth - buttonWidth - 10)` 是「菜单右缘对齐按钮右缘」→ 向左展开，用户觉得「往左歪」。改为从按钮**向右下**展开：`Placement=Bottom` 本身已左对齐，只需 `HorizontalOffset = -10` 抵掉阴影留白，白面板左缘正好压在按钮左缘。同时把 `RowMenu` 的 `MinWidth 116` 换成 `MinWidth 0 + Width 104`（含 20px 阴影环 → 白面板 84），面板收窄后右缘不再顶出窗口。
+
+**验证**（用户已说明测试他自己看，所以只做最低限度）：
+- `dotnet build` 0/0。
+- 真实截图：`artifacts/screenshots/advanced-test-bottom.png`（试听卡片：音色/文本标题、无横线、按钮右下）、`artifacts/screenshots/menu-live-right.png`（菜单向右展开）。
+- 实测菜单 popup 由 232×204 → **208×204 物理像素**（155 → 139 DIP），右缘距窗口右边界约 13 DIP，不出框。
+- `tools/UiSmokeTest` 顺带增强：`shot` 支持 `NavId#bottom`（自动把页面滚到底再截），并在截图前 `ShowWindow(SW_RESTORE)`——窗口最小化时 `BoundingRectangle` 会变成 -32000，否则截出的是空图。
+
+**按钮下方留白**：用户先说「太近」，调到 `Margin="0,2,0,6"` 后回看又说「现在合适了，不用改」，保持现状。
