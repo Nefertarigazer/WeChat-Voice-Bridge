@@ -499,11 +499,14 @@
 - 状态行结构改为 `StackPanel Orientation=Horizontal`：9px 圆点 + 版本号，两者 `VerticalAlignment=Center`，整行只有一行字，因此圆点必然落在文字中心线上；三种状态只换 `Fill`，几何完全一致。删掉 `UpdateSubtext` 文本块与其三处赋值（状态由卡片下方的状态行与按钮文案承载）。
 - 更新说明上方新增标题行：`UpdateNoteTitle`（`SectionTitle`，16 Semibold）+ `UpdateNoteSize`（`Footnote`，12 灰、底线对齐），内容为 `v{版本}` 与 `{大小} MB`；原来那行小字彻底不做了。
 - `RenderUpdate` 同步填标题与体积；保留 `UpdatePackage.ToolTip`。
+- **按钮改为整块居中**：说明与状态行之间没有分隔线、视觉上是一个整体，所以按钮的居中范围取「卡片上沿 → 说明框上沿」而不是状态行。结构是两列 Grid：左列 `StackPanel`（状态行 + 说明标题行），右列只有按钮、`VerticalAlignment=Center`，因此按钮天然在左列全高居中。
+  - **坑（记下来）**：最初用「两行 Grid + 按钮 `RowSpan=2`」实现，WPF 会把跨行子元素的高度分摊到各行，空的第二行被撑成 18px，卡片因此从 52 长到 70，状态文字看着偏高（实测文字中心 27、卡片中心 36，差 9 DIP）。换成两列结构后中间层高度回到 52，文字中心 = 卡片中心 = 27。
 
 **验证**：
 - 预览工具 `tools/UpdatePanelPreview` 改为与真实布局同构，并新增**像素级测量**：按圆点自身几何范围找实心圆、按暗度找标题墨迹，比较两者中心；三态偏差 **-0.5 / -0.5 / 0.0 DIP（判定 OK）**，静态图 `artifacts/screenshots/update-panel-with-notes.png`。
 - 真实应用截图（`tools/UiSmokeTest` 新增 `shot <pid> <png> [navId]` 模式）：`artifacts/update-live-uptodate.png`（灰点、单行、已是最新）、`artifacts/update-live-newer.png`（绿点、`v1.5.2  0.0 MB` 标题 + 说明面板）。后者用**本地暂存的 pending 更新包**触发（4096 字节假包 + 6 字段 state.json），截图后已删除，线上清单未动、未点击安装。
+- 真实应用几何量测（`tools/UiSmokeTest` 新增 `probe <pid>`）：用 UIA 取「当前版本」文本与按钮的边界矩形比中心，无说明时为 **470.5 vs 471.0（差 -0.5 DIP，OK）**——修前会差约 9 DIP。
 - `dotnet build` 0 警告 0 错误；`dotnet test` **211/211**；`Test.ps1` PASS；`Verify-Source` PASS；58 项等价性 PASS。
-- 版本 **1.5.1**，`ReleaseHistory` 新增对应条目。
+- 版本 **1.5.1**，`ReleaseHistory` 新增对应条目（含「按钮按整块居中」一条）。
 
 **尚未做**：打包与 Muse 推送（等用户看过效果点头）。桌面快捷方式未动。

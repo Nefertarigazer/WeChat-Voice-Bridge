@@ -271,6 +271,9 @@ public partial class MainWindow
         UpdateStateDot.Fill = manifest is null ? IdleDot : verifiedUpdate is not null ? LiveDot : WarnDot;
         UpdateAction.IsEnabled = !closing && !updateHandoff && updateCancel is null;
         UpdatePackage.Visibility = manifest is null ? Visibility.Collapsed : Visibility.Visible;
+        // The title row shares the header grid with the status row, so collapsing it is
+        // what keeps the button centred on the card alone when there is no update.
+        UpdateNoteHeader.Visibility = manifest is null ? Visibility.Collapsed : Visibility.Visible;
         if (manifest is null)
             return;
 
@@ -315,7 +318,10 @@ public partial class MainWindow
             row.Children.Add(text);
             UpdateNotesPanel.Children.Add(row);
         }
+        // No notes means no title either: the header row then collapses and the button
+        // centres on the status row alone, exactly as it does with no update at all.
         UpdateNotesBox.Visibility = lines.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        UpdateNoteHeader.Visibility = lines.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void DeleteUpdateArchive()

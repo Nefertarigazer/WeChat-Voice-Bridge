@@ -11,10 +11,9 @@ using Ellipse = System.Windows.Shapes.Ellipse;
 namespace UpdatePanelPreview;
 
 /// <summary>
-/// Renders the real "软件更新" group the way the app draws it and then MEASURES the
-/// result: the status dot must centre on the version text in all three states, and
-/// the notes block now carries a version title with the size beside it.
-/// The three states are stacked so the button, the dot and the copy are judged together.
+/// Renders the real "软件更新" card the way the app draws it and then MEASURES it:
+/// the status dot must sit on the version text's line in all three states, and the
+/// button must centre on the header region (card top down to the notes box top).
 /// Uses the app's own App.xaml resources, so styles are not re-invented here.
 /// </summary>
 internal static class Program
@@ -25,6 +24,8 @@ internal static class Program
         (0xB2, 0x76, 0x0A), // WarnDot  · update available
         (0x1D, 0x9A, 0x5B), // LiveDot  · ready to install
     };
+
+    private sealed record Probe(Border Card, Button Action, FrameworkElement Line, Ellipse Dot, TextBlock Title, Border? NotesBox, string Caption, Grid Header, Border Row);
 
     [STAThread]
     private static int Main(string[] args)
@@ -40,63 +41,74 @@ internal static class Program
 
         var notes = string.Join("\n", new[]
         {
-            "更新说明上方新增版本标题：版本号以标题字号呈现，安装包体积作为次要信息跟在右侧，不再是挤在正文前的一行小字。",
-            "修正「软件更新」一行里状态圆点与文字的纵向对齐：圆点改为与版本文字同一行居中，不再偏低；未开始（灰）、发现新版（琥珀）、可安装（绿）三种状态一致对齐。",
-            "API 配置界面精简、音色不再无故消失、凭据指针与钥匙库清理等 1.5.0 的改动继续保留。",
+            "更新说明上方新增版本标题：版本号以标题字号呈现，安装包体积作为次要信息跟在右侧。",
+            "「软件更新」一行只保留状态点和版本号，第二行说明删除。",
+            "按钮按「卡片上沿到说明框上沿」整块居中：说明与状态行之间没有横线，整体是通的。",
         });
 
-        var rows = new List<(Grid Left, Ellipse Dot, TextBlock Title, string Caption)>();
+        var probes = new List<Probe>();
         var log = new List<string>();
         var body = new StackPanel();
 
-        FrameworkElement BuildGroup(
-            string caption, string version, string buttonLabel,
-            Style buttonStyle, Brush dot, Brush ink, string statusText,
-            string? noteVersion, string? noteSize, bool hasNotes)
+        void BuildGroup(
+            string caption, string version, string buttonLabel, Style buttonStyle,
+            Brush dot, Brush ink, string statusText, string? noteVersion, string? noteSize, bool hasNotes)
         {
             var host = new StackPanel { Width = 660, Margin = new Thickness(0, 0, 0, 26) };
             body.Children.Add(host);
-
             host.Children.Add(new TextBlock
             {
                 Text = caption, Foreground = B("Secondary"), FontSize = 12,
                 Margin = new Thickness(0, 0, 0, 8)
             });
 
-            var group = new Border { Style = S("Group") };
-            var groupStack = new StackPanel();
-            group.Child = groupStack;
+            var card = new Border { Style = S("Group") };
+            var cardStack = new StackPanel();
+            card.Child = cardStack;
 
-            // --- status row: exactly the live structure (dot + title share row 0) ---
-            var row = new Border { Style = S("Row") };
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            // Header grid mirrors MainWindow.xaml: row 0 is the status line, row 1 the
+            // notes title, and the button spans both rows so it centres over the whole
+            // header region rather than over the status row alone.
+            var header = new Grid();
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var leftColumn = new StackPanel();
+            Grid.SetColumn(leftColumn, 0);
+            header.Children.Add(leftColumn);
 
-            var left = new Grid { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
-            left.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            left.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
+            var line = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             var dotShape = new Ellipse
             {
                 Width = 9, Height = 9, Margin = new Thickness(0, 0, 12, 0),
                 VerticalAlignment = VerticalAlignment.Center, Fill = dot
             };
-            left.Children.Add(dotShape);
-
+            line.Children.Add(dotShape);
             var title = new TextBlock
             {
                 Text = version, Style = S("RowLabel"), FontSize = 15, FontWeight = FontWeights.SemiBold
             };
-            Grid.SetColumn(title, 1);
-            left.Children.Add(title);
+            line.Children.Add(title);
 
-            grid.Children.Add(left);
+            var row = new Border { Style = S("Row"), Child = line };
+            leftColumn.Children.Add(row);
+
+            if (hasNotes)
+            {
+                var heading = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(16, 0, 16, 12) };
+                heading.Children.Add(new TextBlock { Text = noteVersion!, Style = S("SectionTitle") });
+                heading.Children.Add(new TextBlock
+                {
+                    Text = noteSize!, Style = S("Footnote"),
+                    Margin = new Thickness(8, 0, 0, 2), VerticalAlignment = VerticalAlignment.Bottom
+                });
+                leftColumn.Children.Add(heading);
+            }
 
             var btn = new Button
             {
                 Style = buttonStyle, Height = 36, MinWidth = 132,
                 Padding = new Thickness(20, 0, 20, 0), FontSize = 14,
+                Margin = new Thickness(0, 0, 16, 0),
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
@@ -104,28 +116,13 @@ internal static class Program
                 Foreground = ink, Content = buttonLabel,
             };
             Grid.SetColumn(btn, 1);
-            grid.Children.Add(btn);
+            header.Children.Add(btn);
+            cardStack.Children.Add(header);
 
-            row.Child = grid;
-            groupStack.Children.Add(row);
-            rows.Add((left, dotShape, title, caption));
-
-            // --- notes block: version title + size, then the dotted lines ---
+            Border? notesBox = null;
             if (hasNotes)
             {
-                var package = new Border { Style = S("Row") };
-                var stack = new StackPanel();
-
-                var heading = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 10) };
-                heading.Children.Add(new TextBlock { Text = noteVersion!, Style = S("SectionTitle") });
-                heading.Children.Add(new TextBlock
-                {
-                    Text = noteSize!, Style = S("Footnote"),
-                    Margin = new Thickness(8, 0, 0, 2), VerticalAlignment = VerticalAlignment.Bottom
-                });
-                stack.Children.Add(heading);
-
-                var inset = new Border
+                notesBox = new Border
                 {
                     Background = new SolidColorBrush(Color.FromRgb(0xF6, 0xF9, 0xF7)),
                     BorderBrush = new SolidColorBrush(Color.FromRgb(0xE7, 0xEE, 0xE9)),
@@ -137,10 +134,10 @@ internal static class Program
                 var items = notes.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 for (var i = 0; i < items.Length; i++)
                 {
-                    var line = new Grid { Margin = new Thickness(0, 0, 0, i == items.Length - 1 ? 0 : 8) };
-                    line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
-                    line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                    line.Children.Add(new Ellipse
+                    var noteLine = new Grid { Margin = new Thickness(0, 0, 0, i == items.Length - 1 ? 0 : 8) };
+                    noteLine.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
+                    noteLine.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    noteLine.Children.Add(new Ellipse
                     {
                         Width = 5, Height = 5, Fill = B("Accent"),
                         VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(1, 7, 0, 0)
@@ -151,26 +148,24 @@ internal static class Program
                         TextWrapping = TextWrapping.Wrap, LineHeight = 19
                     };
                     Grid.SetColumn(t, 1);
-                    line.Children.Add(t);
-                    notesPanel.Children.Add(line);
+                    noteLine.Children.Add(t);
+                    notesPanel.Children.Add(noteLine);
                 }
-                inset.Child = notesPanel;
-                stack.Children.Add(inset);
-                package.Child = stack;
-                groupStack.Children.Add(package);
+                notesBox.Child = notesPanel;
+                cardStack.Children.Add(new Border { Padding = new Thickness(16, 0, 16, 10), Child = notesBox });
             }
 
-            host.Children.Add(group);
+            host.Children.Add(card);
             host.Children.Add(new TextBlock
             {
                 Text = statusText, Style = S("Footnote"), Margin = new Thickness(17, 10, 17, 0)
             });
-            return host;
+            probes.Add(new Probe(card, btn, line, dotShape, title, notesBox, caption, header, row));
         }
 
         // ① up to date: grey dot, grey button, no notes
         BuildGroup("① 已是最新 · 灰点 + 灰按钮", "当前版本 v1.5.1", "检查更新",
-            S("SecondaryButton"), Freeze(DotColours[0]), B("Label"), "已是最新版本。", null, null, false);
+            S("SecondaryButton"), Freeze(DotColours[0]), B("Label"), "已是最新 v1.5.1。", null, null, false);
 
         // ② update available: amber dot, mint outline button, notes with title
         BuildGroup("② 发现新版本 · 琥珀点 + 薄荷描边按钮", "当前版本 v1.5.1", "更新到 v1.5.2",
@@ -215,22 +210,38 @@ internal static class Program
         var bmp = new RenderTargetBitmap((int)(w * scale), (int)(h * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
         bmp.Render(frame);
 
-        // ---- measure the rendered pixels: dot centre vs title ink centre ----
         var stride = bmp.PixelWidth * 4;
         var pixels = new byte[stride * bmp.PixelHeight];
         bmp.CopyPixels(pixels, stride, 0);
 
-        foreach (var (left, dotShape, title, caption) in rows)
+        foreach (var probe in probes)
         {
-            var cellRect = Box(left, frame);
-            var dotRect = Box(dotShape, frame);
-            var geo = Geometry(left, dotShape, title, frame);
-            var report = Measure(pixels, bmp.PixelWidth, bmp.PixelHeight, scale, dotRect, cellRect);
-            var delta = report.DotCentreY - report.InkCentreY;
-            log.Add($"{caption}");
-            log.Add($"    layout : dot centre {geo.DotCentre:0.0} / title box centre {geo.TitleCentre:0.0} / title h {geo.TitleHeight:0.0} / block h {geo.BlockHeight:0.0}");
-            log.Add($"    pixels : dot centre {report.DotCentreY:0.0} / title ink {report.InkTop:0.0}..{report.InkBottom:0.0} centre {report.InkCentreY:0.0}");
-            log.Add($"    delta  : {delta:+0.0;-0.0;0.0} DIP   {(Math.Abs(delta) <= 1.0 ? "OK" : "OFF")}");
+            var cardBox = Box(probe.Card, frame);
+            var buttonBox = Box(probe.Action, frame);
+            var dotBox = Box(probe.Dot, frame);
+            var notesTop = probe.NotesBox is null ? cardBox.Bottom : Box(probe.NotesBox, frame).Top;
+            var expected = (cardBox.Top + notesTop) / 2;
+
+            var lineBox = Box(probe.Line, frame);
+            var dotCentre = DotBand(pixels, bmp.PixelWidth, bmp.PixelHeight, scale, dotBox);
+            // Ink is read inside the status line only: the notes below it are dark too.
+            var inkCentre = InkBand(pixels, bmp.PixelWidth, bmp.PixelHeight, scale,
+                                    dotBox.Right + 3, lineBox.Right, lineBox.Top, lineBox.Bottom);
+            var buttonCentre = buttonBox.Top + buttonBox.Height / 2;
+
+            log.Add(probe.Caption);
+            log.Add($"    card {cardBox.Top:0.0}..{cardBox.Bottom:0.0}"
+                    + (probe.NotesBox is null ? " (no notes)" : $" / notes box top {notesTop:0.0}"));
+            log.Add($"    dot centre {dotCentre:0.0} / title ink centre {inkCentre:0.0}"
+                    + $"  delta {dotCentre - inkCentre:+0.0;-0.0;0.0}"
+                    + $"  {(Math.Abs(dotCentre - inkCentre) <= 1.0 ? "OK" : "OFF")}");
+            log.Add($"    button centre {buttonCentre:0.0} / region centre {expected:0.0}"
+                    + $"  delta {buttonCentre - expected:+0.0;-0.0;0.0}"
+                    + $"  {(Math.Abs(buttonCentre - expected) <= 1.5 ? "OK" : "OFF")}");
+            log.Add($"    line box {lineBox.Top:0.0}..{lineBox.Bottom:0.0} centre {lineBox.Top + lineBox.Height / 2:0.0}"
+                    + $" / card h {cardBox.Height:0.0}");
+            log.Add($"    heights: header {probe.Header.ActualHeight:0.0}, row {probe.Row.ActualHeight:0.0},"
+                    + $" button {probe.Action.ActualHeight:0.0}");
         }
 
         var outPath = Path.Combine(outDir, "update-panel-with-notes.png");
@@ -241,23 +252,6 @@ internal static class Program
         return 0;
     }
 
-    private readonly record struct MeasureResult(double DotCentreY, double InkTop, double InkBottom)
-    {
-        public double InkCentreY => (InkTop + InkBottom) / 2;
-    }
-
-    private readonly record struct Geo(double DotCentre, double TitleCentre, double TitleHeight, double BlockHeight);
-
-    /// <summary>Layout arithmetic straight from WPF, independent of the pixel scan.</summary>
-    private static Geo Geometry(Grid cell, Ellipse dot, TextBlock title, Visual root)
-    {
-        var cellTop = cell.TransformToAncestor(root).Transform(new Point(0, 0)).Y;
-        var dotTop = dot.TransformToAncestor(root).Transform(new Point(0, 0)).Y;
-        var titleTop = title.TransformToAncestor(root).Transform(new Point(0, 0)).Y;
-        return new Geo(dotTop + dot.ActualHeight / 2, titleTop + title.ActualHeight / 2,
-            title.ActualHeight, cell.ActualHeight);
-    }
-
     /// <summary>Screen-space box of an element in the rendered frame.</summary>
     private static Rect Box(FrameworkElement element, Visual root)
     {
@@ -265,43 +259,44 @@ internal static class Program
         return new Rect(topLeft, new Size(element.ActualWidth, element.ActualHeight));
     }
 
-    /// <summary>
-    /// Reads the rendered pixels: the dot's own rows by fill colour, then the title's
-    /// ink by darkness to the right of the dot. Comparing the two centres is the same
-    /// judgement the eye makes, so it cannot be talked around by layout arithmetic.
-    /// </summary>
-    private static MeasureResult Measure(byte[] pixels, int width, int height, double scale, Rect dotRect, Rect cellRect)
+    /// <summary>Vertical centre of the solid dot, found by its own fill colour.</summary>
+    private static double DotBand(byte[] pixels, int width, int height, double scale, Rect dotRect)
     {
-        var dx0 = (int)Math.Max(0, dotRect.Left * scale) - 2;
-        var dx1 = (int)Math.Min(width, dotRect.Right * scale) + 2;
-        var dy0 = (int)Math.Max(0, dotRect.Top * scale) - 2;
-        var dy1 = (int)Math.Min(height, dotRect.Bottom * scale) + 2;
+        var x0 = (int)Math.Max(0, dotRect.Left * scale) - 2;
+        var x1 = (int)Math.Min(width, dotRect.Right * scale) + 2;
+        var y0 = (int)Math.Max(0, dotRect.Top * scale) - 2;
+        var y1 = (int)Math.Min(height, dotRect.Bottom * scale) + 2;
 
-        int dotMin = int.MaxValue, dotMax = int.MinValue, found = 0;
-        for (var y = dy0; y < dy1; y++)
+        int min = int.MaxValue, max = int.MinValue;
+        for (var y = y0; y < y1; y++)
         {
-            var row = 0;
-            for (var x = dx0; x < dx1; x++)
+            var run = 0;
+            for (var x = x0; x < x1; x++)
             {
                 var i = y * width * 4 + x * 4;
                 var b = pixels[i]; var g = pixels[i + 1]; var r = pixels[i + 2];
                 if (!DotColours.Any(c => Math.Abs(c.R - r) <= 18 && Math.Abs(c.G - g) <= 18 && Math.Abs(c.B - b) <= 18))
                     continue;
-                row++;
+                run++;
             }
-            // A solid disk gives a long run; scattered antialiased glyph pixels do not.
-            if (row < 4) continue;
-            dotMin = Math.Min(dotMin, y);
-            dotMax = Math.Max(dotMax, y);
-            found += row;
+            // A solid disk gives a long horizontal run; antialiased glyph edges do not.
+            if (run < 4) continue;
+            min = Math.Min(min, y);
+            max = Math.Max(max, y);
         }
+        return min == int.MaxValue ? double.NaN : (min + max + 1) / 2.0 / scale;
+    }
 
-        var x0 = (int)Math.Min(width, (dotRect.Right + 3) * scale);
-        var x1 = (int)Math.Min(width, cellRect.Right * scale) - 2;
-        var y0 = (int)Math.Max(0, cellRect.Top * scale);
-        var y1 = (int)Math.Min(height, cellRect.Bottom * scale);
+    /// <summary>Vertical centre of the dark ink inside a horizontal band.</summary>
+    private static double InkBand(byte[] pixels, int width, int height, double scale,
+                                  double left, double right, double top, double bottom)
+    {
+        var x0 = (int)Math.Max(0, left * scale);
+        var x1 = (int)Math.Min(width, right * scale);
+        var y0 = (int)Math.Max(0, top * scale);
+        var y1 = (int)Math.Min(height, bottom * scale);
 
-        int inkMin = int.MaxValue, inkMax = int.MinValue;
+        int min = int.MaxValue, max = int.MinValue;
         for (var y = y0; y < y1; y++)
         {
             for (var x = x0; x < x1; x++)
@@ -309,14 +304,11 @@ internal static class Program
                 var i = y * width * 4 + x * 4;
                 var b = pixels[i]; var g = pixels[i + 1]; var r = pixels[i + 2];
                 if (r > 110 || g > 110 || b > 110) continue;
-                inkMin = Math.Min(inkMin, y);
-                inkMax = Math.Max(inkMax, y);
+                min = Math.Min(min, y);
+                max = Math.Max(max, y);
             }
         }
-
-        if (found == 0 || inkMin == int.MaxValue)
-            return new MeasureResult(double.NaN, double.NaN, double.NaN);
-        return new MeasureResult((dotMin + dotMax + 1) / 2.0 / scale, inkMin / scale, (inkMax + 1) / scale);
+        return min == int.MaxValue ? double.NaN : (min + max + 1) / 2.0 / scale;
     }
 
     private static Brush Freeze((byte R, byte G, byte B) colour)

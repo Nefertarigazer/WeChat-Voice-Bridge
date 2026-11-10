@@ -799,49 +799,59 @@
               <TextBlock Text="软件更新" Style="{StaticResource Caption}"/>
               <Border Style="{StaticResource Group}">
                 <StackPanel>
-                  <Border Style="{StaticResource Row}">
-                    <Grid>
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                      </Grid.ColumnDefinitions>
-                      <!-- One line only: the dot and the version sit in a horizontal
-                           stack, both vertically centred, so the dot is on the text's
-                           line in every state (grey / amber / green). The status is
-                           carried by the line under the card and the button label. -->
-                      <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center"
-                                  Margin="0,0,12,0">
-                        <Ellipse x:Name="UpdateStateDot" Width="9" Height="9" Margin="0,0,12,0"
-                                 VerticalAlignment="Center" Fill="{StaticResource Secondary}"/>
-                        <TextBlock x:Name="UpdateVersion" Style="{StaticResource RowLabel}"
-                                   FontSize="15" FontWeight="SemiBold"/>
-                      </StackPanel>
-                      <!-- Local Height/Padding beat every state style: all three states
-                           keep one exact size, and the 0 vertical padding lets
-                           VerticalContentAlignment centre the label optically. -->
-                      <Button x:Name="UpdateAction" Grid.Column="1" Content="检查更新"
-                              Style="{StaticResource SecondaryButton}" Click="UpdateClick"
-                              Height="36" MinWidth="132" Padding="20,0" FontSize="14"
-                              HorizontalAlignment="Right" VerticalAlignment="Center"
-                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                    </Grid>
-                  </Border>
-                  <Border x:Name="UpdatePackage" Style="{StaticResource Row}" Visibility="Collapsed">
-                    <StackPanel>
+                  <!-- No rule separates the status row from the notes block, so the two
+                       read as one card: the button is therefore centred over the whole
+                       header region — card top down to the notes box's top edge — rather
+                       than over the status row alone, which left it looking high. The
+                       right column holds only the button, so it centres on the column's
+                       full height. (A RowSpan button was tried first and was wrong: a
+                       spanned child makes the empty second row 18px tall, which grew the
+                       card and pushed the status line visually upward.) -->
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                      <Border Style="{StaticResource Row}">
+                        <!-- One line only: the dot and the version sit in a horizontal
+                             stack, both vertically centred, so the dot is on the text's
+                             line in every state (grey / amber / green). The status is
+                             carried by the line under the card and the button label. -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                          <Ellipse x:Name="UpdateStateDot" Width="9" Height="9" Margin="0,0,12,0"
+                                   VerticalAlignment="Center" Fill="{StaticResource Secondary}"/>
+                          <TextBlock x:Name="UpdateVersion" Style="{StaticResource RowLabel}"
+                                     FontSize="15" FontWeight="SemiBold"/>
+                        </StackPanel>
+                      </Border>
                       <!-- The version itself heads the notes as a title, with the package
-                           size as quiet metadata beside it. The page already scrolls
-                           (ContentScroller), so the notes show in full here; a nested
-                           capped scroller used to slice a line in half. -->
-                      <StackPanel Orientation="Horizontal" Margin="0,2,0,10">
+                           size as quiet metadata beside it. Collapsed when no update is
+                           available, so the button then centres on the card alone. -->
+                      <StackPanel x:Name="UpdateNoteHeader" Orientation="Horizontal"
+                                  Margin="16,0,16,12" Visibility="Collapsed">
                         <TextBlock x:Name="UpdateNoteTitle" Style="{StaticResource SectionTitle}"/>
                         <TextBlock x:Name="UpdateNoteSize" Style="{StaticResource Footnote}"
                                    Margin="8,0,0,2" VerticalAlignment="Bottom"/>
                       </StackPanel>
-                      <Border x:Name="UpdateNotesBox" Background="#F6F9F7" BorderBrush="#E7EEE9" BorderThickness="1"
-                              CornerRadius="10" Padding="12,10">
-                        <StackPanel x:Name="UpdateNotesPanel"/>
-                      </Border>
                     </StackPanel>
+                    <!-- Local Height/Padding beat every state style: all three states
+                         keep one exact size, and the 0 vertical padding lets
+                         VerticalContentAlignment centre the label optically. -->
+                    <Button x:Name="UpdateAction" Grid.Column="1" Content="检查更新"
+                            Style="{StaticResource SecondaryButton}" Click="UpdateClick"
+                            Height="36" MinWidth="132" Padding="20,0" FontSize="14"
+                            Margin="0,0,16,0"
+                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                  </Grid>
+                  <Border x:Name="UpdatePackage" Padding="16,0,16,10" Visibility="Collapsed">
+                    <!-- The page already scrolls (ContentScroller), so the notes show in
+                         full here; a nested capped scroller used to slice a line in half. -->
+                    <Border x:Name="UpdateNotesBox" Background="#F6F9F7" BorderBrush="#E7EEE9" BorderThickness="1"
+                            CornerRadius="10" Padding="12,10">
+                      <StackPanel x:Name="UpdateNotesPanel"/>
+                    </Border>
                   </Border>
                   <Border x:Name="UpdateProgressRow" Style="{StaticResource Row}" Visibility="Collapsed">
                     <Grid>

@@ -8,6 +8,7 @@
 
 **当前一节（v1.5.1，源码已完成、未打包、未上线）**：
 - 「软件更新」状态行只留一行：9px 圆点 + `当前版本 vX.Y.Z`，水平 `StackPanel`、两者 `VerticalAlignment=Center`，灰/琥珀/绿三态只换 `Fill`；第二行说明（「已是最新版本」「发现新版本」「更新包已就绪」）已删除，状态由卡片下方状态行与按钮文案承载。
+- 按钮整块居中：两列 Grid（左列 = 状态行 + 说明标题行的 `StackPanel`，右列 = 按钮 `VerticalAlignment=Center`），因此按钮居中范围是「卡片上沿 → 说明框上沿」；无说明时左列只剩状态行，按钮即居卡片。**不要改回 `RowSpan` 方案**：跨行子元素会把空的第二行撑到 18px，卡片变高、状态文字看着偏高（已实测差 9 DIP）。
 - 更新说明上方改为**标题行**：`UpdateNoteTitle` = `v{版本}`（`SectionTitle`，16 Semibold）+ `UpdateNoteSize` = `{大小} MB`（12 灰、底线对齐）；原先「v1.5.0 · 90.8 MB」小字不再出现。
 - 版本 **1.5.1**（`Directory.Build.props`），`ReleaseHistory` 已加条目。
 - 验证：`dotnet build` 0/0、`dotnet test` 211/211、`Test.ps1` PASS、`Verify-Source` PASS、58 项 PASS；真实应用截图两张（见 WORKLOG 最新节）。

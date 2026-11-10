@@ -21,6 +21,12 @@ if (args.Length > 0 && string.Equals(args[0], "shot", StringComparison.Ordinal))
     return Shot(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "shot.png",
                 args.Length > 3 ? args[3] : "NavAdvanced");
 
+// probe <pid>: prints the centres of the update row's text, status dot and button.
+// The dot and the text must share one line, and the button must be centred on the
+// card, so a text/button centre mismatch is exactly the "looks too high" defect.
+if (args.Length > 0 && string.Equals(args[0], "probe", StringComparison.Ordinal))
+    return Probe(args.Length > 1 ? args[1] : "");
+
 // menuclick <pid> <item>: opens the ⋮ menu and invokes one item, then reports
 // whether the expected dialog appeared (the menu styling must not break clicks).
 if (args.Length > 0 && string.Equals(args[0], "menuclick", StringComparison.Ordinal))
@@ -137,6 +143,48 @@ static int MenuShot(string pidText, string outPath)
     Console.WriteLine($"menu rect: {rect.X},{rect.Y} {rect.Width}x{rect.Height}");
     Console.WriteLine($"screen: {screen.X},{screen.Y} {screen.Width}x{screen.Height}");
     Console.WriteLine($"saved: {outPath} ({w}x{h})");
+    return 0;
+}
+
+// Measures the real update row through the automation tree: the text element and the
+// button both expose a bounding rectangle, so their vertical centres can be compared.
+static int Probe(string pidText)
+{
+    var pid = int.TryParse(pidText, out var parsed) && parsed > 0
+        ? parsed
+        : Process.GetProcessesByName("WeChatVoiceBridge").FirstOrDefault()?.Id ?? 0;
+    if (pid == 0) { Console.WriteLine("FATAL: WeChatVoiceBridge is not running"); return 4; }
+
+    var process = Process.GetProcessById(pid);
+    for (var i = 0; i < 20 && process.MainWindowHandle == IntPtr.Zero; i++)
+    {
+        Thread.Sleep(500);
+        process.Refresh();
+    }
+    if (process.MainWindowHandle == IntPtr.Zero) { Console.WriteLine("FATAL: no main window"); return 4; }
+
+    var root = AutomationElement.FromHandle(process.MainWindowHandle);
+    var nav = WaitFor(() => ByAutomationId(root, "NavAdvanced"));
+    if (nav is null) { Console.WriteLine("FATAL: NavAdvanced not found"); return 4; }
+    (nav.GetCurrentPattern(SelectionItemPattern.Pattern) as SelectionItemPattern)!.Select();
+    Thread.Sleep(2500);
+
+    var version = WaitFor(() => ByNameContains(root, "当前版本", ControlType.Text));
+    var action = WaitFor(() => ByNameContains(root, "检查更新", ControlType.Button))
+                 ?? WaitFor(() => ByNameContains(root, "重启安装更新", ControlType.Button))
+                 ?? WaitFor(() => ByNameContains(root, "更新到", ControlType.Button));
+    if (version is null || action is null) { Console.WriteLine("FATAL: update row not found"); return 4; }
+
+    var text = version.Current.BoundingRectangle;
+    var button = action.Current.BoundingRectangle;
+    var textCentre = text.Y + text.Height / 2;
+    var buttonCentre = button.Y + button.Height / 2;
+    Console.WriteLine($"text   [{version.Current.Name}] y={text.Y:0.0}..{text.Bottom:0.0} centre {textCentre:0.0}");
+    Console.WriteLine($"button [{action.Current.Name}] y={button.Y:0.0}..{button.Bottom:0.0} centre {buttonCentre:0.0}");
+    // The inked glyphs sit slightly above the line box centre, so a couple of DIPs of
+    // difference is normal; anything near half a row means a real misalignment.
+    Console.WriteLine($"delta  {textCentre - buttonCentre:+0.0;-0.0;0.0} DIP  "
+                      + $"{(Math.Abs(textCentre - buttonCentre) <= 3 ? "OK" : "OFF")}");
     return 0;
 }
 
