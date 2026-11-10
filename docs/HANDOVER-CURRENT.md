@@ -21,6 +21,7 @@
 - 字幕条配色：半透明偏灰绿（`#CCEDEDEB` 底 + `#6B7B75` 文字），更低调。
 - 右键菜单改为 **XAML 样式直挂**：App.xaml 定义 `x:Key="FieldMenu"`（ContextMenu，复用 RowMenu/RowMenuItem 原样），在隐式 TextBox/PasswordBox 样式里 `Setter ContextMenu`。**不要**再走 `EventManager.RegisterClassHandler` + 运行时建菜单那条路（`RowMenu` 的 `Width=112` 会压窄，`Dispatcher.BeginInvoke` 有吞弹出风险）。`FieldMenu.cs` 已删除。
 - 字幕条再调：底色 `#80E8EAE8`（更透偏灰绿）、距底 14px、字色 `#6B7B75`。首页朗读记录空白区高度 190→320，首页底部边距 48→16。
+- 字幕条距底 26px（上移）；文字尾部 `TrimEnd('。')` 只去句号，其他标点保留。
 - 验证：build 0/0；`Test.ps1` .NET 209/209 + Python 54；`Verify-Source` PASS。
 
 **1.5.2 发布台账（2026-11-10，Muse 发布单 `codex_20261110_174906_4f5a16`）**：

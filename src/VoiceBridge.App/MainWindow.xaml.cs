@@ -100,7 +100,8 @@ public partial class MainWindow : Window
                 HideHint();
                 return;
             }
-            HintText.Text = noticeField;
+            // A subtitle reads cleaner without a full stop at the end.
+            HintText.Text = noticeField.TrimEnd('。');
             ShowHint();
             noticeTimer?.Start();
         }
