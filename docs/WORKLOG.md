@@ -4,6 +4,26 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 9：记录区高度回调 + 更新检查报错更准确
+
+**用户反馈**：① 520px 太高，要不用滚动、留三行左右边距；② 点检查更新报“连接不上网络”。
+
+### 分析
+- 高度：520 显然过头，页面需要滚动。回调到 **300**（空白提示 292）——正常屏幕下不滚动、底部边距 16、留有三行余量。
+- 网络：**用 curl/PowerShell 独立复测**——`https://iceland.de5.net/voice-bridge/latest.json` TLS 握手失败（schannel: failed to receive handshake），而 `baidu.com`、`github.com`、`de5.net` 均 200。`nslookup` 显示 `iceland.de5.net` 解析到 `198.18.0.95`（保留地址段，是本机代理/DNS 的 Fake-IP 段）。**结论：不是应用代码问题，是本机代理软件对该域名的转发异常。**
+- 报错文案改得更准确：不再说笼统的“请检查网络”，改说“代理或防火墙拦截了连接（域名能解析但 TLS 握手失败）”。
+
+### 改动
+- `Results` Height 520 → **300**；`ResultsEmpty` Height 512 → **292**。
+- `MainWindow.Updates.cs` 报错文案更新。
+
+### 验证
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+- 截图 `artifacts/screenshots/home-records-300.png`：高度合理、不滚动。
+- **建议用户**：在代理软件里检查 `iceland.de5.net`（或 `*.de5.net`）的分流规则/节点，或直接关闭代理试一次。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 8：找到“朗读记录高度改不动”的真正根因
 
 **用户反馈**：朗读记录的高度还是有问题，一直没改成功。

@@ -81,7 +81,9 @@ public partial class MainWindow
             UpdateStatus.Text = error switch
             {
                 HttpRequestException { StatusCode: { } code } => $"更新服务返回 HTTP {(int)code}，请稍后重试。",
-                HttpRequestException => "无法连接更新服务，请检查网络后重试。",
+                // A proxy that resolves the domain but drops the TLS handshake is the
+                // common home-network case; say so instead of a generic network line.
+                HttpRequestException => "无法连接更新服务：代理或防火墙拦截了连接（域名能解析但 TLS 握手失败）。请检查系统代理后重试，不影响已下载的更新包。",
                 UnauthorizedAccessException or Win32Exception => "无法写入程序或启动更新，请检查安装目录权限。",
                 InvalidDataException or TimeoutException => error.Message,
                 _ => $"更新未完成：{error.Message}"
