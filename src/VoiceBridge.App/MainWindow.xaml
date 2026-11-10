@@ -668,7 +668,7 @@
               <Border Style="{StaticResource Group}">
                 <Grid>
                   <Border x:Name="ResultsBox" Padding="4">
-                    <ListBox x:Name="Results" MinHeight="190" MaxHeight="420" ItemContainerStyle="{StaticResource LogItem}">
+                    <ListBox x:Name="Results" Height="520" ItemContainerStyle="{StaticResource LogItem}">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <TextBlock Text="{Binding}" FontSize="13" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>

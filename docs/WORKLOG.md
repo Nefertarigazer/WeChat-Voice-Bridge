@@ -4,6 +4,24 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 7：朗读记录区拉到 520px + 杀虚线焦点框
+
+**用户反馈**：① 朗读记录高度完全越来越小、没往下，距底还很大；② 按按钮有时出现虚线框。
+
+### 根因
+- **高度**：之前改了 `MinHeight="190" MaxHeight="420"`，但 StackPanel 给元素的是精确高度，MinHeight 不会拉伸——列表永远停在 190。必须用固定 `Height`。
+- **虚线框**：WPF 默认 `FocusVisualStyle` 在键盘 Tab 或点击后画虚线。
+
+### 改动
+- `Results` 列表 `Height` → **520**（空白卡片明显变长）；首页底部边距保持 16。
+- `FocusVisualStyle="{x:Null}"` 加到：隐式 `Button` 样式、`PlainButton`、`ListBoxItem`、`RowMenuItem`、`ComboBoxItem`（上轮已加）。所有按钮/列表项/菜单项不再出现虚线框。
+
+### 验证
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+- 截图：`artifacts/screenshots/home-records-520.png`（朗读记录卡片 520px、贴底）。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 6：气泡改为右栏内居中
 
 **用户反馈**：气泡应该在除去左栏的右栏内容区左右居中，不是整个窗口的左右居中。
