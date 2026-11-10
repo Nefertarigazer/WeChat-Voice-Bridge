@@ -4,6 +4,26 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 3：字幕条配色更低调 + 右键菜单改为样式直挂
+
+**用户反馈两条**：① 气泡要更半透明偏灰、文字更低调；② 输入框右键依旧不对，复用「⋮」菜单的那套设计。
+
+### A. 字幕条配色
+- 底色 `#F8FFFFFF` → **`#CCEDEDEB`**（更低透明度 + 偏灰绿），边框 `#E6EDE9` → `#D4DCDA`，文字 `#8A5A00`（琥珀）→ **`#6B7B75`**（灰绿），字号 13.5→13。
+- 效果：半透明、色调偏冷灰、不抢眼，像低亮度字幕。
+
+### B. 右键菜单复用「⋮」设计
+- **根因**：之前 `FieldMenu.cs` 用 `EventManager.RegisterClassHandler` 在运行时建菜单，但显式指定 `Style=RowMenu` 时又吃到 `Width="112"`（为「⋮」两短词条调的窄宽），菜单挤窄；而且 `Dispatcher.BeginInvoke` 有概率吞掉弹出。
+- **改为零 C# 方案**：在 App.xaml 定义共享资源 `x:Key="FieldMenu"`——一个 `ContextMenu`，直接复用 `RowMenu`（白底圆角面板 + 阴影）+ `RowMenuItem`（圆角悬停行）**原封不动**，只改 `Width=Auto / MinWidth=148` 容下快捷键。四个 `MenuItem` 分别绑 `ApplicationCommands.Cut/Copy/Paste/SelectAll`，`InputGestureText` 标 Ctrl+X/C/V/A。
+- 然后在**已有的隐式 TextBox / PasswordBox 样式**里加一行 `<Setter Property="ContextMenu" Value="{StaticResource FieldMenu}"/>`，所有输入框自动生效。**不再需要 `FieldMenu.cs`**（已删除）与 `EventManager` 钩子。
+- UIA 实测：菜单项 `剪切[禁] 复制[禁] 粘贴[可用] 全选[可用]`（无选区时前两项自动禁用），样式与「⋮」菜单完全一致。
+
+### 验证
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+- 截图：`artifacts/screenshots/toast-muted.png`（半透明灰绿字幕条 + 干净圆角）。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 2：提示改为底部居中字幕条（弃用 Popup）
 
 **用户反馈**：跟手气泡“一般”，改成底部中间的字幕气泡；并指出三个缺陷：四角有外接矩形（圆角外露方框）、应用最小化后气泡不消失、拖动窗口时气泡不跟随。

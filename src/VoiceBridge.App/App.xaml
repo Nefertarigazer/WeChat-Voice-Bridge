@@ -423,13 +423,21 @@
       <Setter Property="Background" Value="#FCEDED"/>
     </Style>
 
-    <!-- 输入框右键的剪切/复制/粘贴，以及其它没单独指定样式的菜单，一律沿用上面
-         白底圆角面板的那一套，不再露出 WPF 默认的灰渐变方角菜单。宽度按内容自适应，
-         以便容下右侧的快捷键提示。 -->
-    <Style TargetType="ContextMenu" BasedOn="{StaticResource RowMenu}">
-      <Setter Property="Width" Value="Auto"/>
-      <Setter Property="MinWidth" Value="132"/>
-    </Style>
+    <!-- 输入框右键的剪切/复制/粘贴/全选，直接挂在样式上，一行都不用为每个框单独配。
+         面板与菜单项完全复用「⋮」那套白底圆角样式（RowMenu / RowMenuItem），
+         只是面板宽度放开到 Auto 以容下右侧的快捷键提示。 -->
+    <ContextMenu x:Key="FieldMenu" Width="Auto" MinWidth="148"
+                 Style="{StaticResource RowMenu}"
+                 Placement="MousePoint">
+      <MenuItem Header="剪切" Command="ApplicationCommands.Cut"
+                InputGestureText="Ctrl+X" Style="{StaticResource RowMenuItem}"/>
+      <MenuItem Header="复制" Command="ApplicationCommands.Copy"
+                InputGestureText="Ctrl+C" Style="{StaticResource RowMenuItem}"/>
+      <MenuItem Header="粘贴" Command="ApplicationCommands.Paste"
+                InputGestureText="Ctrl+V" Style="{StaticResource RowMenuItem}"/>
+      <MenuItem Header="全选" Command="ApplicationCommands.SelectAll"
+                InputGestureText="Ctrl+A" Style="{StaticResource RowMenuItem}"/>
+    </ContextMenu>
     <Style TargetType="MenuItem" BasedOn="{StaticResource RowMenuItem}"/>
 
     <Style x:Key="PlainButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -469,6 +477,7 @@
       <Setter Property="SelectionBrush" Value="{StaticResource Accent}"/>
       <Setter Property="BorderBrush" Value="Transparent"/>
       <Setter Property="BorderThickness" Value="1.5"/>
+      <Setter Property="ContextMenu" Value="{StaticResource FieldMenu}"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="TextBox">
@@ -508,6 +517,7 @@
       <Setter Property="Padding" Value="12,7"/>
       <Setter Property="MinHeight" Value="34"/>
       <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="ContextMenu" Value="{StaticResource FieldMenu}"/>
       <Setter Property="Background" Value="{StaticResource Fill}"/>
       <Setter Property="Foreground" Value="{StaticResource Label}"/>
       <Setter Property="CaretBrush" Value="{StaticResource Accent}"/>
