@@ -624,7 +624,7 @@
           <Grid MaxWidth="660">
 
             <!-- ========================= 首页 ========================= -->
-            <StackPanel Margin="0,0,0,10"
+            <StackPanel Margin="0"
                         Visibility="{Binding IsChecked, ElementName=NavHome, Converter={StaticResource BoolToVis}}">
               <TextBlock Text="首页" Style="{StaticResource Title}" Margin="0,0,0,12"/>
 
@@ -644,7 +644,7 @@
               <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition x:Name="SingleSpeechGap" Width="0"/><ColumnDefinition x:Name="SingleSpeechColumn" Width="0"/></Grid.ColumnDefinitions>
-              <Grid x:Name="ContactsHeader" Margin="14,24,0,8">
+              <Grid x:Name="ContactsHeader" Margin="14,16,0,8">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBlock x:Name="ContactsCaption" Text="朗读对象 · 0/8" Style="{StaticResource Caption}" Margin="0" VerticalAlignment="Center"/>
                 <Button x:Name="AddContactButton" Grid.Column="1" Content="＋ 添加" Style="{StaticResource AccentButton}"
@@ -739,7 +739,7 @@
 
 
 
-              <Grid Margin="0,14,0,8">
+              <Grid Margin="0,10,0,8">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -754,7 +754,7 @@
                     <!-- Measured: with two contact cards the page leaves 216 DIP under the
                        「朗读记录」 header; 176 keeps the card inside the window with a little
                        air left, so the home page never needs a scroll. -->
-                    <ListBox x:Name="Results" Height="110" ItemContainerStyle="{StaticResource LogItem}">
+                    <ListBox x:Name="Results" Height="160" ItemContainerStyle="{StaticResource LogItem}">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <TextBlock Text="{Binding}" FontSize="13" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
@@ -765,7 +765,7 @@
                   <!-- Empty state fills the same card the log list uses: the card keeps
                        its height when there is nothing to show yet, so the page does not
                        collapse the moment you clear the log. -->
-                  <TextBlock x:Name="ResultsEmpty" Style="{StaticResource Hint}" Margin="28" Height="102"
+                  <TextBlock x:Name="ResultsEmpty" Style="{StaticResource Hint}" Margin="28" Height="152"
                              FontSize="14" LineHeight="22" VerticalAlignment="Center" TextAlignment="Center"
                              Text="还没有朗读记录。对方发来新消息后，这里会显示朗读过的内容。"
                              Visibility="Collapsed"/>
@@ -1197,7 +1197,7 @@
         </ScrollViewer>
 
         <!-- 页面下沿渐隐，避免卡片被硬生生切断；保持很浅，否则会把卡片底边吃掉 -->
-        <Border Height="18" VerticalAlignment="Bottom" IsHitTestVisible="False">
+        <Border Height="14" VerticalAlignment="Bottom" IsHitTestVisible="False">
           <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
               <GradientStop Color="{StaticResource PageBgClearColor}" Offset="0"/>
