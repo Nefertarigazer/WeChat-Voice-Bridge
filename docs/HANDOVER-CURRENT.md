@@ -21,11 +21,7 @@
   - **左下角连接胶囊点**：**只有绿色（正在监听）呼吸**；灰（未开始）、黄（准备中）、红（已停止）全静止，由 `MainWindow.SetPillBreathing(state.State == BridgeState.Running)` 开/停。
   - 旧记录里的对称淡入淡出（`AutoReverse`、1.6 s、To 0.35/0.88）已作废，不要再改回去。
 - 右键菜单：`App.xaml` 新增隐式 `ContextMenu`/`MenuItem` 样式（`BasedOn` 现有的 `RowMenu`/`RowMenuItem`），输入框的剪切/复制/粘贴不再露出 WPF 默认灰渐变方角菜单，改用「⋮」那套白底圆角面板；`RowMenuItem` 模板新增一列快捷键提示（`InputGestureText` 为空时折叠，所以「⋮」菜单外观不变）。未改任何命令逻辑。
-- **开发版运行前提（重要）**：`dotnet build` 不会往 `bin\Release
-et8.0-windows` 放 Python 运行时，也不会拷 `worker\deps`；直接跑 bin 里的 exe 点「开始」会报「缺少 Python 3.12 Worker」。需要先拷一次：`artifacts\win-x64-v1.5.1
-untime` → `bin\...
-untime`、`artifacts\win-x64-v1.5.1\worker\deps` → `bin\...\worker\deps`（2026-11-10 已补，`artifacts\win-x64
-untime` 也一并补回给 `Test.ps1` 用）。
+- **开发版运行前提（重要）**：`dotnet build` 不会往 `bin\Release\net8.0-windows` 放 Python 运行时，也不会拷 `worker\deps`；直接跑 bin 里的 exe 点「开始」会报「缺少 Python 3.12 Worker」。需要先拷一次：`artifacts\win-x64-v1.5.1\runtime` → `bin\...\runtime`、`artifacts\win-x64-v1.5.1\worker\deps` → `bin\...\worker\deps`（2026-11-10 已补，`artifacts\win-x64\runtime` 也一并补回给 `Test.ps1` 用）。
 - 基线对齐：标题「v1.5.2」与体积「0.0 MB」改成**同一个 TextBlock 的两个内联 Run**（原来是两个 TextBlock 只能底边对齐，小字号基线会高 1.5 DIP）。以后要改这两处的字色/字号，改 Run 的属性；名字 `UpdateNoteTitle` / `UpdateNoteSize` 不变，code-behind 的 `.Text` 赋值照旧。
 
 **当前一节（v1.5.1，源码完成、已发布）**：
