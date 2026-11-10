@@ -79,6 +79,35 @@
         <Setter Property="Background" Value="#DDEFE4"/><Setter Property="BorderBrush" Value="#AED4BE"/>
       </Trigger></Style.Triggers>
     </Style>
+    <!-- Delete action inside lists: quiet until hovered, then red. -->
+    <Style x:Key="RowDangerButton" TargetType="Button" BasedOn="{StaticResource PlainButton}">
+      <Setter Property="Foreground" Value="#A85A48"/>
+      <Setter Property="Padding" Value="10,4"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Surface" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                         FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="#FBEDE8"/>
+                <Setter Property="Foreground" Value="#93412F"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="#F6DCD3"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Surface" Property="Opacity" Value="0.45"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style x:Key="ContactRemoveAction" TargetType="Button" BasedOn="{StaticResource ContactPreviewAction}">
       <Setter Property="Margin" Value="8,0,0,0"/><Setter Property="Background" Value="#FBF1EE"/>
       <Setter Property="Foreground" Value="#A85A48"/><Setter Property="BorderBrush" Value="#F1DDD5"/>
@@ -244,10 +273,12 @@
 
     <!-- 词库的一行：原文 → 读作 ｜ 出现方式 ｜ 编辑 ｜ 删除。点“编辑”才能改内容。 -->
     <DataTemplate x:Key="ReadingRow">
-      <Grid MinHeight="34">
+      <!-- One click on the row turns it into its two inputs; clicking anywhere else
+           (or tabbing away) saves it, so there is no separate 编辑/完成 button. -->
+      <Grid MinHeight="34" Background="Transparent" Tag="{Binding}" MouseLeftButtonDown="ReadingRowClick">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="152"/><ColumnDefinition Width="66"/><ColumnDefinition Width="66"/>
+          <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/>
         </Grid.ColumnDefinitions>
 
         <!-- 原文 -->
@@ -256,7 +287,7 @@
           <TextBlock Text="{Binding Match}" VerticalAlignment="Center" TextWrapping="NoWrap"
                      TextTrimming="CharacterEllipsis"/>
         </Border>
-        <TextBox x:Name="MatchBox" Grid.Column="0" Text="{Binding Match, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+        <TextBox x:Name="MatchBox" LostKeyboardFocus="ReadingBoxLostFocus" Grid.Column="0" Text="{Binding Match, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                  MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                  AutomationProperties.Name="原文"/>
         <TextBlock Grid.Column="1" Text="→" Foreground="{StaticResource Tertiary}" Margin="10,0"
@@ -268,7 +299,7 @@
           <TextBlock Text="{Binding Say}" VerticalAlignment="Center" TextWrapping="NoWrap"
                      TextTrimming="CharacterEllipsis"/>
         </Border>
-        <TextBox x:Name="SayBox" Grid.Column="2" Text="{Binding Say, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+        <TextBox x:Name="SayBox" LostKeyboardFocus="ReadingBoxLostFocus" Grid.Column="2" Text="{Binding Say, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                  MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                  AutomationProperties.Name="读作"/>
 
@@ -286,20 +317,7 @@
                   Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                   AutomationProperties.Name="出现方式"/>
 
-        <Button Grid.Column="4" Click="EditReadingClick" Tag="{Binding}" HorizontalAlignment="Right"
-                AutomationProperties.Name="编辑">
-          <Button.Style>
-            <Style TargetType="Button" BasedOn="{StaticResource PlainButton}">
-              <Setter Property="Content" Value="编辑"/>
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                  <Setter Property="Content" Value="完成"/>
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </Button.Style>
-        </Button>
-        <Button Grid.Column="5" Content="删除" Style="{StaticResource PlainButton}" Click="DeleteReadingClick"
+        <Button Grid.Column="5" Content="删除" Style="{StaticResource RowDangerButton}" Click="DeleteReadingClick"
                 Tag="{Binding}" HorizontalAlignment="Right" AutomationProperties.Name="删除"/>
       </Grid>
     </DataTemplate>
@@ -463,7 +481,7 @@
                        Style="{StaticResource NavItem}" Checked="NavigationChanged"/>
           <RadioButton x:Name="NavLexicon" GroupName="Nav" Content="词库" Tag="&#xE70F;"
                        Style="{StaticResource NavItem}" Checked="NavigationChanged"/>
-          <RadioButton x:Name="NavAdvanced" GroupName="Nav" Content="高级" Tag="&#xE713;"
+          <RadioButton x:Name="NavAdvanced" GroupName="Nav" Content="设置" Tag="&#xE713;"
                        Style="{StaticResource NavItem}" Checked="NavigationChanged"/>
           <RadioButton x:Name="NavHelp" GroupName="Nav" Content="使用说明" Tag="&#xE897;"
                        Style="{StaticResource NavItem}" Checked="NavigationChanged"/>
@@ -563,7 +581,8 @@
               <Grid x:Name="ContactsHeader" Margin="14,24,0,8">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                 <TextBlock x:Name="ContactsCaption" Text="朗读对象 · 0/8" Style="{StaticResource Caption}" Margin="0" VerticalAlignment="Center"/>
-                <Button x:Name="AddContactButton" Grid.Column="1" Content="＋ 添加联系人" Style="{StaticResource AccentButton}" Click="AddContactClick"/>
+                <Button x:Name="AddContactButton" Grid.Column="1" Content="＋ 添加" Style="{StaticResource AccentButton}"
+                            Padding="14,7" MinWidth="0" Click="AddContactClick"/>
               </Grid>
               <TextBlock Grid.Row="1" Grid.ColumnSpan="3" x:Name="PrefixHint" Style="{StaticResource Footnote}" Margin="14,0,14,12"/>
               <ContentControl x:Name="SingleContactSurface" Grid.Row="2" Grid.ColumnSpan="3" ContentTemplate="{StaticResource SingleContactTemplate}" Visibility="Collapsed" HorizontalContentAlignment="Stretch"/>
@@ -660,8 +679,6 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="朗读记录" Style="{StaticResource Caption}" Margin="14,0,0,0"
                            VerticalAlignment="Center"/>
-                <Button x:Name="SkipButton" Grid.Column="1" Content="停止当前语音" Style="{StaticResource PlainButton}"
-                        Click="SkipClick"/>
                 <Button x:Name="ClearButton" Grid.Column="2" Content="清空" Style="{StaticResource PlainButton}"
                         Click="ClearClick"/>
               </Grid>
@@ -803,11 +820,21 @@
 
               <Border Style="{StaticResource Group}">
                 <StackPanel>
-                  <ListBox x:Name="ReadingList" ItemTemplate="{StaticResource ReadingRow}" Padding="0,4"/>
-                  <Border Style="{StaticResource Hairline}" Margin="17,0,17,0"
-                          Visibility="{Binding HasItems, ElementName=ReadingList, Converter={StaticResource BoolToVis}}"/>
-                  <Button x:Name="AddReadingButton" Content="＋" Style="{StaticResource AddButton}"
-                          HorizontalAlignment="Center" Margin="0,12,0,14"
+                  <!-- Column headings: the three fields read as a table, not as
+                       loose boxes. Hidden while the book is empty. -->
+                  <Grid Margin="17,10,17,4" Visibility="{Binding HasItems, ElementName=ReadingList, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="原文" FontSize="11.5" Foreground="{StaticResource Secondary}"/>
+                    <TextBlock Grid.Column="2" Text="读作" FontSize="11.5" Foreground="{StaticResource Secondary}" Margin="12,0,0,0"/>
+                    <TextBlock Grid.Column="3" Text="出现方式" FontSize="11.5" Foreground="{StaticResource Secondary}" Margin="12,0,0,0"/>
+                    <TextBlock Grid.Column="4" Text="操作" FontSize="11.5" Foreground="{StaticResource Secondary}" HorizontalAlignment="Right" Margin="0,0,12,0"/>
+                  </Grid>
+                  <ListBox x:Name="ReadingList" ItemTemplate="{StaticResource ReadingRow}" Padding="0,2"/>
+                  <Button x:Name="AddReadingButton" Content="＋ 添加词条" Style="{StaticResource AddReadingAction}"
+                          HorizontalAlignment="Center" Margin="0,10,0,14"
                           Click="AddReadingClick" AutomationProperties.Name="添加一行"/>
                 </StackPanel>
               </Border>
@@ -816,7 +843,7 @@
             <!-- ========================= 高级 ========================= -->
             <StackPanel x:Name="SettingsPanel" Margin="0,0,0,48"
                         Visibility="{Binding IsChecked, ElementName=NavAdvanced, Converter={StaticResource BoolToVis}}">
-              <TextBlock Text="高级" Style="{StaticResource Title}"/>
+              <TextBlock Text="设置" Style="{StaticResource Title}"/>
               <TextBlock Text="软件更新" Style="{StaticResource Caption}"/>
               <Border Style="{StaticResource Group}">
                 <StackPanel>
@@ -1122,7 +1149,7 @@
          corners never show the rectangular halo a transparent popup draws around them. -->
     <Border x:Name="HintToast" Panel.ZIndex="40" Grid.Column="1"
             HorizontalAlignment="Center" VerticalAlignment="Bottom"
-            Margin="20,0,20,50" MaxWidth="720" Padding="16,9" CornerRadius="12" Opacity="0"
+            Margin="20,0,20,50" MaxWidth="720" Padding="16,6" CornerRadius="12" Opacity="0"
             Background="#6EE4E7E5" BorderBrush="#8CCBD2CE" BorderThickness="1"
             IsHitTestVisible="False" Visibility="Collapsed">
       <TextBlock x:Name="HintText" FontSize="13" LineHeight="20" Foreground="#5C6B64" TextWrapping="Wrap"

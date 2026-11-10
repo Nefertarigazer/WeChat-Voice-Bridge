@@ -140,7 +140,7 @@ public partial class MainWindow
         Grid.SetColumnSpan(ContactsHeader, 3);
         Grid.SetColumnSpan(ContactsList, contactCards.Count == 1 ? 1 : 3);
         ContactsCaption.Text = $"朗读对象 · {contactCards.Count}/8";
-        AddContactButton.Content = contactCards.Count == 0 ? "＋ 添加联系人" : "＋ 添加一个人";
+        AddContactButton.Content = "＋ 添加";
         PrefixHint.Text = contactCards.Count > 1
             ? "依次朗读每个人的消息。音色和提示词可分别设置。"
             : "";

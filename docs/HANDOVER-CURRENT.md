@@ -24,6 +24,8 @@
 - 气泡：`#6EE4E7E5` 底、`#5C6B64` 字、`Padding 16,9`、`MaxWidth 720`、距底 **50**（上移自身高度 3/5）、右栏居中。
 - **平滑滚动**：`src/VoiceBridge.App/SmoothScroll.cs` 用类级 `PreviewMouseWheel` + `CompositionTarget.Rendering` 累积目标偏移、ease-out-quint（160–380ms），覆盖全应用所有 ScrollViewer。**不要再在页面里自绘滚动**（旧的 `PageMouseWheel/ScrollFrame/StopScrolling` 已删）。
 - **无悬停提示**：全应用 `ToolTip` 已清空（含 `restrictionTip` 那套禁用控件弹字机制）。禁用态只保留变淡 + No 光标 + `AutomationProperties.HelpText`。不要再加回 ToolTip。
+- **词库**：有表头（原文/读作/出现方式/操作）；**没有编辑/完成按钮**——点行即编辑、点外部自动保存（`ReadingRowClick` / `ReadingBoxLostFocus` + `editingReading`）；删除用 `RowDangerButton`（悬停淡红）；列表与加号之间的 Hairline 已删，加号是 `AddReadingAction` 药丸。
+- 左栏「高级」已改名「设置」（`NavAdvanced` 名不变）；朗读记录只保留「清空」（`SkipButton` 已删）。首页按钮统一「＋ 添加」。
 - **A1 故障（Muse 已定位）**：INPUT 链 REJECT 在 443 ACCEPT 之前，新入站 443 全被丢弃；Caddy/证书/本机回环均正常。需用户批准后由 Muse 调防火墙顺序。
 - **更新服务故障（2026-11-10 晚）**：`iceland.de5.net` 的 443 不完成 TLS 握手；TCP 可连、DNS 公网解析到 服务器IP、ICMP 通，但 `r.jina.ai`（外部）报 `ERR_ADDRESS_UNREACHABLE`、`allorigins` 返回 522 → **A1 服务器侧问题**，与用户 VPN 无关（早前误判为本机代理，已更正）。已用 muse-call 通知 Muse。应用内文案改为「服务器没有完成握手，稍后再试」。
 - 朗读记录空状态根因：`Render()` 无记录时折叠 `ResultsBox`，页面矮卡其实是 `ResultsEmpty`；已给 `ResultsEmpty` 设 `Height=512 + VerticalAlignment=Center`，空/有记录卡片同高。列表 `Results` `Height=520`。

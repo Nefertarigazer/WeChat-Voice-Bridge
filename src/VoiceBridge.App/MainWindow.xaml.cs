@@ -80,6 +80,7 @@ public partial class MainWindow : Window
     private bool pickingContact;
     private bool lexiconSeeded;
     private string fishModel = FishSpeech.Model;
+    private ReadingItem? editingReading;
     private string? noticeField;
     private DispatcherTimer? noticeTimer;
 
@@ -381,7 +382,6 @@ public partial class MainWindow : Window
         var noResults = Results.Items.Count == 0;
         ResultsBox.Visibility = noResults ? Visibility.Collapsed : Visibility.Visible;
         ResultsEmpty.Visibility = noResults ? Visibility.Visible : Visibility.Collapsed;
-        SkipButton.IsEnabled = state.State == BridgeState.Running;
         ClearButton.IsEnabled = state.State == BridgeState.Running;
         DeleteVoiceButton.IsEnabled = VoicePresetBox.SelectedItem is string voice &&
             userVoices.Any(item => item.Name == voice);
@@ -753,8 +753,6 @@ public partial class MainWindow : Window
         await CloseDirectoryAsync();
         Render();
     }
-
-    private void SkipClick(object sender, RoutedEventArgs e) => controller.SkipCurrent();
 
     private void ClearClick(object sender, RoutedEventArgs e) => controller.ClearQueue();
 
@@ -1160,25 +1158,67 @@ public partial class MainWindow : Window
         var item = new ReadingItem(new ReadingRule("", "", true) { Scope = "both" }, isDraft: true);
         readingItems.Add(item);
         ShowReadingNotice(null);
-        FocusReading(item);
+        BeginEditing(item, editPronunciation: false);
     }
 
     /// <summary>
-    /// The edit button of a row. The row stays plain text until the button is
-    /// pressed, and it is checked over again when the row is done.
+    /// A click anywhere on a row turns it into its two inputs. There is no edit
+    /// button: the row is always directly editable, and leaving it saves.
     /// </summary>
-    private void EditReadingClick(object sender, RoutedEventArgs e)
+    private void ReadingRowClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is not Button button || button.Tag is not ReadingItem item)
+        if (sender is not FrameworkElement element || element.Tag is not ReadingItem item)
+            return;
+        // Buttons and the scope picker keep their own click behaviour.
+        if (e.OriginalSource is DependencyObject source && Descendants(element).Contains(source) &&
+            FindAncestor<Button>(source) is not null)
             return;
         if (item.IsEditing)
-        {
-            CommitReading(item);
             return;
-        }
+        BeginEditing(item, editPronunciation: false);
+    }
+
+    private void BeginEditing(ReadingItem item, bool editPronunciation)
+    {
         item.IsEditing = true;
+        editingReading = item;
         ShowReadingNotice(null);
-        FocusReading(item, editPronunciation: true);
+        FocusReading(item, editPronunciation);
+    }
+
+    /// <summary>Leaving the row's inputs saves it, with the usual checks.</summary>
+    private void ReadingBoxLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (editingReading is null || sender is not FrameworkElement box || box.DataContext is not ReadingItem item)
+            return;
+        // Tab between the row's own two boxes must not commit.
+        if (e.NewFocus is DependencyObject next && item == editingReading && Descendants(box).Contains(next))
+            return;
+        if (e.NewFocus is DependencyObject other && FindReadingItem(other) == item)
+            return;
+        _ = Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (editingReading != item)
+                return;
+            editingReading = null;
+            CommitReading(item);
+        }), DispatcherPriority.Input);
+    }
+
+    private ReadingItem? FindReadingItem(DependencyObject node)
+    {
+        for (var current = node; current is not null; current = ParentOf(current))
+            if (current is FrameworkElement { DataContext: ReadingItem item })
+                return item;
+        return null;
+    }
+
+    private static T? FindAncestor<T>(DependencyObject node) where T : DependencyObject
+    {
+        for (var current = node; current is not null; current = ParentOf(current))
+            if (current is T match)
+                return match;
+        return null;
     }
 
     /// <summary>
@@ -1214,6 +1254,7 @@ public partial class MainWindow : Window
             ShowReadingNotice("词库太大，请删减词条后再保存。");
             return;
         }
+        editingReading = null;
         item.Commit(rule);
         PublishReadings();
         ShowReadingNotice(ListeningActive ? "词库已更新，从下一条开始生效。" : null);

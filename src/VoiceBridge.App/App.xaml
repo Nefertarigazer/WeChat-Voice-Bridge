@@ -456,6 +456,37 @@
       <Setter Property="Padding" Value="16,7"/>
       <Setter Property="MinHeight" Value="34"/>
     </Style>
+    <!-- 词库底部：加一条新记录（淡绿色药丸，悬停加深） -->
+    <Style x:Key="AddReadingAction" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Foreground" Value="#13754F"/>
+      <Setter Property="Padding" Value="16,7"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Surface" Background="#EEF7F2" BorderBrush="#DCEBE3" BorderThickness="1"
+                    CornerRadius="11" Padding="{TemplateBinding Padding}">
+              <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                         FontSize="{TemplateBinding FontSize}" FontWeight="Medium"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="#E2F1E9"/>
+                <Setter TargetName="Surface" Property="BorderBrush" Value="#BFDCCB"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="#D5EADD"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Surface" Property="Opacity" Value="0.5"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
     <!-- 词库底部的小加号：加一条新记录 -->
     <Style x:Key="AddButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
       <Setter Property="Width" Value="44"/>
