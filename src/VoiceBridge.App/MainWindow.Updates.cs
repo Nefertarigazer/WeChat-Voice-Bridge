@@ -268,7 +268,10 @@ public partial class MainWindow
         // Foreground, which would leave white text dark on the solid green state.
         UpdateAction.Foreground = (Brush)FindResource(ink);
         UpdateAction.Content = label;
-        UpdateStateDot.Fill = manifest is null ? IdleDot : verifiedUpdate is not null ? LiveDot : WarnDot;
+        // The dot reads green "up to date", red "update available", orange "ready to
+        // install". The bridge status pill keeps its own grey/amber/green mapping, so
+        // the shared brushes are reused in this order instead of being redefined.
+        UpdateStateDot.Fill = manifest is null ? LiveDot : verifiedUpdate is not null ? WarnDot : ErrorDot;
         UpdateAction.IsEnabled = !closing && !updateHandoff && updateCancel is null;
         UpdatePackage.Visibility = manifest is null ? Visibility.Collapsed : Visibility.Visible;
         // The title row shares the header grid with the status row, so collapsing it is

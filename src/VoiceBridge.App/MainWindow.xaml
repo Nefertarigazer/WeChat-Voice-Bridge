@@ -815,7 +815,7 @@
                       <Border Style="{StaticResource Row}">
                         <!-- One line only: the dot and the version sit in a horizontal
                              stack, both vertically centred, so the dot is on the text's
-                             line in every state (grey / amber / green). The status is
+                             line in every state (green / red / orange). The status is
                              carried by the line under the card and the button label. -->
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                           <Ellipse x:Name="UpdateStateDot" Width="9" Height="9" Margin="0,0,12,0"

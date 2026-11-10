@@ -4,6 +4,32 @@
 
 ---
 
+## 1.5.1 · 2026-11-10（续）：软件更新状态点改色为绿 / 红 / 橙（未打包）
+
+> 状态：代码完成、构建通过、三态实机截图验证通过。**未打包、未上线、未改版本号**，等用户决定是否随下一版发布。
+
+**用户要求**：「软件更新」那个小圆点现在的语义是 灰（最新）→ 橙（有更新）→ 绿（下载完待装）→ 灰（重启安装后），要求改成 **绿（最新常态）→ 红（发现更新）→ 橙（下载完待装）**，即只把这三个颜色互换，其它代码一律不动。
+
+**改动**（仅一处映射）：
+- `src/VoiceBridge.App/MainWindow.Updates.cs` 的 `RenderUpdate()`：`UpdateStateDot.Fill = manifest is null ? IdleDot : verifiedUpdate is not null ? LiveDot : WarnDot;` → `manifest is null ? LiveDot : verifiedUpdate is not null ? WarnDot : ErrorDot;`（绿 `#1D9A5B` / 橙 `#B2760A` / 红 `#D33B3B`）。
+- 三个画刷是现成的静态字段，直接换顺序即可；**没有重新定义画刷**，因此左侧状态胶囊「未开始（灰）/ 正在监听（绿）/ 正在准备（橙）/ 已停止（红）」的配色完全没变。
+- 按钮配色、文案、布局、下载与安装逻辑一律未动。
+- `src/VoiceBridge.App/MainWindow.xaml` 里描述该圆点的那行注释由「grey / amber / green」改为「green / red / orange」。
+
+**验证**（真实应用 + 真机截图，见 `artifacts/screenshots/`，该目录已被 gitignore）：
+- `dotnet build -c Release`：**0 警告 0 错误**（本次本机 `%LOCALAPPDATA%\Temp\wvb-sdk` 曾被清理，重新下载 dotnet-sdk-8.0.427 解压到 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk-tmp` 使用）。
+- 绿色（常态，`latest.json` = 1.5.1，本地 1.5.1）→ `update-dot-green.png`：圆点为绿。
+- 红色（发现新版）→ `update-dot-red-available.png`：在 `%LOCALAPPDATA%\WeChatVoiceBridge\updates` 临时放一份 6 字段假 pending 清单（v1.5.2，zip 存在但 sha 不匹配，于是「可更新但未下载」）→ 圆点为红、按钮「更新到 v1.5.2」、状态行「发现新版本。」。
+- 橙色（下载完待装）→ `update-dot-orange-ready.png`：把假 zip 的 sha256 与清单对齐（4096 字节假包）→ 圆点为橙、按钮「重启安装更新」、状态行「更新包已下载并通过校验，可直接重启安装。」。
+- 收尾：三份假文件全部删除（`updates` 目录回到空）、应用进程已关闭、**未点击任何安装/重启**，线上清单未动。
+- 顺带体检：`KeyStoreInspector` 显示钥匙库 1 条被引用条目 `speech-5f1c37e3…`、len=51、fp=68BD1117（与文档记录的真钥匙指纹一致），`settings.json` 的 `FishKeyName` 与 provider `CredentialId` 一致——没有被 1.5.0 修过的「指针覆写」问题复现。
+
+**未做 / 待拍板**：
+- `tools/UpdatePanelPreview`（开发期预览与像素量测工具，不入发布物）里还写着旧的 IdleDot/WarnDot/LiveDot 三色数组，本次按「不动其他代码」要求没改；下次用它量测前需同步成绿/红/橙。
+- 版本号仍是 1.5.1（与线上相同），所以**这次改动还不能直接推更新**：要发布须先把 `Directory.Build.props` 升到 1.5.2 并补 `ReleaseHistory` 条目，再走「打包 → Muse → 公网复核」流程。等用户明确发话。
+
+---
+
 ## 1.5.1 · 2026-11-10（更新页三处打磨 + 高级页布局 + ⋮ 菜单比例，已上线）
 
 > 状态：**已发布上线**。源码 commit `dc2a9fd`；Muse 发布单 `codex_20261110_141758_3cb004`，回执 `status=ok`。
@@ -475,6 +501,8 @@
 | 1.4.8 | 更新完成后由用户决定何时打开新版 | **线上正式版**（`codex_20261109_235238_857190`，2026-11-09 22:59 UTC） |
 | 1.4.9 | wx-multi 多版本适配 + 更新页精简 | 本地，未打包 |
 | **1.5.0** | **API 配置简化（含「⋮」菜单重做）+ 音色失效语义 + 凭据指针修复 + 凭据库自动清扫** | **线上正式版**（发布单 `codex_20261110_130657_f72a7b`，2026-11-10 12:09:47 UTC） |
+| **1.5.1** | 更新页打磨（标题化/圆点对齐/按钮整块居中）+ 高级页布局 + ⋮ 菜单比例 + 「移除」去悬停提示 | **线上正式版**（发布单 `codex_20261110_141758_3cb004`，2026-11-10 13:21:18 UTC） |
+| 1.5.1 工作区（未升版本号） | 软件更新状态点改色：绿（最新）/ 红（发现更新）/ 橙（下载完待装） | 已构建 + 三态实机截图验证，**未打包、未上线** |
 
 **发布状态更正（1.4.6 已上线）**：本会话确实生成了 `WeChat-Voice-Bridge-V1.4.6-win-x64.zip` 与 `...-Setup.exe`，并经 Muse 通道把 1.4.6 推到线上（详见 1.4.6 段）。此处的旧表述是 1.4.5 及更早留下的、已作废。线上正式版自 2026-11-09 起为 **1.4.6**（此前为 1.4.3）。
 
