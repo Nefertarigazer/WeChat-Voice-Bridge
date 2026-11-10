@@ -11,7 +11,11 @@
 - 实现只有一行：`MainWindow.Updates.cs` 的 `RenderUpdate()` 里 `UpdateStateDot.Fill = manifest is null ? LiveDot : verifiedUpdate is not null ? WarnDot : ErrorDot;`，直接复用现有画刷、未新定义颜色，所以左侧状态胶囊（灰/绿/橙/红）与按钮配色完全不受影响。XAML 里那句颜色注释同步改成 green / red / orange。
 - 验证：`dotnet build` 0/0；真实应用三态截图（`artifacts/screenshots/update-dot-green.png`、`-red-available.png`、`-orange-ready.png`）均符合预期；临时假 pending 包已删、`updates` 目录回到空、未点安装、线上清单未动。
 - **待拍板**：版本号仍为 1.5.1（等于线上），要发布需先升到 1.5.2 + 补 `ReleaseHistory`，再走打包 → Muse → 公网复核；等用户发话。
-- 待办：`tools/UpdatePanelPreview`（开发工具，不入发布物）仍按旧三色数组渲染，下次用它量测前需同步。
+- 待办：`tools/UpdatePanelPreview`（开发工具，不入发布物）仍按旧三色与旧字号渲染，下次用它量测前需同步。
+
+**工作区未发布改动（第二项，2026-11-10 傍晚）**：更新卡片字号层级。
+- 「当前版本」`UpdateVersion` 15 → **17 SemiBold**；新版本标题 `UpdateNoteTitle` 从 `SectionTitle`（16）改为 **13 SemiBold**，体积小字 12 → **11**；状态圆点 9px → **10px**。
+- 目的：用户反馈「当前版本」比下面的新版本标题还小；现在三级阶梯 = 17（当前版本）/ 13（待装版本）/ 11（体积），三态都验证过（`artifacts/screenshots/font-state-{uptodate,red,orange}(-crop).png`）。卡片高度与按钮居中结构未变。
 
 **当前一节（v1.5.1，源码完成、已发布）**：
 - 「软件更新」状态行只留一行：9px 圆点 + `当前版本 vX.Y.Z`，水平 `StackPanel`、两者 `VerticalAlignment=Center`，灰/琥珀/绿三态只换 `Fill`；第二行说明（「已是最新版本」「发现新版本」「更新包已就绪」）已删除，状态由卡片下方状态行与按钮文案承载。

@@ -4,6 +4,32 @@
 
 ---
 
+## 1.5.1 · 2026-11-10（续）：软件更新卡片字号层级（当前版本最大）+ 圆点微调到 10px
+
+> 状态：代码完成、构建通过、三态（无更新 / 有更新待下载 / 有更新待安装）实机截图验证通过。**未打包、未上线、未改版本号**。
+
+**用户要求**：截图上「当前版本 v1.5.1」看着比下面新版本标题「v1.5.2」还小；要求当前版本更大、下面新版本收小（至少要比当前版本小、但不显突兀），小圆点大小要与当前版本字体匹配，三个状态都要考虑。
+
+**改动**（仅 `src/VoiceBridge.App/MainWindow.xaml` 的更新卡片）：
+- 「当前版本」行：`UpdateVersion` 15 → **17 SemiBold**（字号阶梯的主级）。
+- 新版本标题：`UpdateNoteTitle` 从 `SectionTitle`（16 SemiBold）改为显式 **13 SemiBold / Label 色**；体积小字 `UpdateNoteSize` 12 → **11**（仍为 Secondary 灰）。这样「17 主级 > 13 次标题 > 11 元数据」三级清楚，且新版本标题仍比下方说明正文（13）不显眼。
+- 状态圆点：`UpdateStateDot` 9px → **10px**，与 17px 文字视觉重量匹配（两列 Grid 与按钮整块居中的结构未动，`RowSpan` 仍禁用）。
+- 按钮、文案、下载/安装逻辑、其它页面一律未动。
+
+**验证**（真实应用 PrintWindow 截图 + 裁切，`artifacts/screenshots/`，已 gitignore）：
+- `dotnet build -c Release`：**0 警告 0 错误**；`Verify-Source.ps1` PASS。
+- 无更新（绿点，卡片只有一行）：`font-state-uptodate(-crop).png` —— 17px 主行在 52 DIP 卡片内仍居中，卡片高度未变。
+- 有更新待下载（红点 + 标题行 + 说明框）：`font-state-red(-crop).png`。
+- 有更新待安装（橙点 + 绿实心按钮）：`font-state-orange(-crop).png`。
+- 三态下「当前版本」均明显大于「v1.5.2」标题，圆点与文字视觉匹配，按钮仍在「卡片上沿→说明框上沿」区域内居中。
+- 收尾：假 pending 包已删、`updates` 目录回到空、未点安装、线上清单未动；`settings.json` 的 `FishKeyName` 仍与 provider `CredentialId` 一致。
+
+**坑（工具）**：`tools/UiSmokeTest shot` 是 `CopyFromScreen`，窗口被其他窗口遮住时只能拍到桌面；本轮改用 `%TEMP%\wvb-shot.ps1`（PrintWindow + `PW_RENDERFULLCONTENT` + `SetProcessDPIAware`）直接渲染窗口内容，输出 1880×1560 物理像素，可靠且不被遮挡。该脚本在临时目录，不入仓库。
+
+**未做 / 待拍板**：版本号仍为 1.5.1（等于线上）；`tools/UpdatePanelPreview` 仍是旧字体/旧三色数组，下次用它量测前需同步。
+
+---
+
 ## 1.5.1 · 2026-11-10（续）：软件更新状态点改色为绿 / 红 / 橙（未打包）
 
 > 状态：代码完成、构建通过、三态实机截图验证通过。**未打包、未上线、未改版本号**，等用户决定是否随下一版发布。
