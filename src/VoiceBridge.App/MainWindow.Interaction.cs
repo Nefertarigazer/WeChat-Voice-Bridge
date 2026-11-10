@@ -152,6 +152,8 @@ public partial class MainWindow
         if (ContentScroller == null)
             return;
         DismissRestrictionTip();
+        // A hint is about the page you were just on, so it does not travel with you.
+        notice = null;
         StopScrolling();
         ContentScroller.ScrollToTop();
         if (ReferenceEquals(sender, NavAdvanced))

@@ -80,7 +80,37 @@ public partial class MainWindow : Window
     private bool pickingContact;
     private bool lexiconSeeded;
     private string fishModel = FishSpeech.Model;
-    private string? notice;
+    private string? noticeField;
+    private int noticePage;
+    private DispatcherTimer? noticeTimer;
+    private readonly DispatcherTimer readingNoticeTimer = new() { Interval = TimeSpan.FromSeconds(5) };
+
+    /// <summary>
+    /// The one-line hint that sits under a page's content. Assigning it records which
+    /// page raised it and starts a short fuse: hints belong to their own page and clear
+    /// themselves, so a "试听完成" cannot resurface later on another page (the three
+    /// pages used to share one string and therefore all showed every hint).
+    /// </summary>
+    private string? notice
+    {
+        get => noticeField;
+        set
+        {
+            noticeField = string.IsNullOrWhiteSpace(value) ? null : value;
+            noticePage = CurrentPageIndex;
+            noticeTimer?.Stop();
+            if (noticeField is not null)
+                noticeTimer?.Start();
+        }
+    }
+
+    /// <summary>0 首页 · 1 音效 · 2 词库 · 3 高级 · 4 使用说明（与各页的提示位一一对应）。</summary>
+    private int CurrentPageIndex =>
+        NavAdvanced.IsChecked == true ? 3
+        : NavVoice.IsChecked == true ? 1
+        : NavLexicon.IsChecked == true ? 2
+        : NavHelp.IsChecked == true ? 4
+        : 0;
     private string? selectedId;
     private string? selectedName;
     private string? selectedWechat;
@@ -147,6 +177,17 @@ public partial class MainWindow : Window
         searchTimer.Tick += SearchTimerTick;
         saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         saveTimer.Tick += SaveTimerTick;
+        noticeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        noticeTimer.Tick += (_, _) =>
+        {
+            notice = null;
+            Render();
+        };
+        readingNoticeTimer.Tick += (_, _) =>
+        {
+            readingNoticeTimer.Stop();
+            ShowReadingNotice(null);
+        };
         InitializeInteraction();
 
         tray = new() { Icon = LoadTrayIcon(), Text = "微信语音桥 · 未开始", Visible = true };
@@ -218,9 +259,7 @@ public partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(root))
         {
             root = WeChatSession.DiscoverRoot() ?? "";
-            if (root.Length > 0)
-                notice = "已自动找到微信数据目录。";
-            else
+            if (root.Length == 0)
                 // The bounded name scan can still miss a deeply custom folder. Point
                 // the user at the existing 浏览… picker instead of failing silently.
                 notice ??= "未找到微信数据目录，请在高级设置里用「浏览…」手动指定。";
@@ -333,10 +372,16 @@ public partial class MainWindow : Window
             setupCompleted = true;
             SaveNow();
         }
-        NoticeText.Text = notice ?? "";
-        VoiceLibraryNotice.Text = notice ?? "";
-        ApiNotice.Text = notice ?? "";
-        NoticeText.Visibility = string.IsNullOrEmpty(notice) ? Visibility.Collapsed : Visibility.Visible;
+        // Only the page that raised the hint shows it, and it is already on its way
+        // out after a few seconds; an empty hint takes no room on the other pages.
+        var hint = noticePage == CurrentPageIndex ? noticeField : null;
+        var hintVisibility = string.IsNullOrEmpty(hint) ? Visibility.Collapsed : Visibility.Visible;
+        NoticeText.Text = hint ?? "";
+        VoiceLibraryNotice.Text = hint ?? "";
+        ApiNotice.Text = hint ?? "";
+        NoticeText.Visibility = hintVisibility;
+        VoiceLibraryNotice.Visibility = hintVisibility;
+        ApiNotice.Visibility = hintVisibility;
 
         ApplySelection();
         UpdateInteractionRestrictions(active);
@@ -1201,10 +1246,18 @@ public partial class MainWindow : Window
         RemoveReading(item);
     }
 
+    /// <summary>
+    /// The lexicon page keeps its own hint line next to the rows. It gets the same
+    /// short fuse as the other pages' hints, so "词库已更新…" does not sit there for
+    /// the rest of the session.
+    /// </summary>
     private void ShowReadingNotice(string? text)
     {
         ReadingNotice.Text = text ?? "";
         ReadingNotice.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
+        readingNoticeTimer.Stop();
+        if (!string.IsNullOrEmpty(text))
+            readingNoticeTimer.Start();
     }
 
     /// <summary>New rows start with the source; editing starts at the end of the pronunciation.</summary>

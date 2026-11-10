@@ -540,6 +540,9 @@
             <StackPanel Margin="0,0,0,48"
                         Visibility="{Binding IsChecked, ElementName=NavHome, Converter={StaticResource BoolToVis}}">
               <TextBlock Text="首页" Style="{StaticResource Title}" Margin="0,0,0,22"/>
+              <TextBlock x:Name="NoticeText" Style="{StaticResource Footnote}" Margin="0,0,0,4"
+                         Foreground="{StaticResource Caution}" Visibility="Collapsed"
+                         AutomationProperties.LiveSetting="Polite"/>
 
               <Border Style="{StaticResource Card}">
                 <Grid MinHeight="52">
@@ -553,9 +556,6 @@
                           VerticalAlignment="Center" Click="StartClick"/>
                 </Grid>
               </Border>
-
-              <TextBlock x:Name="NoticeText" Margin="14,12,14,0" FontSize="13" Foreground="{StaticResource Caution}"
-                         Visibility="Collapsed"/>
 
               <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -687,6 +687,8 @@
             <StackPanel Margin="0,0,0,48"
                         Visibility="{Binding IsChecked, ElementName=NavVoice, Converter={StaticResource BoolToVis}}">
               <TextBlock Text="音效" Style="{StaticResource Title}"/>
+              <TextBlock x:Name="VoiceLibraryNotice" Foreground="{StaticResource Caution}" Style="{StaticResource Footnote}"
+                         Margin="0,0,0,4" AutomationProperties.LiveSetting="Polite" Visibility="Collapsed"/>
               <TextBlock Text="播放" Style="{StaticResource Caption}"/>
               <Border Style="{StaticResource Group}">
                 <StackPanel>
@@ -766,7 +768,6 @@
                   </DataTemplate.Triggers>
                 </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                 <Button Content="＋ 添加音色" Style="{StaticResource AccentButton}" HorizontalAlignment="Center" Margin="0,12" Click="AddLibraryVoiceClick"/>
-              <TextBlock x:Name="VoiceLibraryNotice" Foreground="{StaticResource Caution}" Style="{StaticResource Footnote}" Margin="14,8,14,0" AutomationProperties.LiveSetting="Polite"/>
               <StackPanel Visibility="Collapsed">
               <TextBlock Text="旧版设置（已停用，仅为兼容保留）" Style="{StaticResource Caption}"/>
               <Border Style="{StaticResource Group}">
@@ -813,6 +814,11 @@
             <StackPanel x:Name="SettingsPanel" Margin="0,0,0,48"
                         Visibility="{Binding IsChecked, ElementName=NavAdvanced, Converter={StaticResource BoolToVis}}">
               <TextBlock Text="高级" Style="{StaticResource Title}"/>
+              <!-- The page's hint slot: every page shows its own transient line here
+                   (under the title), so a hint never hides inside a card that has
+                   nothing to do with it and never survives a page switch. -->
+              <TextBlock x:Name="ApiNotice" Foreground="{StaticResource Caution}" Style="{StaticResource Footnote}"
+                         Margin="0,0,0,4" AutomationProperties.LiveSetting="Polite" Visibility="Collapsed"/>
 
               <TextBlock Text="软件更新" Style="{StaticResource Caption}"/>
               <Border Style="{StaticResource Group}">
@@ -958,7 +964,6 @@
                   </Border>
                 </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                 <Button Content="＋ 添加 API 服务" Style="{StaticResource AccentButton}" HorizontalAlignment="Center" Margin="0,12" Click="AddProviderClick"/>
-              <TextBlock x:Name="ApiNotice" Foreground="{StaticResource Caution}" Style="{StaticResource Footnote}" Margin="14,8,14,0" AutomationProperties.LiveSetting="Polite"/>
                 </StackPanel>
               </Border>
               <StackPanel Visibility="Collapsed">
