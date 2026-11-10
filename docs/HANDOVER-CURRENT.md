@@ -24,7 +24,7 @@
 - 气泡：`#6EE4E7E5` 底、`#5C6B64` 字、`Padding 16,9`、`MaxWidth 720`、距底 **50**（上移自身高度 3/5）、右栏居中。
 - **平滑滚动**：`src/VoiceBridge.App/SmoothScroll.cs` 用类级 `PreviewMouseWheel` + `CompositionTarget.Rendering` 累积目标偏移、ease-out-quint（160–380ms），覆盖全应用所有 ScrollViewer。**不要再在页面里自绘滚动**（旧的 `PageMouseWheel/ScrollFrame/StopScrolling` 已删）。
 - **无悬停提示**：全应用 `ToolTip` 已清空（含 `restrictionTip` 那套禁用控件弹字机制）。禁用态只保留变淡 + No 光标 + `AutomationProperties.HelpText`。不要再加回 ToolTip。
-- **词库**：有表头（原文/读作/出现方式/操作）；**没有编辑/完成按钮**——点行即编辑、点外部自动保存（`ReadingRowClick` / `ReadingBoxLostFocus` + `editingReading`）；删除用 `RowDangerButton`（悬停淡红）；列表与加号之间的 Hairline 已删，加号是 `AddReadingAction` 药丸。
+- **词库**：表头（原文/读作/出现方式/操作）贴卡片上沿、与六列逐一安对齐；行内是 **编辑/完成 + 删除** 三按钮（`EditReadingClick` 旧逻辑：点编辑**不**自动聚焦，点哪个框才聚焦；删除是纯文字淡红药丸 `RowDangerButton`，编辑/完成是 `RowSecondaryButton`）。**不要再改回“点行即编辑”**。列表与加号之间的 Hairline 已删，加号按钮就是 `AccentButton`（与「添加音色」同款）。
 - 左栏「高级」已改名「设置」（`NavAdvanced` 名不变）；朗读记录只保留「清空」（`SkipButton` 已删）。首页按钮统一「＋ 添加」，首页那句「依次朗读每个人的消息…」已删（`PrefixHint` 置空）。
 - 词库视觉：`AddReadingButton` 用 `AccentButton`（与「添加音色」同款）；表头是 `#F4F8F6` 横带 + `TableHead` 样式；删除是带 × 的淡红药丸 `RowDangerButton`。
 - **A1 故障（Muse 已定位）**：INPUT 链 REJECT 在 443 ACCEPT 之前，新入站 443 全被丢弃；Caddy/证书/本机回环均正常。需用户批准后由 Muse 调防火墙顺序。

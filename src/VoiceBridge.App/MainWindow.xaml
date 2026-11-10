@@ -86,6 +86,42 @@
       <Setter Property="Foreground" Value="#6E8779"/>
     </Style>
 
+    <!-- 列表里的次要操作（编辑 / 完成）：中性淡绿药丸，和删除同一套外形 -->
+    <Style x:Key="RowSecondaryButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#4A6B5A"/>
+      <Setter Property="Padding" Value="11,5"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Surface" Background="#F3F7F5" BorderBrush="#E3EBE6" BorderThickness="1"
+                    CornerRadius="9" Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5">
+              <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                         FontSize="{TemplateBinding FontSize}" FontWeight="Medium"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="#E9F2ED"/>
+                <Setter TargetName="Surface" Property="BorderBrush" Value="#CFDED6"/>
+                <Setter Property="Foreground" Value="#2F5344"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="#DDEAE3"/>
+                <Setter TargetName="Surface" Property="RenderTransform">
+                  <Setter.Value><ScaleTransform ScaleX="0.97" ScaleY="0.97"/></Setter.Value>
+                </Setter>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Surface" Property="Opacity" Value="0.45"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <!-- 列表里的删除：淡红药丸，悬停加深、按下更深，比纯文字更像可点的按钮 -->
     <Style x:Key="RowDangerButton" TargetType="Button">
       <Setter Property="Cursor" Value="Hand"/>
@@ -97,15 +133,9 @@
           <ControlTemplate TargetType="Button">
             <Border x:Name="Surface" Background="#FBEFEA" BorderBrush="#F1DCD3" BorderThickness="1"
                     CornerRadius="9" Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5">
-              <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Path x:Name="Glyph" Width="9" Height="9" Stretch="Uniform" Margin="0,0,5,0"
-                      Data="M 2,2 L 8,8 M 8,2 L 2,8" Stroke="{TemplateBinding Foreground}"
-                      StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                      VerticalAlignment="Center"/>
-                <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
-                           FontSize="{TemplateBinding FontSize}" FontWeight="Medium"
-                           VerticalAlignment="Center"/>
-              </StackPanel>
+              <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                         FontSize="{TemplateBinding FontSize}" FontWeight="Medium"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
@@ -295,10 +325,10 @@
     <DataTemplate x:Key="ReadingRow">
       <!-- One click on the row turns it into its two inputs; clicking anywhere else
            (or tabbing away) saves it, so there is no separate 编辑/完成 button. -->
-      <Grid MinHeight="34" Background="Transparent" Tag="{Binding}" MouseLeftButtonDown="ReadingRowClick">
+      <Grid MinHeight="34">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/>
+          <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/><ColumnDefinition Width="76"/>
         </Grid.ColumnDefinitions>
 
         <!-- 原文 -->
@@ -307,7 +337,7 @@
           <TextBlock Text="{Binding Match}" VerticalAlignment="Center" TextWrapping="NoWrap"
                      TextTrimming="CharacterEllipsis"/>
         </Border>
-        <TextBox x:Name="MatchBox" LostKeyboardFocus="ReadingBoxLostFocus" Grid.Column="0" Text="{Binding Match, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+        <TextBox x:Name="MatchBox" Grid.Column="0" Text="{Binding Match, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                  MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                  AutomationProperties.Name="原文"/>
         <TextBlock Grid.Column="1" Text="→" Foreground="{StaticResource Tertiary}" Margin="10,0"
@@ -319,7 +349,7 @@
           <TextBlock Text="{Binding Say}" VerticalAlignment="Center" TextWrapping="NoWrap"
                      TextTrimming="CharacterEllipsis"/>
         </Border>
-        <TextBox x:Name="SayBox" LostKeyboardFocus="ReadingBoxLostFocus" Grid.Column="2" Text="{Binding Say, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+        <TextBox x:Name="SayBox" Grid.Column="2" Text="{Binding Say, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                  MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                  AutomationProperties.Name="读作"/>
 
@@ -337,6 +367,20 @@
                   Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                   AutomationProperties.Name="出现方式"/>
 
+        <Button Grid.Column="4" Click="EditReadingClick" Tag="{Binding}" HorizontalAlignment="Right"
+                AutomationProperties.Name="编辑">
+          <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource RowSecondaryButton}">
+              <Setter Property="Content" Value="编辑"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                  <Setter Property="Content" Value="完成"/>
+                  <Setter Property="Foreground" Value="#13754F"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Button.Style>
+        </Button>
         <Button Grid.Column="5" Content="删除" Style="{StaticResource RowDangerButton}" Click="DeleteReadingClick"
                 Tag="{Binding}" HorizontalAlignment="Right" AutomationProperties.Name="删除"/>
       </Grid>
@@ -843,19 +887,22 @@
                   <!-- Column headings as a quiet band: a tinted strip, a hairline under
                        it and letter-spaced caps, so the rows below read as a table
                        instead of three loose input boxes. -->
+                  <!-- Flush with the card's top edge (no white sliver) and built on the
+                       same six columns as a row, so every heading sits exactly above the
+                       field it names. -->
                   <Border Background="#F4F8F6" BorderBrush="#E6EEE9" BorderThickness="0,0,0,1"
-                          CornerRadius="8,8,0,0" Padding="17,9,17,8" Margin="0,10,0,0"
+                          CornerRadius="13,13,0,0" Padding="17,10"
                           Visibility="{Binding HasItems, ElementName=ReadingList, Converter={StaticResource BoolToVis}}">
                     <Grid>
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/>
+                        <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/><ColumnDefinition Width="76"/>
                       </Grid.ColumnDefinitions>
                       <TextBlock Text="原文" Style="{StaticResource TableHead}"/>
-                      <TextBlock Grid.Column="2" Text="读作" Style="{StaticResource TableHead}" Margin="12,0,0,0"/>
+                      <TextBlock Grid.Column="2" Text="读作" Style="{StaticResource TableHead}"/>
                       <TextBlock Grid.Column="3" Text="出现方式" Style="{StaticResource TableHead}" Margin="12,0,0,0"/>
-                      <TextBlock Grid.Column="4" Text="操作" Style="{StaticResource TableHead}"
-                                 HorizontalAlignment="Right" Margin="0,0,12,0"/>
+                      <TextBlock Grid.Column="4" Grid.ColumnSpan="2" Text="操作" Style="{StaticResource TableHead}"
+                                 HorizontalAlignment="Center"/>
                     </Grid>
                   </Border>
                   <ListBox x:Name="ReadingList" ItemTemplate="{StaticResource ReadingRow}" Padding="0,2"/>
