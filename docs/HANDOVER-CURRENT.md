@@ -23,6 +23,7 @@
 - 右键菜单：`App.xaml` 新增隐式 `ContextMenu`/`MenuItem` 样式（`BasedOn` 现有的 `RowMenu`/`RowMenuItem`），输入框的剪切/复制/粘贴不再露出 WPF 默认灰渐变方角菜单，改用「⋮」那套白底圆角面板；`RowMenuItem` 模板新增一列快捷键提示（`InputGestureText` 为空时折叠，所以「⋮」菜单外观不变）。未改任何命令逻辑。
 - **开发版运行前提（重要）**：`dotnet build` 不会往 `bin\Release\net8.0-windows` 放 Python 运行时，也不会拷 `worker\deps`；直接跑 bin 里的 exe 点「开始」会报「缺少 Python 3.12 Worker」。需要先拷一次：`artifacts\win-x64-v1.5.1\runtime` → `bin\...\runtime`、`artifacts\win-x64-v1.5.1\worker\deps` → `bin\...\worker\deps`（2026-11-10 已补，`artifacts\win-x64\runtime` 也一并补回给 `Test.ps1` 用）。
 - 页面提示小字（`notice`）：改成**页内归属 + 5 秒自动消失**的属性，切页即清。原来同一份字符串同时写进首页/音效/高级三个 TextBlock，任何页的提示都会在三个页出现（「试听完成」跑到音效页的根因）；现在三个提示位都挪到各页标题下方、统一 Footnote 12px、空时折叠不占位；词库的 `ReadingNotice` 也加了同样 5 秒过期；删掉了启动时的「已自动找到微信数据目录。」。`uiSmokeTest` 相应改为在当前页三个槽里找文案。更新状态行与首页状态描述属于状态，**不**自动消失。
+- 提示行不挤动布局：四个提示位（首页/音效/高级/词库）改为**固定 20 DIP 高度、常驻可见**的留白行，文字填入不改高度；上方标题下边距等量减免，无提示时排版与修前一致。实测 shift = 0 px（修前 39 px）。改这四个槽时**不要再切 Visibility**，否则预留高度会丢、页面又会被推一下。
 - 基线对齐：标题「v1.5.2」与体积「0.0 MB」改成**同一个 TextBlock 的两个内联 Run**（原来是两个 TextBlock 只能底边对齐，小字号基线会高 1.5 DIP）。以后要改这两处的字色/字号，改 Run 的属性；名字 `UpdateNoteTitle` / `UpdateNoteSize` 不变，code-behind 的 `.Text` 赋值照旧。
 
 **当前一节（v1.5.1，源码完成、已发布）**：

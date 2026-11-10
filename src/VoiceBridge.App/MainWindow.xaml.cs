@@ -372,16 +372,14 @@ public partial class MainWindow : Window
             setupCompleted = true;
             SaveNow();
         }
-        // Only the page that raised the hint shows it, and it is already on its way
-        // out after a few seconds; an empty hint takes no room on the other pages.
+        // Only the page that raised the hint shows it, and it is already on its way out
+        // after a few seconds. The line itself keeps its reserved height and stays
+        // visible: collapsing it would yank the page content up and down every time a
+        // hint appeared, which is exactly what the reserved band prevents.
         var hint = noticePage == CurrentPageIndex ? noticeField : null;
-        var hintVisibility = string.IsNullOrEmpty(hint) ? Visibility.Collapsed : Visibility.Visible;
         NoticeText.Text = hint ?? "";
         VoiceLibraryNotice.Text = hint ?? "";
         ApiNotice.Text = hint ?? "";
-        NoticeText.Visibility = hintVisibility;
-        VoiceLibraryNotice.Visibility = hintVisibility;
-        ApiNotice.Visibility = hintVisibility;
 
         ApplySelection();
         UpdateInteractionRestrictions(active);
@@ -1253,8 +1251,9 @@ public partial class MainWindow : Window
     /// </summary>
     private void ShowReadingNotice(string? text)
     {
+        // The line keeps its reserved height (see NoticeText in MainWindow.xaml), so a
+        // hint appearing here never shifts the word list.
         ReadingNotice.Text = text ?? "";
-        ReadingNotice.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
         readingNoticeTimer.Stop();
         if (!string.IsNullOrEmpty(text))
             readingNoticeTimer.Start();
