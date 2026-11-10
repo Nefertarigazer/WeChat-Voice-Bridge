@@ -22,7 +22,13 @@ public partial class MainWindow
 
     private void InitializeInteraction()
     {
-        ContentScroller.ScrollChanged += (_, _) => TopFade.Opacity = ContentScroller.VerticalOffset > 0.5 ? 1 : 0;
+        ContentScroller.ScrollChanged += (_, _) =>
+        {
+            TopFade.Opacity = ContentScroller.VerticalOffset > 0.5 ? 1 : 0;
+            // The bottom fade is only for pages that overflow; otherwise it would
+            // wash out the last card's edge.
+            BottomFade.Opacity = ContentScroller.ScrollableHeight > 0.5 ? 1 : 0;
+        };
         // A row lights up when clicked; clicking anywhere outside the table drops that
         // selection again, so nothing stays highlighted while you work elsewhere.
         AddHandler(Mouse.PreviewMouseDownEvent, new MouseButtonEventHandler(ClearReadingSelectionOutside), true);

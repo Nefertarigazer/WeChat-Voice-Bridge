@@ -4,6 +4,24 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 21：下沿渐隐加强与“按需显示”
+
+**用户反馈**：边距修好了，但底部那层半透明/模糊效果变浅了，要再重一点。
+
+### 改动
+- 渐隐遮罩从 36 DIP / 2 段改成 **56 DIP / 4 段**（`#22 → #66 → #B8 → 不透明`），过渡更厚实、不再“忽然出现”。
+- 但直接加厚会把首页记录卡的底边洗掉（这正是上一轮“看起来贴着底”的原因），所以改成**按需显示**：`BottomFade.Opacity = ContentScroller.ScrollableHeight > 0.5 ? 1 : 0`，在 `ScrollChanged` 里更新。
+  - 能滚动的页面（设置、词库等）：**满强度**渐隐，滚到底不会像被切开；
+  - 一屏放得下的页面（首页）：不显示渐隐，卡片底边保持清楚。
+
+### 验证
+- 首页截图 `artifacts/screenshots/home-fade-smart.png`：卡片底边清楚、下方留 16 DIP 边距（实测约 54 px ≈ 原间距的 41%）。
+- 设置页截图 `artifacts/screenshots/advanced-fade-smart.png`：底部内容仍有渐隐过渡。
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+- 备注：本轮有一次 `Test.ps1` 出现 1 项失败（`WorkerTests`/`MultiWorkerTests` 计时类用例，`TaskCanceledException`），重跑即全绿；判定为并发跑构建时的偶发抖动，非代码问题。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 20：用标定法把记录卡调到“40% 间距且不滚动”
 
 **用户反馈**：上一版只保留了 4%（太近），后来又大到需要滚动。要求是「原间距的 40%」且**不能滚动**。
