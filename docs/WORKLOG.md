@@ -537,12 +537,14 @@
 1. **语音服务标题与首个分组太近**：`ProvidersList` 加 `Margin="0,12,0,0"`。分组头是绿色 `LibraryGroupHeader`，原来几乎贴着标题。
 2. **试听卡片加字段标题**：原来两个输入框直接在白卡里，没有名字。现在每块用 `StackPanel`（`Margin=16,14,16,0` / `16,16,16,0`）+ `FieldLabel`（12 灰，与对话框字段一致）包住：「音色」在音色下拉上方、「文本」在文本框上方；块间距 16，标签到控件 6。
 3. **删掉文本行下的横线**：`<Border Style="{StaticResource Hairline}"/>` 去掉；顺带删掉按钮行里那个空的占位 `TextBlock`，按钮改 `HorizontalAlignment=Right` 直接右对齐。
-4. **「⋮」菜单方向**：原来 `HorizontalOffset = -(ActualWidth - buttonWidth - 10)` 是「菜单右缘对齐按钮右缘」→ 向左展开，用户觉得「往左歪」。改为从按钮**向右下**展开：`Placement=Bottom` 本身已左对齐，只需 `HorizontalOffset = -10` 抵掉阴影留白，白面板左缘正好压在按钮左缘。同时把 `RowMenu` 的 `MinWidth 116` 换成 `MinWidth 0 + Width 104`（含 20px 阴影环 → 白面板 84），面板收窄后右缘不再顶出窗口。
+4. **「⋮」菜单方向**：原来 `HorizontalOffset = -(ActualWidth - buttonWidth - 10)` 是「菜单右缘对齐按钮右缘」→ 向左展开，用户觉得「往左歪」。改为从按钮**向右下**展开：`Placement=Bottom` 本身已左对齐，只需 `HorizontalOffset = -2`（-10 抵阴影留白、再右推 8），白面板左缘落在按钮左缘附近。宽度从 `MinWidth 116` 改为 `MinWidth 0 + Width 80`。
+5. **菜单与按钮「粘在一起」**：`VerticalOffset` 从 -6 改到 -1，让白面板顶部与按钮底之间留出约 5px。原来白面板顶几乎压着按钮底边，阴影盖在按钮上，看着脏；实测间隙从 -1.3 DIP 变成 +5.4 DIP。
 
 **验证**（用户已说明测试他自己看，所以只做最低限度）：
 - `dotnet build` 0/0。
-- 真实截图：`artifacts/screenshots/advanced-test-bottom.png`（试听卡片：音色/文本标题、无横线、按钮右下）、`artifacts/screenshots/menu-live-right.png`（菜单向右展开）。
-- 实测菜单 popup 由 232×204 → **208×204 物理像素**（155 → 139 DIP），右缘距窗口右边界约 13 DIP，不出框。
-- `tools/UiSmokeTest` 顺带增强：`shot` 支持 `NavId#bottom`（自动把页面滚到底再截），并在截图前 `ShowWindow(SW_RESTORE)`——窗口最小化时 `BoundingRectangle` 会变成 -32000，否则截出的是空图。
+- 真实截图：`artifacts/screenshots/advanced-test-bottom.png`（试听卡片：音色/文本标题、无横线、按钮右下）、`artifacts/screenshots/menu-final.png`（菜单最终位置）。
+- `UiSmokeTest menu` 现在会打印 ⋮ 与菜单的矩形、以及菜单距窗口右/下边界的余量。最终实测：菜单 popup **160×204 物理像素（106.7 DIP）**，右缘距窗口右边 **23 DIP**（收窄前 155 DIP 时几乎贴边、只有 7 DIP，更早的左向版本是 139 DIP），顶部间隙约 5 DIP。
+- 宽度与「不出框」是耦合的：窗口固定、⋮ 距窗口右约 127 DIP，`Width` 每加 12 DIP，右缘余量就少 12 DIP——所以 92 时只剩 4 DIP，最后定在 80。以后要加第三个菜单项需重新算这个余量。
+- `tools/UiSmokeTest` 顺带增强：`shot` 支持 `NavId#bottom`（自动把页面滚到底再截），`shot`/`menu`/`nohover` 截图或测量前都 `ShowWindow(SW_RESTORE)`——窗口最小化时 `BoundingRectangle` 会变成 -32000，菜单会量出 0,0。
 
 **按钮下方留白**：用户先说「太近」，调到 `Margin="0,2,0,6"` 后回看又说「现在合适了，不用改」，保持现状。

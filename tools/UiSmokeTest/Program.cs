@@ -110,6 +110,10 @@ static int MenuShot(string pidText, string outPath)
     }
     if (process.MainWindowHandle == IntPtr.Zero) { Console.WriteLine("FATAL: no main window"); return 4; }
 
+    // A minimised window reports -32000 rects, so the menu would be measured at 0,0.
+    Native.Show(process.MainWindowHandle);
+    Thread.Sleep(700);
+
     var root = AutomationElement.FromHandle(process.MainWindowHandle);
     var navAdvanced = WaitFor(() => ByAutomationId(root, "NavAdvanced"));
     if (navAdvanced is null) { Console.WriteLine("FATAL: NavAdvanced not found"); return 4; }
@@ -125,8 +129,18 @@ static int MenuShot(string pidText, string outPath)
         new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Menu));
     if (menu is null) { Console.WriteLine("FATAL: menu popup not found"); return 4; }
 
+    // The popup is positioned right after Opened; reading its rect immediately can
+    // catch 0,0, which makes every later measurement meaningless.
+    Thread.Sleep(300);
     var rect = menu.Current.BoundingRectangle;
     var row = more.Current.BoundingRectangle;
+    Console.WriteLine($"⋮ rect:    {row.X:0},{row.Y:0} {row.Width:0}x{row.Height:0}");
+    Console.WriteLine($"menu rect: {rect.X:0},{rect.Y:0} {rect.Width:0}x{rect.Height:0}");
+    Console.WriteLine($"gaps: left {rect.X - row.X:+0.0;-0.0}  right {row.Right - rect.Right:+0.0;-0.0}  "
+                      + $"top {rect.Y - row.Bottom:+0.0;-0.0}");
+    var win = root.Current.BoundingRectangle;
+    Console.WriteLine($"window:    {win.X:0},{win.Y:0} {win.Width:0}x{win.Height:0}  "
+                      + $"menu off right edge {win.Right - rect.Right:0.0}px, off bottom {win.Bottom - rect.Bottom:0.0}px");
     // A little room around the panel so the shadow and the gap are visible.
     var left = (int)Math.Max(0, Math.Min(rect.X, row.X) - 40);
     var top = (int)Math.Max(0, Math.Min(rect.Y, row.Y) - 40);

@@ -660,9 +660,10 @@ public partial class MainWindow
             Style = (Style)FindResource("RowMenu"),
             PlacementTarget = button,
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
-            // The panel keeps a transparent ring for its shadow, so nudge it up to
-            // leave a small gap instead of a hole under the button.
-            VerticalOffset = -6,
+            // The panel keeps a transparent ring for its shadow. Sitting flush under the
+            // button makes that ring overlap the button and the two look glued together,
+            // so the panel is pushed down until roughly 5px of air shows between them.
+            VerticalOffset = -1,
         };
         // The panel hangs to the right of the ⋮ button, the way a menu opened from a
         // button usually does. PlacementMode.Bottom already left-aligns the popup with
