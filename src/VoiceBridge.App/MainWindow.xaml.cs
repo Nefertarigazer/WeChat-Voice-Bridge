@@ -81,13 +81,12 @@ public partial class MainWindow : Window
     private bool lexiconSeeded;
     private string fishModel = FishSpeech.Model;
     private string? noticeField;
-    private UIElement? hintAnchor;
     private DispatcherTimer? noticeTimer;
 
     /// <summary>
-    /// The one-line hint. It is drawn as a chip floating just under the control that
-    /// raised it (a Popup takes no layout space, so nothing on the page moves), it is
-    /// the only hint on screen at a time, and it clears itself after a few seconds.
+    /// The one-line hint, shown as a subtitle at the bottom of the window: one at a time,
+    /// never over the control you are using, and gone again after a few seconds. It is
+    /// part of the window, so it follows the window and disappears when it is minimised.
     /// </summary>
     private string? notice
     {
@@ -98,27 +97,28 @@ public partial class MainWindow : Window
             noticeTimer?.Stop();
             if (noticeField is null)
             {
-                HintPopup.IsOpen = false;
+                HideHint();
                 return;
             }
-            // Whatever the user just clicked still has focus, which is exactly the
-            // control the hint is about.
-            hintAnchor = Keyboard.FocusedElement as UIElement;
             HintText.Text = noticeField;
             ShowHint();
             noticeTimer?.Start();
         }
     }
 
-    /// <summary>Opens the hint chip under the anchor, or under the page when there is none.</summary>
     private void ShowHint()
     {
-        var anchor = hintAnchor is FrameworkElement { IsVisible: true } element && Window.GetWindow(element) == this
-            ? hintAnchor
-            : ContentScroller;
-        HintPopup.PlacementTarget = anchor;
-        HintPopup.IsOpen = false;
-        HintPopup.IsOpen = true;
+        HintToast.Visibility = Visibility.Visible;
+        HintToast.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(140)));
+    }
+
+    private void HideHint()
+    {
+        if (HintToast.Visibility != Visibility.Visible)
+            return;
+        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(200));
+        fade.Completed += (_, _) => HintToast.Visibility = Visibility.Collapsed;
+        HintToast.BeginAnimation(OpacityProperty, fade);
     }
     private string? selectedId;
     private string? selectedName;

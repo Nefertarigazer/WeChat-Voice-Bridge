@@ -13,7 +13,7 @@
 - 验证：`Test.ps1` **.NET 209/209 PASS + Python 54 PASS（41 skipped 基线）**、`Verify-Source` PASS、Clean-payload PASS（1733 文件）。
 
 **工作区未发布改动（1.5.2 之后，未升版本号）**：
-- 提示改成**跟手小气泡**：窗口级 `Popup x:Name="HintPopup"`（`Placement=Bottom`、不吃布局、Fade），锚点取 `Keyboard.FocusedElement`（你刚点的控件），找不到就回退到内容区；同一时刻只有一条，5 秒自动关，切页即关。四个页级提示 TextBlock 已删除，边距已还原。词库提示走同一个气泡。
+- 提示是**窗口内底部居中的字幕条** `HintToast`（`Grid.ColumnSpan=2`、`VerticalAlignment=Bottom`、圆角 12、`#F8FFFFFF` 底）：同一时刻只有一条，5 秒淡出，切页即关。**不要改回 Popup**——独立透明窗口会露出圆角外的矩形，而且不跟随窗口移动/最小化。四个页级提示 TextBlock 已删除，边距已还原；词库提示走同一个字幕条。
 - 音色下拉框：`VoiceChoiceItemStyle` 补 `BasedOn="{StaticResource {x:Type ComboBoxItem}}"`（显式 ItemContainerStyle 会覆盖隐式样式，这就是它“和别人不一样”的原因）；`ComboBoxItem` 样式加 `FocusVisualStyle=null` 去掉虚线框。分厂商分组与失效音色语义未改。
 - 右键菜单：新增 `src/VoiceBridge.App/FieldMenu.cs`，`App.OnStartup` 用 `EventManager.RegisterClassHandler` 挂住 `TextBoxBase`/`PasswordBox` 的 `ContextMenuOpening`，自建中文菜单（剪切/复制/粘贴/全选 + 快捷键，`RowMenu` 样式）。**不要在 XAML 里再给单个输入框设 ContextMenu**，否则会绕过这套统一逻辑。
 - 词库编辑行的输入框与行悬停底色曾同色（都是 `Fill`），导致未聚焦的「读作」框看起来消失；行悬停已改 `FillStrong`。**不要把输入框改白底**，白底在白色卡片上同样会隐形。

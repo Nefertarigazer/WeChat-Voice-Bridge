@@ -1110,21 +1110,17 @@
       </Grid>
     </Grid>
 
-    <!-- The hint chip: one at a time, floating just under the control that raised it.
-         A Popup takes no layout space, so a hint can never push the page around, and
-         because it is anchored to the control you just used it cannot surface on a
-         page you did not touch either. -->
-    <Popup x:Name="HintPopup" AllowsTransparency="True" StaysOpen="True" Placement="Bottom"
-           IsHitTestVisible="False" Focusable="False" PopupAnimation="Fade" VerticalOffset="6">
-      <Border Background="{StaticResource CardBg}" BorderBrush="#EFE1C6" BorderThickness="1"
-              CornerRadius="9" Padding="12,7" MaxWidth="380">
-        <Border.Effect>
-          <DropShadowEffect BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="0.14" Color="#2B3A35"/>
-        </Border.Effect>
-        <TextBlock x:Name="HintText" Style="{StaticResource Footnote}" Margin="0" FontSize="12"
-                   Foreground="{StaticResource Caution}" TextWrapping="Wrap"
-                   AutomationProperties.AutomationId="HintPopupText"/>
-      </Border>
-    </Popup>
+    <!-- The hint is a subtitle at the bottom of the window: one line at a time, centred,
+         reading like a caption. It lives inside the window rather than in a Popup, so it
+         travels with the window, vanishes when the window is minimised, and the rounded
+         corners never show the rectangular halo a transparent popup draws around them. -->
+    <Border x:Name="HintToast" Panel.ZIndex="40" Grid.ColumnSpan="2"
+            HorizontalAlignment="Center" VerticalAlignment="Bottom"
+            Margin="24,0,24,36" MaxWidth="760" Padding="18,10" CornerRadius="12" Opacity="0"
+            Background="#F8FFFFFF" BorderBrush="#E6EDE9" BorderThickness="1"
+            IsHitTestVisible="False" Visibility="Collapsed">
+      <TextBlock x:Name="HintText" FontSize="13.5" LineHeight="20" Foreground="#8A5A00" TextWrapping="Wrap"
+                 TextAlignment="Center" AutomationProperties.AutomationId="HintPopupText"/>
+    </Border>
   </Grid>
 </Window>

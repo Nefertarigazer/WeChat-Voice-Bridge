@@ -4,6 +4,27 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 2：提示改为底部居中字幕条（弃用 Popup）
+
+**用户反馈**：跟手气泡“一般”，改成底部中间的字幕气泡；并指出三个缺陷：四角有外接矩形（圆角外露方框）、应用最小化后气泡不消失、拖动窗口时气泡不跟随。
+
+### 根因
+- 四角矩形：`Popup` 是独立透明窗口，内容再叠 `DropShadowEffect`，渲染边界按外接矩形出图，圆角外会露一圈方框。
+- 不随窗口：Popup 是独立 HWND，位置按屏幕坐标摆放，窗口最小化/移动都不会带着它。
+
+### 改法
+- 删掉 `Popup HintPopup`，改为**窗口内**的 `Border HintToast`（`Panel.ZIndex=40`、`Grid.ColumnSpan=2`、`HorizontalAlignment=Center`、`VerticalAlignment=Bottom`、`Margin=24,0,24,36`、`MaxWidth=760`、圆角 12、`#F8FFFFFF` 底 + `#E6EDE9` 细边、13.5px `#8A5A00` 文字居中）。
+- 因为它就是窗口 VisualTree 的一部分：**跟着窗口移动、最小化就自然不可见、圆角外不会再有方框**，也不需要阴影弹层。
+- 交互：`notice` setter 填字 + 淡入（140ms，0→1），5 秒定时器到点淡出（200ms）后 `Collapsed`；切页 `notice = null` 立即淡出。删掉 `hintAnchor` 与 `Keyboard.FocusedElement` 那套锚点逻辑。
+- 踩坑：第一次贴到根 Grid 没写 `Grid.ColumnSpan`，落到第 0 列（侧边栏）里，字幕条跑到了左下角；补 `ColumnSpan=2` 后居中。
+
+### 验证
+- `dotnet build` 0/0；`Test.ps1` **.NET 209/209 + Python 54 PASS**；`Verify-Source` PASS。
+- `UiSmokeTest`：`notice: [试听完成。]` **PASS**（新结构仍能读到 `HintPopupText`）。
+- 截图 `artifacts/screenshots/toast-bottom.png`：字幕条位于窗口底部居中、圆角干净无方框。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续：词库编辑行“右半边消失” + 右键菜单跟手
 
 **用户反馈**：“这不对吧，用汉语，而且都歪了”。拆成两条具体问题：
