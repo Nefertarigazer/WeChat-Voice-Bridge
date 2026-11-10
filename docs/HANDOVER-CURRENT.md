@@ -20,7 +20,7 @@
 - 右键菜单定位改为 `PlacementMode.MousePoint`（原来按输入框底边定位，宽字段下离指针很远）。
 - 字幕条配色：半透明偏灰绿（`#CCEDEDEB` 底 + `#6B7B75` 文字），更低调。
 - 右键菜单改为 **XAML 样式直挂**：App.xaml 定义 `x:Key="FieldMenu"`（ContextMenu，复用 RowMenu/RowMenuItem 原样），在隐式 TextBox/PasswordBox 样式里 `Setter ContextMenu`。**不要**再走 `EventManager.RegisterClassHandler` + 运行时建菜单那条路（`RowMenu` 的 `Width=112` 会压窄，`Dispatcher.BeginInvoke` 有吞弹出风险）。`FieldMenu.cs` 已删除。
-- 朗读记录区最终 **96 DIP**（空状态 88）+ 首页底部边距 **24**；配合标题下边距 12、记录标题上边距 14，UIA 复测**不再可滚动**。改高度必须用 `wvb-scrollcheck.ps1` 迭代验证（100 时 99.93% 仍临界）。空提示字号 **14**。
+- 朗读记录区最终 **110 DIP**（空状态 102）+ 首页底部边距 **10**；配合标题下边距 12、记录标题上边距 14，UIA 复测**不再可滚动**。页面下沿渐隐遮罩 36→**18 DIP**（太厚会把卡片底边洗成背景色，误看成大空隙）。改高度必须用 `wvb-scrollcheck.ps1` 验证。空提示字号 **14**。
 - 气泡：`#6EE4E7E5` 底、`#5C6B64` 字、`Padding 16,9`、`MaxWidth 720`、距底 **50**（上移自身高度 3/5）、右栏居中。
 - **平滑滚动**：`src/VoiceBridge.App/SmoothScroll.cs` 用类级 `PreviewMouseWheel` + `CompositionTarget.Rendering` 累积目标偏移、ease-out-quint（160–380ms），覆盖全应用所有 ScrollViewer。**不要再在页面里自绘滚动**（旧的 `PageMouseWheel/ScrollFrame/StopScrolling` 已删）。
 - **无悬停提示**：全应用 `ToolTip` 已清空（含 `restrictionTip` 那套禁用控件弹字机制）。禁用态只保留变淡 + No 光标 + `AutomationProperties.HelpText`。不要再加回 ToolTip。
