@@ -254,22 +254,21 @@ public partial class MainWindow
         var label = verifiedUpdate is not null ? (restartConfirmed ? "确认结束并重启" : "重启安装更新")
             : manifest is null ? "检查更新" : $"更新到 v{manifest.Version}";
         // Three states, three distinct colours: grey "up to date", mint outline
-        // "download available", solid green "ready to install". All three share the
-        // row's 36 DIP inner height, so nothing shifts vertically.
+        // "download available", solid green "ready to install". The button keeps
+        // one exact 36 DIP height in every state; the label colour comes from the
+        // style, so a plain string is enough and vertical centring stays exact.
         var style = manifest is null ? "SecondaryButton"
             : verifiedUpdate is null ? "UpdateReadyButton" : "UpdateInstallButton";
         var ink = manifest is null ? "Label" : verifiedUpdate is null ? "UpdateReadyText" : "WhiteText";
         UpdateAction.Style = (Style)FindResource(style);
-        UpdateAction.Content = new TextBlock
-        {
-            Text = label,
-            Foreground = (Brush)FindResource(ink),
-            FontSize = 14,
-            TextWrapping = TextWrapping.NoWrap,
-            TextAlignment = TextAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        };
+        // A plain string is enough for centring, but the label ink must be set
+        // explicitly: a ContentPresenter does not always inherit the template's
+        // Foreground, which would leave white text dark on the solid green state.
+        UpdateAction.Foreground = (Brush)FindResource(ink);
+        UpdateAction.Content = label;
+        UpdateSubtext.Text = manifest is null ? "已是最新版本"
+            : verifiedUpdate is not null ? "更新包已就绪" : "发现新版本";
+        UpdateStateDot.Fill = manifest is null ? IdleDot : verifiedUpdate is not null ? LiveDot : WarnDot;
         UpdateAction.IsEnabled = !closing && !updateHandoff && updateCancel is null;
         UpdatePackage.Visibility = manifest is null ? Visibility.Collapsed : Visibility.Visible;
         if (manifest is null)
