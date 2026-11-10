@@ -4,6 +4,28 @@
 
 ---
 
+## 1.5.1 · 2026-11-10（续）：修复开发构建「缺少 Python 3.12 Worker」+ 呼吸幅度加大
+
+> 状态：两项均完成、构建通过、实机验证。**未打包、未上线、未改版本号**。
+
+### A. 「缺少 Python 3.12 Worker」（用户报错）
+
+- **不是 UI 改动弄坏的**：错误文案来自 `PythonFixtureSource.PrepareAsync` 的守卫（`!File.Exists(python) || !File.Exists(script)`，即 `bin\...\runtime\python\python.exe` 或 `worker\main.py` 不在）。开发构建目录（`src\VoiceBridge.App\bin\Release\net8.0-windows`）从来不会由 `dotnet build` 生成 `runtime\`，也不会拷 `worker\deps`——那两个目录只由 `Publish.ps1` 打进发布包。之前能跑靠的是工作区里残留的运行时，本轮发现 `artifacts\win-x64\runtime` 已经不在（旧的无版本目录被清掉了），所以点「开始」就报缺 Worker。
+- **修复**（只是把运行时和依赖补回开发目录，不动源码）：
+  - `artifacts\win-x64-v1.5.1\runtime` → `src\VoiceBridge.App\bin\Release\net8.0-windows\runtime`（41 MB，Python 3.12.10）
+  - `artifacts\win-x64-v1.5.1\worker\deps` → `bin\...\worker\deps`（sqlcipher3 / zstandard）
+  - 顺手把文档里引用的 `artifacts\win-x64\runtime` 也补回来了（`Test.ps1 -Python` 要用）。
+- **验证**：`runtime\python\python.exe` 为 3.12.10；在 worker 目录下插入 `deps` 后 `import sqlcipher3, zstandard` 与 `import wechat_adapter, audited_wechat_keys, contact_index` 均 OK；应用重启正常，`ResolvePython()` / `WorkerScript` 两个路径均存在，守卫不会再触发。
+- **教训**：从 `bin` 跑的开发版不是自包含的，重启（或清理过 artifacts）后必须重做上面两条拷贝，否则一按「开始」就报缺 Worker。
+
+### B. 呼吸幅度加大（用户：不够明显）
+
+- `BreathingLight.cs` 数值：透明度 1 → **0.42**（旧 0.62）、缩放 1 → **0.85**（旧 0.93）、光晕峰值 0.22 → **0.30**、扩散 1.9 → **2.05** 倍；节拍（3.2 s、底部停留）不变。
+- 验证：逐帧采样 12 帧（250 ms）：核心色 `#1D9A5B` (30,154,92) ↔ **(160,213,186)**，反推透明度约 1.0 ↔ 0.42，与设定一致；帧条 `artifacts/screenshots/dot-breath-amplitude-strip.png`，放大图 `dot-peak.png` / `dot-dim.png`。
+- 其他未动，胶囊点仍然只在绿色（正在监听）时呼吸。
+
+---
+
 ## 1.5.1 · 2026-11-10（续）：输入框右键菜单改用「⋮」菜单同款外观
 
 > 状态：代码完成、构建通过、真实应用右键截图验证。**未打包、未上线、未改版本号**。

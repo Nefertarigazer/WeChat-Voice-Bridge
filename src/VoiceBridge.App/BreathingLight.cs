@@ -30,14 +30,14 @@ internal static class BreathingLight
     public static Storyboard Create(Ellipse dot, ScaleTransform dotScale, Ellipse halo, ScaleTransform haloScale)
     {
         var storyboard = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
-        storyboard.Children.Add(Breathe(dot, UIElement.OpacityProperty, 1.0, 0.62));
-        storyboard.Children.Add(Breathe(dotScale, ScaleTransform.ScaleXProperty, 1.0, 0.93));
-        storyboard.Children.Add(Breathe(dotScale, ScaleTransform.ScaleYProperty, 1.0, 0.93));
+        storyboard.Children.Add(Breathe(dot, UIElement.OpacityProperty, 1.0, 0.42));
+        storyboard.Children.Add(Breathe(dotScale, ScaleTransform.ScaleXProperty, 1.0, 0.85));
+        storyboard.Children.Add(Breathe(dotScale, ScaleTransform.ScaleYProperty, 1.0, 0.85));
         // The halo is brightest at the top of the breath and gone before the dot
         // reaches the bottom, so it never competes with the dip for attention.
-        storyboard.Children.Add(Bloom(halo, UIElement.OpacityProperty, 0.0, 0.22));
-        storyboard.Children.Add(Bloom(haloScale, ScaleTransform.ScaleXProperty, 1.0, 1.9));
-        storyboard.Children.Add(Bloom(haloScale, ScaleTransform.ScaleYProperty, 1.0, 1.9));
+        storyboard.Children.Add(Bloom(halo, UIElement.OpacityProperty, 0.0, 0.30));
+        storyboard.Children.Add(Bloom(haloScale, ScaleTransform.ScaleXProperty, 1.0, 2.05));
+        storyboard.Children.Add(Bloom(haloScale, ScaleTransform.ScaleYProperty, 1.0, 2.05));
         return storyboard;
     }
 
