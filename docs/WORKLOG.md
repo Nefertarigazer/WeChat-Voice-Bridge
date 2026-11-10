@@ -4,6 +4,22 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 8：找到“朗读记录高度改不动”的真正根因
+
+**用户反馈**：朗读记录的高度还是有问题，一直没改成功。
+
+### 真正根因
+`Render()` 里 `ResultsBox.Visibility = noResults ? Collapsed : Visible`——**没有记录时，装列表的整个卡片被折叠**，页面上那张矮卡其实是 `ResultsEmpty`（提示文字自身），它没有高度定义，改 `Results` 的 `Height` 当然“一直没改成功”。
+
+### 改法
+`ResultsEmpty` 加 `Height="512"` + `VerticalAlignment="Center"`：空状态填满与列表同高的卡片，文字垂直居中。这样无论有没有记录，卡片高度一致，不再塌陷。
+
+### 验证
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+- 截图 `artifacts/screenshots/home-empty-tall.png`：空白卡片高、文字垂直居中、贴近底部。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 7：朗读记录区拉到 520px + 杀虚线焦点框
 
 **用户反馈**：① 朗读记录高度完全越来越小、没往下，距底还很大；② 按按钮有时出现虚线框。

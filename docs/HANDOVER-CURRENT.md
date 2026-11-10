@@ -20,7 +20,8 @@
 - 右键菜单定位改为 `PlacementMode.MousePoint`（原来按输入框底边定位，宽字段下离指针很远）。
 - 字幕条配色：半透明偏灰绿（`#CCEDEDEB` 底 + `#6B7B75` 文字），更低调。
 - 右键菜单改为 **XAML 样式直挂**：App.xaml 定义 `x:Key="FieldMenu"`（ContextMenu，复用 RowMenu/RowMenuItem 原样），在隐式 TextBox/PasswordBox 样式里 `Setter ContextMenu`。**不要**再走 `EventManager.RegisterClassHandler` + 运行时建菜单那条路（`RowMenu` 的 `Width=112` 会压窄，`Dispatcher.BeginInvoke` 有吞弹出风险）。`FieldMenu.cs` 已删除。
-- 字幕条再调：底色 `#80E8EAE8`（更透偏灰绿）、距底 14px、字色 `#6B7B75`。首页朗读记录空白区高度 190→320，首页底部边距 48→16。
+- 朗读记录空状态根因：`Render()` 无记录时折叠 `ResultsBox`，页面矮卡其实是 `ResultsEmpty`；已给 `ResultsEmpty` 设 `Height=512 + VerticalAlignment=Center`，空/有记录卡片同高。列表 `Results` `Height=520`。
+- 字幕条：底色 `#80E8EAE8`（更透偏灰绿）、距底 26px、右栏内居中（`Grid.Column=1`）、文字 `TrimEnd('。')`。
 - 字幕条距底 26px（上移）；文字尾部 `TrimEnd('。')` 只去句号，其他标点保留。
 - 验证：build 0/0；`Test.ps1` .NET 209/209 + Python 54；`Verify-Source` PASS。
 
