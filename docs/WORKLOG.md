@@ -4,6 +4,32 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 10：首页真正做到「不滚动」+ 更新服务故障定位更正
+
+**用户反馈**：① 朗读记录还是太高、仍要滚动；② VPN 没问题，不要把锅甩给 VPN。
+
+### A. 首页不滚动（用测量代替猜）
+- UIA 实测：「朗读记录」标题下方到窗口底部只有 **216 DIP**，而卡片设 300 → 必然滚动；设 176 仍滚动（ScrollViewer `VerticalViewSize` 89.4%→95.8%）。
+- 根因：两张联系人卡片本身就占掉将近一整屏，留给记录区的空间极小。
+- 最终方案：记录卡按「三行左右」定 **120 DIP**（空状态 112），同时收紧三处间距补出约 35 DIP——首页标题下边距 22→12、记录标题上边距 24→14、首页底部边距 16→0。
+- **验证方式**：`wvb-scrollcheck.ps1` 用 UIA 找 `IsScrollPatternAvailable` 的 Pane，改前 `VerticalViewSize=95.8%`（要滚动），改后**该元素不再可滚动**（无输出）→ 真正不滚动了。截图 `artifacts/screenshots/home-no-scroll.png`。
+
+### B. 「检查更新连不上」归属更正（重要）
+- 我上一轮把原因写成「本机代理拦截」，**用户指出 VPN 正常，是我判断错了**。
+- 重新做了三层取证：
+  1. 本机 `curl --noproxy '*'` 直连：TLS 握手失败；`PowerShell TcpClient` 直连 `服务器IP:443`：TCP 能连上，`AuthenticateAsClient` 报「远程主机已关闭连接」→ 是服务端没完成握手。
+  2. 公网 DNS（Cloudflare DoH）：`iceland.de5.net` 真实解析到 **服务器IP**（不是本机 Fake-IP），ICMP 可通。
+  3. **外部服务复核**（不走本机网络）：`r.jina.ai` 返回 `net::ERR_ADDRESS_UNREACHABLE`，`api.allorigins.win` 返回 **522**（Cloudflare 连不上源站）。
+- 结论：**A1 发布服务器侧故障**（443 不完成 TLS 握手、源站不可达），与用户 VPN 无关。80 端口仍返回 308，说明机器活着但 HTTPS 服务异常。
+- 应用内文案改中性：「暂时连不上更新服务（服务器没有完成握手）。稍后再试即可，已下载好的更新包不受影响。」
+- 已通过 muse-call 通知 Muse 检查 A1 上的 Caddy/443 服务。
+
+### 验证
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+- 首页 UIA 复测：不再可滚动。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 9：记录区高度回调 + 更新检查报错更准确
 
 **用户反馈**：① 520px 太高，要不用滚动、留三行左右边距；② 点检查更新报“连接不上网络”。

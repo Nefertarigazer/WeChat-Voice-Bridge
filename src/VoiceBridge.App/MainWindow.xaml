@@ -540,9 +540,9 @@
           <Grid MaxWidth="660">
 
             <!-- ========================= 首页 ========================= -->
-            <StackPanel Margin="0,0,0,16"
+            <StackPanel Margin="0,0,0,0"
                         Visibility="{Binding IsChecked, ElementName=NavHome, Converter={StaticResource BoolToVis}}">
-              <TextBlock Text="首页" Style="{StaticResource Title}" Margin="0,0,0,22"/>
+              <TextBlock Text="首页" Style="{StaticResource Title}" Margin="0,0,0,12"/>
 
               <Border Style="{StaticResource Card}">
                 <Grid MinHeight="52">
@@ -654,7 +654,7 @@
 
 
 
-              <Grid Margin="0,24,0,8">
+              <Grid Margin="0,14,0,8">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -668,7 +668,10 @@
               <Border Style="{StaticResource Group}">
                 <Grid>
                   <Border x:Name="ResultsBox" Padding="4">
-                    <ListBox x:Name="Results" Height="300" ItemContainerStyle="{StaticResource LogItem}">
+                    <!-- Measured: with two contact cards the page leaves 216 DIP under the
+                       「朗读记录」 header; 176 keeps the card inside the window with a little
+                       air left, so the home page never needs a scroll. -->
+                    <ListBox x:Name="Results" Height="120" ItemContainerStyle="{StaticResource LogItem}">
                       <ListBox.ItemTemplate>
                         <DataTemplate>
                           <TextBlock Text="{Binding}" FontSize="13" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
@@ -679,7 +682,7 @@
                   <!-- Empty state fills the same card the log list uses: the card keeps
                        its height when there is nothing to show yet, so the page does not
                        collapse the moment you clear the log. -->
-                  <TextBlock x:Name="ResultsEmpty" Style="{StaticResource Hint}" Margin="28" Height="292"
+                  <TextBlock x:Name="ResultsEmpty" Style="{StaticResource Hint}" Margin="28" Height="112"
                              VerticalAlignment="Center" TextAlignment="Center"
                              Text="还没有朗读记录。对方发来新消息后，这里会显示朗读过的内容。"
                              Visibility="Collapsed"/>
