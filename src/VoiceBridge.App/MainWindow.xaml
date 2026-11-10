@@ -818,8 +818,43 @@
                              line in every state (green / red / orange). The status is
                              carried by the line under the card and the button label. -->
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                          <!-- Breathing light: RenderUpdate() only picks the Fill, so the
+                               pulse is expressed with opacity/scale and therefore works the
+                               same for green, red and orange. A RenderTransform never affects
+                               layout, so the 10 px footprint and the text never move. -->
                           <Ellipse x:Name="UpdateStateDot" Width="10" Height="10" Margin="0,0,12,0"
-                                   VerticalAlignment="Center" Fill="{StaticResource Secondary}"/>
+                                   VerticalAlignment="Center" Fill="{StaticResource Secondary}"
+                                   RenderTransformOrigin="0.5,0.5">
+                            <Ellipse.RenderTransform>
+                              <ScaleTransform/>
+                            </Ellipse.RenderTransform>
+                            <Ellipse.Triggers>
+                              <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                                <BeginStoryboard>
+                                  <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                     From="1" To="0.35" Duration="0:0:1.6">
+                                      <DoubleAnimation.EasingFunction>
+                                        <SineEase EasingMode="EaseInOut"/>
+                                      </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Duration="0:0:1.6" From="1" To="0.88"
+                                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)">
+                                      <DoubleAnimation.EasingFunction>
+                                        <SineEase EasingMode="EaseInOut"/>
+                                      </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Duration="0:0:1.6" From="1" To="0.88"
+                                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)">
+                                      <DoubleAnimation.EasingFunction>
+                                        <SineEase EasingMode="EaseInOut"/>
+                                      </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                  </Storyboard>
+                                </BeginStoryboard>
+                              </EventTrigger>
+                            </Ellipse.Triggers>
+                          </Ellipse>
                           <TextBlock x:Name="UpdateVersion" Style="{StaticResource RowLabel}"
                                      FontSize="17" FontWeight="SemiBold"/>
                         </StackPanel>

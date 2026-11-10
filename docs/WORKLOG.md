@@ -4,6 +4,28 @@
 
 ---
 
+## 1.5.1 · 2026-11-10（续）：更新状态点改成呼吸灯（纯 XAML，三色通用）
+
+> 状态：代码完成、构建通过、逐帧像素验证通过。**未打包、未上线、未改版本号**。
+
+**用户要求**：这个点不管绿/橙/红，都希望有呼吸灯的质感；只改这个点，不碰其他功能。
+
+**做法**（WPF 里呼吸灯的标准写法，参考通用的 Storyboard + DoubleAnimation + SineEase 控件样本，不引入任何依赖）：
+- 只改 `MainWindow.xaml` 里的 `UpdateStateDot`：给它加 `RenderTransformOrigin="0.5,0.5"` + 一个 `ScaleTransform`，在 `Ellipse.Triggers` 的 `FrameworkElement.Loaded` 上起一条 `Storyboard RepeatBehavior="Forever" AutoReverse="True"`。
+- 两条动画各 1.6 s（一次完整吸气/呼气 3.2 s）：`Opacity` 1 → **0.35**、`ScaleX/ScaleY` 1 → **0.88**，都带 `SineEase EaseInOut`，所以是缓入缓出、不会闪。
+- **颜色不参与动画**：`Fill` 仍由 `RenderUpdate()` 按三态赋值，呼吸只改透明度/缩放，因此绿、红、橙三种状态自动都一样。
+- `RenderTransform` 不影响布局，所以 10 px 占位、文字位置、卡片高度、按钮居中全部不变；未动任何 C# 代码。
+
+**验证**：
+- `dotnet build -c Release`：**0 警告 0 错误**；`Verify-Source.ps1` PASS。
+- 逐帧采样（`PrintWindow` 连续抓帧 + 像素采样，绿态 12 帧 / 间隔 120 ms）：圆点核心色从 `#1D9A5B` (29,154,91) 平滑淡到 (161,213,187) 再回升——按白底混合反推透明度约 1.0 ↔ 0.39，与设计的 1 → 0.35 一致。
+- 红态 8 帧：从 `#D33B3B` (211,60,60) 淡到 (240,187,187)，证明动画确实与颜色无关（橙态同一条代码路径）。
+- 帧条拼图：`artifacts/screenshots/dot-breath-green-strip.png`、`dot-breath-red-strip.png`。
+- 开销：动画运行 6 秒内进程 CPU 共 **31 ms**（约 0.5% 单核），可忽略。
+- 收尾：假 pending 包已删、`updates` 目录为空、应用已退出、`settings.json` 指针未变。
+
+---
+
 ## 1.5.1 · 2026-11-10（续）：更新说明标题与体积的**基线对齐**
 
 > 状态：代码完成、构建通过、实机像素测量验证。**未打包、未上线、未改版本号**。
