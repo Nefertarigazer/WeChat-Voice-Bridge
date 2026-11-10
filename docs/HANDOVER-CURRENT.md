@@ -16,6 +16,8 @@
 - 提示改成**跟手小气泡**：窗口级 `Popup x:Name="HintPopup"`（`Placement=Bottom`、不吃布局、Fade），锚点取 `Keyboard.FocusedElement`（你刚点的控件），找不到就回退到内容区；同一时刻只有一条，5 秒自动关，切页即关。四个页级提示 TextBlock 已删除，边距已还原。词库提示走同一个气泡。
 - 音色下拉框：`VoiceChoiceItemStyle` 补 `BasedOn="{StaticResource {x:Type ComboBoxItem}}"`（显式 ItemContainerStyle 会覆盖隐式样式，这就是它“和别人不一样”的原因）；`ComboBoxItem` 样式加 `FocusVisualStyle=null` 去掉虚线框。分厂商分组与失效音色语义未改。
 - 右键菜单：新增 `src/VoiceBridge.App/FieldMenu.cs`，`App.OnStartup` 用 `EventManager.RegisterClassHandler` 挂住 `TextBoxBase`/`PasswordBox` 的 `ContextMenuOpening`，自建中文菜单（剪切/复制/粘贴/全选 + 快捷键，`RowMenu` 样式）。**不要在 XAML 里再给单个输入框设 ContextMenu**，否则会绕过这套统一逻辑。
+- 词库编辑行的输入框与行悬停底色曾同色（都是 `Fill`），导致未聚焦的「读作」框看起来消失；行悬停已改 `FillStrong`。**不要把输入框改白底**，白底在白色卡片上同样会隐形。
+- 右键菜单定位改为 `PlacementMode.MousePoint`（原来按输入框底边定位，宽字段下离指针很远）。
 - 验证：build 0/0；`Test.ps1` .NET 209/209 + Python 54；`Verify-Source` PASS；气泡/右键菜单/下拉框均有 UIA 或截图证据（`artifacts/screenshots/hint-chip.png`、`voice-dropdown.png`）。
 
 **1.5.2 发布台账（2026-11-10，Muse 发布单 `codex_20261110_174906_4f5a16`）**：

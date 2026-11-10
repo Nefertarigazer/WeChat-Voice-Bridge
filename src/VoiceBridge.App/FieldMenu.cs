@@ -38,8 +38,9 @@ internal static class FieldMenu
         var menu = new ContextMenu
         {
             Style = (Style)Application.Current.FindResource("RowMenu"),
-            PlacementTarget = field,
-            Placement = PlacementMode.Bottom,
+            // At the pointer, like every other context menu: anchoring it to the whole
+            // text box put it far below a wide field and it read as misplaced.
+            Placement = PlacementMode.MousePoint,
         };
         if (field is TextBoxBase)
         {

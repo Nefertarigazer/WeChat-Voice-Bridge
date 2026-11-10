@@ -880,8 +880,10 @@
               <ContentPresenter/>
             </Border>
             <ControlTemplate.Triggers>
+              <!-- Hover uses FillStrong, not Fill: Fill is exactly the input field tint,
+                   so a hovered row used to swallow the fields sitting on it. -->
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="{StaticResource Fill}"/>
+                <Setter TargetName="Root" Property="Background" Value="{StaticResource FillStrong}"/>
               </Trigger>
               <Trigger Property="IsSelected" Value="True">
                 <Setter TargetName="Root" Property="Background" Value="{StaticResource AccentSoft}"/>
