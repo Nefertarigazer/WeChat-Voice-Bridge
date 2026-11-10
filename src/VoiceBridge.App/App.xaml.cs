@@ -30,6 +30,8 @@ public partial class App : Application
         try { SetCurrentProcessExplicitAppUserModelID(AppUserModelId); }
         catch (Exception) { /* Taskbar grouping is optional; never block startup. */ }
         base.OnStartup(e);
+        // One smooth, frame-synced wheel scroll for every ScrollViewer in the app.
+        SmoothScroll.Install();
         if (e.Args.Length > 0 && e.Args[0] == "--apply-update")
         {
             var installer = new UpdateInstallationWindow();

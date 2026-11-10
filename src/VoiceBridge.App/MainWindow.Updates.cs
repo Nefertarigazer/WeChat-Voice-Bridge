@@ -255,7 +255,6 @@ public partial class MainWindow
     {
         var manifest = availableUpdate;
         SidebarUpdate.Visibility = manifest is null ? Visibility.Collapsed : Visibility.Visible;
-        SidebarUpdate.ToolTip = manifest is null ? null : $"查看 v{manifest.Version} 更新";
         var label = verifiedUpdate is not null ? (restartConfirmed ? "确认结束并重启" : "重启安装更新")
             : manifest is null ? "检查更新" : $"更新到 v{manifest.Version}";
         // Three states, three distinct colours: grey "up to date", mint outline
@@ -288,7 +287,6 @@ public partial class MainWindow
         // gap that inline Runs cannot express as a margin).
         UpdateNoteTitle.Text = $"v{manifest.Version}";
         UpdateNoteSize.Text = $"  {manifest.Size / 1_000_000d:0.0} MB";
-        UpdatePackage.ToolTip = $"v{manifest.Version} · {manifest.Size / 1_000_000d:0.0} MB";
         FillNotes(manifest.Notes);
     }
 

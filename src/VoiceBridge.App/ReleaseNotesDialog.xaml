@@ -84,7 +84,7 @@
     <Grid x:Name="CaptionBar" Background="Transparent" MouseLeftButtonDown="CaptionDrag">
       <Button x:Name="CloseNotesButton" Style="{StaticResource NotesCloseButton}"
               HorizontalAlignment="Right"
-              AutomationProperties.Name="关闭更新说明" ToolTip="关闭" Click="DismissClick"/>
+              AutomationProperties.Name="关闭更新说明" Click="DismissClick"/>
     </Grid>
     <Grid Grid.Row="1" Margin="28,8,28,24">
       <Grid.RowDefinitions>

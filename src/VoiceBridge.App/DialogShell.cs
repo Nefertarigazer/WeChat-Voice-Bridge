@@ -38,7 +38,7 @@ internal static class DialogShell
         layout.RowDefinitions.Add(new() { Height = new(1, GridUnitType.Star) });
         var caption = new Grid { Background = Brushes.Transparent };
         var close = new Button { Style = (Style)window.FindResource("DialogCloseButton"),
-            HorizontalAlignment = HorizontalAlignment.Right, ToolTip = "关闭" };
+            HorizontalAlignment = HorizontalAlignment.Right };
         AutomationProperties.SetName(close, "关闭" + window.Title);
         close.Click += (_, _) => window.Close();
         // A transparent window has no native caption; dragging and Alt+F4 are provided here instead.

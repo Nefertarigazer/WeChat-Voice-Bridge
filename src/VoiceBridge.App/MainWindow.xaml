@@ -23,7 +23,7 @@
                      FontSize="15" Margin="0,0,7,0" VerticalAlignment="Center" Visibility="Collapsed"/>
           <TextBlock x:Name="ChoiceLabel" Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center"
                      TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
-          <Button Grid.Column="2" Content="×" Tag="{Binding}" ToolTip="删除这个自定义提示词"
+          <Button Grid.Column="2" Content="×" Tag="{Binding}"
                   MinWidth="28" Padding="7,2" Margin="10,0,0,0"
                   PreviewMouseLeftButtonDown="DeleteAnnouncementFromMenuMouse" Click="DeleteAnnouncementFromMenu">
             <Button.Style>
@@ -318,7 +318,7 @@
             <ComboBox Grid.Column="1" ItemsSource="{Binding Models}" DisplayMemberPath="Label" SelectedValuePath="Id"
                       SelectedValue="{Binding Model, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False"
                       Visibility="{Binding CanSwitchModels, Converter={StaticResource BoolToVis}}"
-                      AutomationProperties.Name="此联系人使用模型" ToolTip="只影响此联系人，下一条开始合成时生效；付费模型按服务商规则计费"/>
+                      AutomationProperties.Name="此联系人使用模型"/>
             <Border Grid.Column="1" Background="{StaticResource Fill}" CornerRadius="9" Padding="12,9"
                     Visibility="{Binding CanSwitchModels, Converter={StaticResource InverseBoolToVis}}">
               <TextBlock Text="{Binding ModelLabel}"/>
@@ -329,7 +329,7 @@
             <TextBlock Text="合成模式" Style="{StaticResource RowLabel}"/>
             <ComboBox Grid.Column="1" ItemsSource="{Binding Latencies}" DisplayMemberPath="Label" SelectedValuePath="Id"
                       SelectedValue="{Binding FishLatency, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False"
-                      AutomationProperties.Name="此联系人 Fish 合成模式" ToolTip="Fish 音质与延迟的取舍；实际效果受模型和网络影响。只对该联系人下一条合成生效"/>
+                      AutomationProperties.Name="此联系人 Fish 合成模式"/>
           </Grid>
       </StackPanel>
     </DataTemplate>
@@ -639,7 +639,7 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AvatarTemplate}" HorizontalAlignment="Left"/>
                         <Button Grid.Column="1" x:Name="UseHistoryButton" HorizontalContentAlignment="Left" Content="{Binding Name}" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="UseRecentContactClick"/>
-                        <Button Grid.Column="2" Content="×" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="DeleteRecentContactClick" ToolTip="删除这条历史"/>
+                        <Button Grid.Column="2" Content="×" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="DeleteRecentContactClick"/>
                       </Grid>
                     </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                   </StackPanel>
@@ -808,7 +808,7 @@
                           Visibility="{Binding HasItems, ElementName=ReadingList, Converter={StaticResource BoolToVis}}"/>
                   <Button x:Name="AddReadingButton" Content="＋" Style="{StaticResource AddButton}"
                           HorizontalAlignment="Center" Margin="0,12,0,14"
-                          Click="AddReadingClick" AutomationProperties.Name="添加一行" ToolTip="添加一行"/>
+                          Click="AddReadingClick" AutomationProperties.Name="添加一行"/>
                 </StackPanel>
               </Border>
             </StackPanel>
@@ -952,10 +952,9 @@
                       </Ellipse>
                       <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                       <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource ProviderEnableButton}" Tag="{Binding}" Click="ActivateProviderClick"
-                                ToolTip="选择当前使用的密钥"/>
+                        <Button Style="{StaticResource ProviderEnableButton}" Tag="{Binding}" Click="ActivateProviderClick"/>
                         <Button Content="⋮" Style="{StaticResource PlainButton}" Tag="{Binding}" Click="ProviderMoreClick"
-                                Margin="2,0,0,0" Padding="8,2" FontSize="16" ToolTip="更多操作"/>
+                                Margin="2,0,0,0" Padding="8,2" FontSize="16"/>
                       </StackPanel>
                     </Grid>
                   </Border>
@@ -1123,7 +1122,7 @@
          corners never show the rectangular halo a transparent popup draws around them. -->
     <Border x:Name="HintToast" Panel.ZIndex="40" Grid.Column="1"
             HorizontalAlignment="Center" VerticalAlignment="Bottom"
-            Margin="20,0,20,26" MaxWidth="720" Padding="16,9" CornerRadius="12" Opacity="0"
+            Margin="20,0,20,50" MaxWidth="720" Padding="16,9" CornerRadius="12" Opacity="0"
             Background="#6EE4E7E5" BorderBrush="#8CCBD2CE" BorderThickness="1"
             IsHitTestVisible="False" Visibility="Collapsed">
       <TextBlock x:Name="HintText" FontSize="13" LineHeight="20" Foreground="#5C6B64" TextWrapping="Wrap"

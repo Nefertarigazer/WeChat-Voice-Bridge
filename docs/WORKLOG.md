@@ -4,6 +4,40 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 12：全局平滑滚动 + 删掉所有悬停提示 + 气泡上移
+
+**用户要求**：① 继续跟 Muse 盯 A1；② 气泡上移自身高度 3/5；③ 删掉所有鼠标悬停出现的文字框；④ 版本更新说明向下滚动卡顿，希望所有滚动动画都丝滑。
+
+### A. 平滑滚动（新增 `src/VoiceBridge.App/SmoothScroll.cs`）
+- 做法参考 WPF 社区广泛使用的「累积目标偏移 + `CompositionTarget.Rendering` 逐帧缓动」方案（不是给滚动条做动画）：
+  - `EventManager.RegisterClassHandler(typeof(ScrollViewer), PreviewMouseWheelEvent, ..., handledEventsToo: true)`，**全应用所有 ScrollViewer 一次覆盖**（主页面、更新说明弹窗、各列表）。
+  - 轮子距离累积到目标偏移：连续滚动时从**待到达的目标**继续叠加，保住惯性，不会每次从当前像素重新起步。
+  - 缓动改 **ease-out-quint**，时长随距离增长（`clamp(140 + distance*0.22, 160, 380)` ms）——线性或过短的曲线就是“一卡一卡”的观感来源。
+  - 尊重系统「在控件中播放动画」无障碍开关；嵌套可滚动区域仍优先（页面里的列表还有余量时让它先滚）。
+- 删除了 `MainWindow.Interaction.cs` 里原来只作用于 `ContentScroller` 的那套自绘滚动（`PageMouseWheel`/`ScrollFrame`/`StopScrolling`），避免两套机制打架；切页/关窗改调 `SmoothScroll.Cancel(ContentScroller)`。
+
+### B. 所有悬停提示文字框全部删除
+- XAML：`MainWindow.xaml` 7 处、`ReleaseNotesDialog.xaml` 1 处 `ToolTip="…"` 全删。
+- 代码：`DialogShell.cs` 关闭按钮、`MainWindow.Updates.cs` 侧栏更新按钮与更新包体积的 `ToolTip` 全删。
+- 还有一套「禁用控件点击后弹出浮动文字」的机制（`restrictionTip` + `DismissRestrictionTip` + `RestrictedMouseDown` + `ToolTipService.SetToolTip`）整体移除：禁用控件现在只有变淡 + `No` 光标 + `AutomationProperties.HelpText`（读屏仍可读，界面不再弹字）。
+- 复查：`grep -rn ToolTip src/` 已无结果。
+
+### C. 气泡上移
+- 距底 26 → **50 DIP**（约自身高度的 3/5）。
+
+### D. A1 状态（Muse 已定位根因）
+- Muse 回执：Caddy 正常（pid 1034，80/443 均 LISTEN）、证书有效（到 2027-02-04）、本机回环 `curl --resolve …:127.0.0.1` 得 **200 + 1.5.2**。
+- **真正根因：A1 本机防火墙规则顺序** —— INPUT 链第 10 条 REJECT 全部、第 11 条 `tcp 443 ACCEPT (update-https)` 排在 REJECT 之后且计数为 0，等于永不生效；所有新入站 443 被丢弃（80 端口仍 308）。
+- 诱因：Caddy 17:46 UTC 重启（与内核补丁重启吻合），防火墙重载后顺序错位。
+- 修复需用户本人批准改防火墙；Muse 已上报用户，批准后由 Muse 修改并通知我做完整公网复核。
+
+### 验证
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+- 滚动实测（UIA 采样 `VerticalScrollPercent`）：一次滚轮后数值 `0.3 → 14.7 → 23.8 → 27 → 27.7 → 27.8`，**多帧渐进**而非一步跳变。
+- 截图 `artifacts/screenshots/toast-lifted.png`（气泡上移后位置）。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 11：高度/边距/气泡/提示字号一起收口
 
 **用户要求**：① 不要锁滚动，要让内容高度真的合适；② 底边距再大一点点；③ 继续跟 Muse 盯 A1；④ 气泡更透、偏灰、字号边距更协调；⑤ 朗读记录空提示字号偏小（尤其同时出现气泡时更显小），要放大一点。

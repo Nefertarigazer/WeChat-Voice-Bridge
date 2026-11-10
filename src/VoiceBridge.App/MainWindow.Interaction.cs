@@ -17,27 +17,14 @@ namespace VoiceBridge.App;
 public partial class MainWindow
 {
     private readonly Dictionary<FrameworkElement, string> restrictions = new();
-    private readonly ToolTip restrictionTip = new() { Placement = PlacementMode.Bottom };
-    private readonly DispatcherTimer restrictionTimer = new() { Interval = TimeSpan.FromSeconds(3) };
-    private bool scrolling;
-    private double scrollFrom;
-    private double scrollTo;
-    private long scrollStart;
 
     private bool ListeningActive => controller.Status.State is BridgeState.Starting or BridgeState.Running or BridgeState.Stopping;
 
     private void InitializeInteraction()
     {
-        ContentScroller.PreviewMouseWheel += PageMouseWheel;
         ContentScroller.ScrollChanged += (_, _) => TopFade.Opacity = ContentScroller.VerticalOffset > 0.5 ? 1 : 0;
-        AddHandler(Mouse.PreviewMouseDownEvent, new MouseButtonEventHandler(RestrictedMouseDown), true);
         AddHandler(Mouse.QueryCursorEvent, new QueryCursorEventHandler(RestrictedQueryCursor), true);
-        restrictionTimer.Tick += (_, _) => DismissRestrictionTip();
-        Closed += (_, _) =>
-        {
-            StopScrolling();
-            DismissRestrictionTip();
-        };
+        Closed += (_, _) => SmoothScroll.Cancel(ContentScroller);
     }
 
     private void UpdateInteractionRestrictions(bool active)
@@ -79,13 +66,9 @@ public partial class MainWindow
         {
             if (!restrictions.Remove(element))
                 return;
-            if (ReferenceEquals(restrictionTip.PlacementTarget, element))
-                DismissRestrictionTip();
             element.ClearValue(IsEnabledProperty);
             element.ClearValue(OpacityProperty);
             element.ClearValue(CursorProperty);
-            element.ClearValue(ToolTipService.ToolTipProperty);
-            element.ClearValue(ToolTipService.ShowOnDisabledProperty);
             element.ClearValue(AutomationProperties.HelpTextProperty);
             return;
         }
@@ -95,8 +78,8 @@ public partial class MainWindow
         element.IsEnabled = false;
         element.Opacity = 0.76;
         element.Cursor = Cursors.No;
-        ToolTipService.SetShowOnDisabled(element, true);
-        ToolTipService.SetToolTip(element, reason);
+        // No hover tooltip: the disabled look and the NotAllowed cursor carry it, and
+        // the app avoids floating text boxes over the interface.
         AutomationProperties.SetHelpText(element, reason);
     }
 
@@ -120,18 +103,6 @@ public partial class MainWindow
         return null;
     }
 
-    private void RestrictedMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ChangedButton != MouseButton.Left || RestrictedAt(e.GetPosition(this)) is not { } element)
-            return;
-        DismissRestrictionTip();
-        restrictionTip.PlacementTarget = element;
-        restrictionTip.Content = restrictions[element];
-        restrictionTip.IsOpen = true;
-        restrictionTimer.Start();
-        e.Handled = true;
-    }
-
     private void RestrictedQueryCursor(object sender, QueryCursorEventArgs e)
     {
         if (RestrictedAt(e.GetPosition(this)) is null)
@@ -140,21 +111,13 @@ public partial class MainWindow
         e.Handled = true;
     }
 
-    private void DismissRestrictionTip()
-    {
-        restrictionTimer.Stop();
-        restrictionTip.IsOpen = false;
-        restrictionTip.PlacementTarget = null;
-    }
-
     private void NavigationChanged(object sender, RoutedEventArgs e)
     {
         if (ContentScroller == null)
             return;
-        DismissRestrictionTip();
         // A hint is about the page you were just on, so it does not travel with you.
         notice = null;
-        StopScrolling();
+        SmoothScroll.Cancel(ContentScroller);
         ContentScroller.ScrollToTop();
         if (ReferenceEquals(sender, NavAdvanced))
             UpdateCacheInfo();
@@ -169,58 +132,6 @@ public partial class MainWindow
             yield return child;
             foreach (var descendant in Descendants(child)) yield return descendant;
         }
-    }
-
-    private void PageMouseWheel(object sender, MouseWheelEventArgs e)
-    {
-        for (var current = e.OriginalSource as DependencyObject; current != null && current != ContentScroller;
-            current = ParentOf(current))
-        {
-            if (current is ScrollViewer nested && nested.ScrollableHeight > 0 &&
-                (e.Delta > 0 ? nested.VerticalOffset > 0 : nested.VerticalOffset < nested.ScrollableHeight))
-                return;
-        }
-        var lines = SystemParameters.WheelScrollLines;
-        if (ContentScroller.ScrollableHeight <= 0 || lines == 0)
-            return;
-        e.Handled = true;
-        var delta = -e.Delta / 120.0 * (lines < 0 ? ContentScroller.ViewportHeight : lines * 16.0);
-        scrollFrom = ContentScroller.VerticalOffset;
-        var origin = scrolling && Math.Sign(scrollTo - scrollFrom) == Math.Sign(delta) ? scrollTo : scrollFrom;
-        scrollTo = Math.Clamp(origin + delta, 0, ContentScroller.ScrollableHeight);
-        if (!SystemParameters.ClientAreaAnimation || Math.Abs(scrollTo - scrollFrom) < 0.5)
-        {
-            StopScrolling();
-            ContentScroller.ScrollToVerticalOffset(scrollTo);
-            return;
-        }
-        scrollStart = Stopwatch.GetTimestamp();
-        if (!scrolling)
-        {
-            scrolling = true;
-            CompositionTarget.Rendering += ScrollFrame;
-        }
-    }
-
-    private void ScrollFrame(object? sender, EventArgs e)
-    {
-        var target = Math.Min(scrollTo, ContentScroller.ScrollableHeight);
-        var distance = Math.Abs(target - scrollFrom);
-        var duration = Math.Clamp(75 + distance * 0.10, 85, 180);
-        var ratio = Math.Min(Stopwatch.GetElapsedTime(scrollStart).TotalMilliseconds / duration, 1);
-        var offset = scrollFrom + (target - scrollFrom) * (1 - Math.Pow(1 - ratio, 3));
-        if (Math.Abs(ContentScroller.VerticalOffset - offset) > 0.25 || ratio >= 1)
-            ContentScroller.ScrollToVerticalOffset(offset);
-        if (ratio >= 1)
-            StopScrolling();
-    }
-
-    private void StopScrolling()
-    {
-        if (!scrolling)
-            return;
-        scrolling = false;
-        CompositionTarget.Rendering -= ScrollFrame;
     }
 
     private static DependencyObject? ParentOf(DependencyObject node) =>
