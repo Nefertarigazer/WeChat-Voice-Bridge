@@ -807,10 +807,25 @@
                   </Border>
                   <Border x:Name="UpdatePackage" Style="{StaticResource Row}" Visibility="Collapsed">
                     <StackPanel>
-                      <TextBlock x:Name="UpdateSize" Style="{StaticResource RowLabel}"/>
-                      <ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <TextBlock x:Name="UpdateNotes" Style="{StaticResource Footnote}" Margin="0,6,0,0"/>
-                      </ScrollViewer>
+                      <!-- size on the left, a quiet "更新内容" label on the right, so the
+                           notes block below reads as a labelled section instead of a
+                           paragraph tagged onto the status row. -->
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="UpdateSize" Style="{StaticResource RowLabel}"/>
+                        <TextBlock Grid.Column="1" Text="更新内容" Style="{StaticResource Footnote}"
+                                   Margin="0,0,2,0" VerticalAlignment="Center"/>
+                      </Grid>
+                      <!-- Soft inset panel + one bullet per change: separates the copy from
+                           the status row and keeps long notes scannable. -->
+                      <!-- The page already scrolls (ContentScroller), so the notes show in
+                           full here; a nested capped scroller used to slice a line in half. -->
+                      <Border x:Name="UpdateNotesBox" Background="#F6F9F7" BorderBrush="#E7EEE9" BorderThickness="1"
+                              CornerRadius="10" Padding="12,10" Margin="0,8,0,0">
+                        <StackPanel x:Name="UpdateNotesPanel"/>
+                      </Border>
                     </StackPanel>
                   </Border>
                   <Border x:Name="UpdateProgressRow" Style="{StaticResource Row}" Visibility="Collapsed">

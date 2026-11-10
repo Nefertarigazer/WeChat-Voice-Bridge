@@ -1,12 +1,14 @@
 using System;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using VoiceBridge.Core;
 
 namespace VoiceBridge.App;
@@ -275,8 +277,43 @@ public partial class MainWindow
             return;
 
         UpdateSize.Text = $"v{manifest.Version} · {manifest.Size / 1_000_000d:0.0} MB";
-        UpdateNotes.Text = manifest.Notes;
-        UpdateNotes.Visibility = manifest.Notes.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        FillNotes(manifest.Notes);
+    }
+
+    /// <summary>
+    /// Renders the manifest notes as one accent-dotted line per change. A single
+    /// dense paragraph read as a wall of text under the status row; split lines
+    /// keep long release notes scannable inside the soft inset panel.
+    /// </summary>
+    private void FillNotes(string notes)
+    {
+        UpdateNotesPanel.Children.Clear();
+        var bullet = (Brush)FindResource("Accent");
+        var ink = (Brush)FindResource("Label");
+        var lines = notes.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                         .Select(line => line.Trim())
+                         .Where(line => line.Length > 0)
+                         .ToList();
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var row = new Grid { Margin = new Thickness(0, 0, 0, i == lines.Count - 1 ? 0 : 8) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.Children.Add(new Ellipse
+            {
+                Width = 5, Height = 5, Fill = bullet,
+                VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(1, 7, 0, 0)
+            });
+            var text = new TextBlock
+            {
+                Text = lines[i], FontSize = 12, Foreground = ink,
+                TextWrapping = TextWrapping.Wrap, LineHeight = 19
+            };
+            Grid.SetColumn(text, 1);
+            row.Children.Add(text);
+            UpdateNotesPanel.Children.Add(row);
+        }
+        UpdateNotesBox.Visibility = lines.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void DeleteUpdateArchive()

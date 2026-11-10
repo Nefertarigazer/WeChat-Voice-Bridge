@@ -12,7 +12,7 @@
 
 **C. 流程**：合并完先 `dotnet build` 必须 0 报错；**先不打包**，等用户检查效果合格后再打包、再推新；告诉用户新版软件位置；**桌面快捷方式先不用更新**。每完成一部分立刻回写本文、WORKLOG 与当日 memory 并 commit。
 
-> **阶段进度（wx-multi 合并 + 更新页 UI 全部完成，待用户检视后打包推新）**：worker 三件套 + C# 三文件已按 §4/§2.2 落地；原切片冻结在 `tests/wx-multi/slice/`；自检改为指向真实生产文件并 **58/58 PASS**；R5 两处 CS8602 与 R6 两处测试构造点已修；版本门控弹窗（`VersionGate.cs` + `App.xaml.cs`）与目录手动兜底已落实；更新页已删啰嗦文案并重做绿色按钮居中布局（`App.xaml` 默认模板 `ContentPresenter` 已修）；`dotnet build` **0 警告 0 错误**、全量 `Test.ps1` **197/197**、`Verify-Source.ps1` **PASS**。版本已推进到 **1.4.9**（`Directory.Build.props` + `ReleaseHistory.cs`），**尚未打包/上线**。逐项细节见 `WORKLOG.md` 最新段与 `.workbuddy/memory/2026-11-10.md`（中断后据此接上）。
+> **阶段进度（wx-multi 合并 + 更新页 UI 全部完成，待用户检视后打包推新）**：worker 三件套 + C# 三文件已按 §4/§2.2 落地；原切片冻结在 `tests/wx-multi/slice/`；自检改为指向真实生产文件并 **58/58 PASS**；R5 两处 CS8602 与 R6 两处测试构造点已修；版本门控弹窗（`VersionGate.cs` + `App.xaml.cs`）与目录手动兜底已落实；更新页已删啰嗦文案并重做绿色按钮居中布局（`App.xaml` 默认模板 `ContentPresenter` 已修）。**「版本说明」区块二次重设计**（用户反馈按钮下方文字不美观）：尺寸行加「更新内容」小标签、说明移入浅色圆角面板、每条变化一行带绿色圆点（`FillNotes()` 按 `\n` 生成）、去掉内层 `MaxHeight` 硬切（整页本就可滚动），原 `UpdateNotes` 文本块由 `UpdateNotesPanel` 取代。`dotnet build` **0 警告 0 错误**、全量 `Test.ps1` **PASS**、`Verify-Source.ps1` **PASS**。版本 **1.4.9**，**尚未打包/上线**。逐项细节见 `WORKLOG.md` 最新段与 `.workbuddy/memory/2026-11-10.md`（中断后据此接上）。
 
 ## 1. 一句话现状
 

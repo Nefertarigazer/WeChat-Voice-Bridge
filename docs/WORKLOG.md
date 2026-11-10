@@ -47,10 +47,18 @@
 ### 更新页 UI 优化（已落实 + 截图）
 
 - **删啰嗦文案（只删文案、1.4.8 行为不动）**：`UpdateInstallationWindow.cs` 两处解释（进度中「安装完成后，点『完成』或关闭本窗口才会打开新版本」、完成态「点『完成』或关闭本窗口后，才会打开新版本」）改为中性短句；`UpdateProcess.cs` 失败回执与 100% 进度文案去掉「等待确认」「暂未确认启动成功」等重复说明。
-- **绿色按钮 + 版本文字重新布局**：`MainWindow.xaml`「软件更新」行用 `DockPanel` 把状态点 + 两行文字（`UpdateVersion` 主 + `UpdateSubVersion` 副）固定在左侧、按钮固定 `MinHeight=36` 钉在右侧，整行 `VerticalAlignment=Center`；三种状态（灰/薄荷描边/实心绿）共用同一套 36 高度，`Padding=20,0,20,0`、`FontSize=14`，文字垂直居中。修复了一处历史隐患：`App.xaml` 默认按钮模板的 `ContentPresenter` 显式绑定 `VerticalContentAlignment`（否则隐式 TextBlock 样式会把字压成深色、破坏白字）。
+- **绿色按钮 + 版本文字重新布局**：`MainWindow.xaml`「软件更新」行用 `DockPanel` 把状态点 + 两行文字（`UpdateVersion` 主 + `UpdateSubtext` 副）固定在左侧、按钮固定 `MinHeight=36` 钉在右侧，整行 `VerticalAlignment=Center`；三种状态（灰/薄荷描边/实心绿）共用同一套 36 高度、`Padding=20,0,20,0`、`FontSize=14`，文字垂直居中。修复了一处历史隐患：`App.xaml` 默认按钮模板的 `ContentPresenter` 显式绑定 `VerticalContentAlignment`（否则隐式 TextBlock 样式会把字压成深色、破坏白字）。
+- **「版本说明」区块重设计（用户第二轮反馈：按钮下面那段文字不美观）**：原先 `UpdatePackage` 行就是「`v1.4.9 · 89.5 MB` + 一大段密排正文」直接堆在按钮下方，无分段、无层次。改为：
+  - 尺寸行右侧加灰色小标签「更新内容」，让这块读起来是一个带标题的小节，而不是状态行的附属段落；
+  - 说明放进浅色圆角内嵌面板（`#F6F9F7` 底 / `#E7EEE9` 边 / 圆角 10 / 内边距 12,10）；
+  - 每条更新一行、左侧 5px 绿色圆点 + 12px 正文 + `LineHeight=19`，由 `MainWindow.Updates.cs` 新增的 `FillNotes()` 按 `\n` 拆分生成，长说明可扫读；
+  - 去掉内层 `MaxHeight=132` 滚动框：整页本来就在 `ContentScroller` 里，硬切只会把最后一行截成半截。说明为空时连面板一起隐藏（`UpdateNotesBox`）。
+  - 原 `UpdateNotes`（TextBlock）已由 `UpdateNotesPanel`（StackPanel）+ `FillNotes()` 取代，全仓无其它引用。
 - **截图（已生成，供用户检视）**：
   - `artifacts/screenshots/update-ui-states.png` —— 三态并排（已是最新 / 发现新版本 / 下载完成绿色按钮）。
   - `artifacts/screenshots/update-install-green.png` —— 绿色按钮特写：白字、垂直居中、行内点+两行文字对齐。
+  - `artifacts/screenshots/update-panel-with-notes.png`（= `update-panel-final.png`/`v4`）—— **按钮 + 下方版本说明整块**，两种状态上下对照，按真实 660 内容宽渲染，用于判断「按钮与下面文字」是否协调。
+  - 预览工具：`tools/UpdatePanelPreview/`（复用 `App.xaml` 真实样式资源，按 660 宽离屏渲染；`tools/UpdateNotesPreview/` 是更早那版「更新区 + 版本介绍对话框」合成图工具）。截图属本地产物、被 `.gitignore` 忽略，不入库；工具源码入库。
 
 ### 收尾：版本推进到 1.4.9（未发布）
 
