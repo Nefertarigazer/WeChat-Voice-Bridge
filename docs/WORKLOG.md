@@ -510,3 +510,19 @@
 - 版本 **1.5.1**，`ReleaseHistory` 新增对应条目（含「按钮按整块居中」一条）。
 
 **尚未做**：打包与 Muse 推送（等用户看过效果点头）。桌面快捷方式未动。
+
+---
+
+## 2026-11-10 · v1.5.1（续）：联系人「移除」按钮不再弹悬停提示
+
+用户在实际界面悬停「移除」时看到浮动提示文字（「移出朗读名单，不会删除微信联系人」），判定没必要，要求去掉。
+
+**改动**：`src/VoiceBridge.App/MainWindow.xaml` 的 `ContactRemoveAction` 样式删掉 `ToolTip` Setter。两处使用点（`SingleContactTemplate` / `ContactCardTemplate` 的「移除」按钮）都只靠这个样式，按钮本身没写 ToolTip，因此一处删除即全清；悬停配色不变。
+
+**验证**：
+- `tools/UiSmokeTest` 新增 `nohover <pid> <button> <png> [navId]` 模式：先 `ShowWindow(SW_RESTORE)` + 前置窗口，把光标两跳移到按钮中心，再用 `AutomationElement.FromPoint` **确认光标命中的就是这个按钮**（否则「没有提示」可能只是鼠标停在空处），随后 4 秒内轮询本进程所有顶层窗口里有没有 `ControlType.ToolTip` 元素。
+- 实测：命中 `[移除]`、4 秒无 tooltip、**PASS**，截图 `artifacts/screenshots/contact-remove-nohover.png`。
+- `dotnet build` 0/0；`Test.ps1` **.NET tests: PASS + Python tests: PASS**（注意：直接跑 `dotnet test` 会有 7 项因缺 `WVB_PYTHON` 而失败，必须走 `Test.ps1` 才有环境）。
+- `ReleaseHistory` 1.5.1 增补该条。
+
+**仍未做**：1.5.1 打包与 Muse 推送，等用户确认视觉后一起做（本次改动并入 1.5.1，不单独发版）。

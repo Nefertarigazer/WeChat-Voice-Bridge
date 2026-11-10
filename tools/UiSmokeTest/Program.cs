@@ -32,6 +32,14 @@ if (args.Length > 0 && string.Equals(args[0], "probe", StringComparison.Ordinal)
 if (args.Length > 0 && string.Equals(args[0], "menuclick", StringComparison.Ordinal))
     return MenuClick(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "编辑");
 
+// nohover <pid> <button> <png> [navId]: parks the cursor on a button and reports
+// whether any tooltip showed up. A tooltip on a plain action button is noise, so
+// "none" is the pass result; the screenshot keeps the hover state on record.
+if (args.Length > 0 && string.Equals(args[0], "nohover", StringComparison.Ordinal))
+    return NoHover(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "移除",
+                   args.Length > 3 ? args[3] : "nohover.png",
+                   args.Length > 4 ? args[4] : "NavHome");
+
 var pid = args.Length > 0 && int.TryParse(args[0], out var parsed) ? parsed : 0;
 if (pid == 0)
 {
@@ -186,6 +194,98 @@ static int Probe(string pidText)
     Console.WriteLine($"delta  {textCentre - buttonCentre:+0.0;-0.0;0.0} DIP  "
                       + $"{(Math.Abs(textCentre - buttonCentre) <= 3 ? "OK" : "OFF")}");
     return 0;
+}
+
+// Hovers a button and reports whether the window raised a tooltip. WPF tooltips
+// live in their own top-level popup window, so the whole process's windows are
+// scanned for a ToolTip element while the cursor sits still on the button.
+static int NoHover(string pidText, string buttonName, string outPath, string navId)
+{
+    var pid = int.TryParse(pidText, out var parsed) && parsed > 0
+        ? parsed
+        : Process.GetProcessesByName("WeChatVoiceBridge").FirstOrDefault()?.Id ?? 0;
+    if (pid == 0) { Console.WriteLine("FATAL: WeChatVoiceBridge is not running"); return 4; }
+
+    var process = Process.GetProcessById(pid);
+    for (var i = 0; i < 20 && process.MainWindowHandle == IntPtr.Zero; i++)
+    {
+        Thread.Sleep(500);
+        process.Refresh();
+    }
+    if (process.MainWindowHandle == IntPtr.Zero) { Console.WriteLine("FATAL: no main window"); return 4; }
+
+    Native.Show(process.MainWindowHandle);
+    Thread.Sleep(600);
+    Native.Focus(process.MainWindowHandle);
+    Thread.Sleep(400);
+
+    var root = AutomationElement.FromHandle(process.MainWindowHandle);
+    var nav = WaitFor(() => ByAutomationId(root, navId));
+    if (nav is not null)
+    {
+        (nav.GetCurrentPattern(SelectionItemPattern.Pattern) as SelectionItemPattern)!.Select();
+        Thread.Sleep(2000);
+    }
+
+    var target = WaitFor(() => ByNameContains(root, buttonName, ControlType.Button));
+    if (target is null) { Console.WriteLine($"FATAL: button [{buttonName}] not found"); return 4; }
+
+    var rect = target.Current.BoundingRectangle;
+    var x = (int)(rect.X + rect.Width / 2);
+    var y = (int)(rect.Y + rect.Height / 2);
+    Console.WriteLine($"hovering [{target.Current.Name}] at {x},{y} (target {rect.Width:0}x{rect.Height:0})");
+    Native.Hover(x, y);
+    Thread.Sleep(150);
+
+    // Prove the cursor really landed on the button: without this, "no tooltip" could
+    // just mean the pointer was parked somewhere empty.
+    var hit = AutomationElement.FromPoint(new System.Windows.Point(x, y));
+    var hitName = hit?.Current.Name ?? "";
+    var onButton = hit is not null && hitName.Contains(buttonName, StringComparison.Ordinal);
+    Console.WriteLine($"hit-test at cursor: [{hitName}] ({(onButton ? "on the button" : "NOT the button")})");
+    if (!onButton) { Console.WriteLine("FATAL: cursor did not land on the button"); return 4; }
+
+    // Default WPF tooltip delay is ~400 ms; four seconds is well past it.
+    var tip = "";
+    for (var i = 0; i < 40 && tip.Length == 0; i++)
+    {
+        Thread.Sleep(100);
+        tip = FindTooltip(pid);
+    }
+
+    var window = root.Current.BoundingRectangle;
+    var left = (int)window.X;
+    var top = (int)window.Y;
+    var w = (int)window.Width;
+    var h = (int)window.Height;
+    using (var bmp = new Bitmap(w, h))
+    {
+        using (var g = Graphics.FromImage(bmp))
+            g.CopyFromScreen(left, top, 0, 0, new Size(w, h));
+        bmp.Save(outPath, ImageFormat.Png);
+    }
+    Console.WriteLine($"saved: {outPath}");
+
+    if (tip.Length > 0)
+    {
+        Console.WriteLine($"FAIL: tooltip appeared on hover: [{tip}]");
+        return 7;
+    }
+    Console.WriteLine("PASS: no tooltip on hover");
+    return 0;
+}
+
+static string FindTooltip(int pid)
+{
+    foreach (AutomationElement window in AutomationElement.RootElement.FindAll(
+                 TreeScope.Children, Condition.TrueCondition))
+    {
+        if (window.Current.ProcessId != pid) continue;
+        var tip = window.FindFirst(TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ToolTip));
+        if (tip is not null) return tip.Current.Name;
+    }
+    return "";
 }
 
 // Opens a nav page and screenshots the whole window rect.

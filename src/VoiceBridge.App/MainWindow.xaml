@@ -83,7 +83,6 @@
       <Setter Property="Margin" Value="8,0,0,0"/><Setter Property="Background" Value="#FBF1EE"/>
       <Setter Property="Foreground" Value="#A85A48"/><Setter Property="BorderBrush" Value="#F1DDD5"/>
       <Setter Property="local:ContactActionIcon.Geometry" Value="M 6,1 A 5,5 0 1 1 5.999,1 M 3.5,6 L 8.5,6"/>
-      <Setter Property="ToolTip" Value="移出朗读名单，不会删除微信联系人"/>
       <Style.Triggers><Trigger Property="IsMouseOver" Value="True">
         <Setter Property="Background" Value="#F7E2DB"/><Setter Property="BorderBrush" Value="#E6BCAA"/>
         <Setter Property="Foreground" Value="#934531"/>

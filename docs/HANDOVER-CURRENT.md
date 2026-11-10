@@ -11,7 +11,8 @@
 - 按钮整块居中：两列 Grid（左列 = 状态行 + 说明标题行的 `StackPanel`，右列 = 按钮 `VerticalAlignment=Center`），因此按钮居中范围是「卡片上沿 → 说明框上沿」；无说明时左列只剩状态行，按钮即居卡片。**不要改回 `RowSpan` 方案**：跨行子元素会把空的第二行撑到 18px，卡片变高、状态文字看着偏高（已实测差 9 DIP）。
 - 更新说明上方改为**标题行**：`UpdateNoteTitle` = `v{版本}`（`SectionTitle`，16 Semibold）+ `UpdateNoteSize` = `{大小} MB`（12 灰、底线对齐）；原先「v1.5.0 · 90.8 MB」小字不再出现。
 - 版本 **1.5.1**（`Directory.Build.props`），`ReleaseHistory` 已加条目。
-- 验证：`dotnet build` 0/0、`dotnet test` 211/211、`Test.ps1` PASS、`Verify-Source` PASS、58 项 PASS；真实应用截图两张（见 WORKLOG 最新节）。
+- 联系人「移除」按钮**不再有悬停提示**：`ContactRemoveAction` 样式里的 `ToolTip` Setter 已删除（两处使用点共用该样式，按钮自身未写 ToolTip），悬停只保留配色变化。
+- 验证：`dotnet build` 0/0、`Test.ps1` **.NET + Python 全 PASS**（直接 `dotnet test` 会因缺 `WVB_PYTHON` 有 7 项环境性失败，必须走 `Test.ps1`）、`Verify-Source` PASS、58 项 PASS；真实应用截图（见 WORKLOG 最新节）；`UiSmokeTest nohover` 实测「移除」按钮悬停 4 秒无 tooltip。
 - **下一步**：用户确认样式后 → 打包（`Publish.ps1` → `Build-Installer.ps1`）→ Muse `publish-voicebridge` → 公网友核 → 回写记录并 push。
 
 ## 0b. 上一节（v1.5.0 周期，已上线）
