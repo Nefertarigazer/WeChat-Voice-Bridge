@@ -126,10 +126,10 @@ internal static class UpdateProcess
                 // Do not release the restarted build here. Even on this degraded
                 // path the new window must wait until the user dismisses the
                 // installation window, which writes the "go" signal on close.
-                reportFailure?.Invoke("新版本文件已安装，但暂未确认启动成功。点「关闭」后会打开新版本；若仍未出现，请检查任务栏或手动启动微信语音桥。更新包和备份已保留。");
+                reportFailure?.Invoke("新版本文件已安装，但暂未确认启动成功。若新版未出现，请检查任务栏或手动启动微信语音桥。更新包和备份已保留。");
                 return 4;
             }
-            progress?.Report(new("更新完成，等待确认后打开新版本", 100));
+            progress?.Report(new("更新完成", 100));
             return 0;
         }
         catch (AggregateException error)

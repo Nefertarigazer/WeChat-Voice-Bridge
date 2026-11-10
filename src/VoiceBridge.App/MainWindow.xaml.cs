@@ -201,6 +201,10 @@ public partial class MainWindow : Window
             root = WeChatSession.DiscoverRoot() ?? "";
             if (root.Length > 0)
                 notice = "已自动找到微信数据目录。";
+            else
+                // The bounded name scan can still miss a deeply custom folder. Point
+                // the user at the existing 浏览… picker instead of failing silently.
+                notice ??= "未找到微信数据目录，请在高级设置里用「浏览…」手动指定。";
         }
         RootBox.Text = root;
         // The size of the scratch cache is chosen by the user, and it never
@@ -469,7 +473,14 @@ public partial class MainWindow : Window
         var account = AccountOf();
         if (root.Length == 0 || account.Length == 0)
             throw new BridgeException("请先在高级设置里填写微信数据目录和账号目录。");
-        return WeChatSession.Bind(root, account);
+        try { return WeChatSession.Bind(root, account); }
+        catch (BridgeException error) when (VersionGate.IsUnsupported(error.Message))
+        {
+            // A client started after the app (or upgraded meanwhile) must also get
+            // the visible gate, not just a line of status text.
+            VersionGate.ShowFor(this, error.Message);
+            throw;
+        }
     }
 
     // ------------------------------------------------------------ directory
@@ -641,7 +652,11 @@ public partial class MainWindow : Window
                 message => Volatile.Read(ref routing).Contacts.Any(contact =>
                     contact.AccountId == message.AccountId && contact.ConversationId == message.ConversationId));
         }
-        catch (BridgeException error) { notice = error.Message; }
+        catch (BridgeException error)
+        {
+            notice = error.Message;
+            if (VersionGate.IsUnsupported(error.Message)) VersionGate.ShowFor(this, error.Message);
+        }
         catch (Exception) { notice = "无法开始，请检查高级设置。"; }
         Render();
     }

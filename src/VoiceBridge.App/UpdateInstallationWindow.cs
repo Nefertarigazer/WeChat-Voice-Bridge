@@ -17,7 +17,7 @@ internal sealed class UpdateInstallationWindow : Window
 {
     private readonly TextBlock heading = new() { Text = "正在安装更新", FontSize = 22, FontWeight = FontWeights.SemiBold };
     private readonly TextBlock stage = new() { Text = "正在准备更新…", Margin = new(0,20,0,8) };
-    private readonly TextBlock detail = new() { Text = "更新期间请勿关闭电脑。安装完成后，点「完成」或关闭本窗口才会打开新版本。", Margin = new(0,12,0,0) };
+    private readonly TextBlock detail = new() { Text = "更新期间请勿关闭电脑。", Margin = new(0,12,0,0) };
     private readonly TextBlock elapsed = new() { Margin = new(0,8,0,0), FontSize = 12 };
     private readonly ProgressBar bar = new() { Height = 7, Maximum = 100, IsIndeterminate = true };
     private readonly Button close;
@@ -86,7 +86,10 @@ internal sealed class UpdateInstallationWindow : Window
         {
             heading.Text = "更新完成";
             stage.Text = $"已更新到 v{UpdateProcess.CurrentVersion}"; bar.Value = 100;
-            detail.Text = "点「完成」或关闭本窗口后，才会打开新版本。";
+            // No prose about what the "完成" button does: the heading, the finished
+            // progress bar and the button itself already say it. (1.4.8 handoff
+            // behaviour is unchanged; only the explanatory copy was removed.)
+            detail.Visibility = Visibility.Collapsed;
             close.Content = "完成";
             TaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
         }

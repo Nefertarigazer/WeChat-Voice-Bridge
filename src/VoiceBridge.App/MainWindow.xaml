@@ -781,14 +781,26 @@
                 <StackPanel>
                   <Border Style="{StaticResource Row}">
                     <Grid>
-                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                      <TextBlock x:Name="UpdateVersion" Style="{StaticResource RowLabel}"/>
-                      <!-- Local values win over either style, so switching from
-                           "检查更新" to "重启安装更新" only changes colour and text:
-                           the button keeps the row's 36 DIP inner height. -->
-                      <Button x:Name="UpdateAction" Grid.Column="1" Content="检查更新"
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+                      <!-- A state dot and a short second line carry the status, so the
+                           row needs no paragraph of explanatory copy. -->
+                      <Ellipse x:Name="UpdateStateDot" Width="9" Height="9" Margin="0,0,12,0"
+                               VerticalAlignment="Center" Fill="{StaticResource Secondary}"/>
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="UpdateVersion" Style="{StaticResource RowLabel}"
+                                   FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="UpdateSubtext" Style="{StaticResource Footnote}" Margin="0,3,0,0"/>
+                      </StackPanel>
+                      <!-- Local Height/Padding beat every state style: all three states
+                           keep one exact size, and the 0 vertical padding lets
+                           VerticalContentAlignment centre the label optically. -->
+                      <Button x:Name="UpdateAction" Grid.Column="2" Content="检查更新"
                               Style="{StaticResource SecondaryButton}" Click="UpdateClick"
-                              MinHeight="36" MinWidth="120" Padding="18,7"
+                              Height="36" MinWidth="132" Padding="20,0" FontSize="14"
                               HorizontalAlignment="Right" VerticalAlignment="Center"
                               HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                     </Grid>

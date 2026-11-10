@@ -61,6 +61,9 @@ public partial class App : Application
         host.Start();
         MainWindow = new MainWindow(host.Services.GetRequiredService<HttpClient>(), updateNotice);
         MainWindow.ContentRendered += ShowReleaseNotes;
+        // Only runs once the main window is actually visible. During the 1.4.8
+        // update handoff the window stays hidden, so no gate can reveal it.
+        MainWindow.ContentRendered += (_, _) => VersionGate.TryShow(MainWindow);
         var handoff = UpdateHandoff.FromArguments(UpdateProcess.DirectoryPath, e.Args);
         if (handoff is null)
             MainWindow.Show();

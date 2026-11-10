@@ -39,12 +39,36 @@
   - ⚠️ **必须用项目内置 Python 3.12.10 跑**：`artifacts/win-x64/runtime/python/python.exe tests/wx-multi/test_audited_wechat_keys.py`。系统 Python 3.13 会被 `main.py` 的 `sys.version_info[:2] != (3, 12)` 检查提前挡下，导致 R1 误报失败（第一次跑就是踩了这个坑，非代码问题）。
   - `python -m py_compile` 三个 worker 文件全过；`dotnet build WeChatVoiceBridge.sln -c Release` **0 警告 0 错误**。
 
-### 进行中 / 待办
+### 版本门控弹窗与目录兜底（已落实）
 
-- [ ] 落实 `merge-notes-for-workbuddy.md` 的两条 UX：范围外版本弹窗（检测到版本 + 支持范围 + 「更新微信」/「退出应用」）；数据目录扫描失败时手动选目录兜底。
-- [ ] 全量 `Test.ps1` + `Verify-Source.ps1` 回归（确认不回退 1.4.7/1.4.8）。
-- [ ] 更新页 UI 优化与截图。
-- [ ] 回写文档、commit、报告新版软件位置；**不打包、不上线、不改快捷方式**。
+- **范围外版本弹窗**：新增 `src/VoiceBridge.App/VersionGate.cs`（`ShowUnsupportedVersion(detected, min, max)`），用既有 `DialogShell` 风格弹窗，显示「检测到的微信版本：X」+ 支持区间 `4.1.11`–`4.2.0.13` + 两按钮「更新微信」（打开官网下载页）/「退出应用」。`App.xaml.cs` 在 `ContentRendered` 时若宿主不在更新交接模式下就先调 `WeChatSession.DetectClientVersion()`，范围外则弹窗，点「退出应用」设 `ShutdownMode` 并 `Environment.Exit(0)`。
+- **目录兜底（已满足）**：MainWindow 数据目录行本就有「浏览…」+ `OpenFolderDialog` + 自动保存，`WeChatSession.DiscoverRoot()` 扫描失败时回退到手动选择，无需新增代码。
+
+### 更新页 UI 优化（已落实 + 截图）
+
+- **删啰嗦文案（只删文案、1.4.8 行为不动）**：`UpdateInstallationWindow.cs` 两处解释（进度中「安装完成后，点『完成』或关闭本窗口才会打开新版本」、完成态「点『完成』或关闭本窗口后，才会打开新版本」）改为中性短句；`UpdateProcess.cs` 失败回执与 100% 进度文案去掉「等待确认」「暂未确认启动成功」等重复说明。
+- **绿色按钮 + 版本文字重新布局**：`MainWindow.xaml`「软件更新」行用 `DockPanel` 把状态点 + 两行文字（`UpdateVersion` 主 + `UpdateSubVersion` 副）固定在左侧、按钮固定 `MinHeight=36` 钉在右侧，整行 `VerticalAlignment=Center`；三种状态（灰/薄荷描边/实心绿）共用同一套 36 高度，`Padding=20,0,20,0`、`FontSize=14`，文字垂直居中。修复了一处历史隐患：`App.xaml` 默认按钮模板的 `ContentPresenter` 显式绑定 `VerticalContentAlignment`（否则隐式 TextBlock 样式会把字压成深色、破坏白字）。
+- **截图（已生成，供用户检视）**：
+  - `artifacts/screenshots/update-ui-states.png` —— 三态并排（已是最新 / 发现新版本 / 下载完成绿色按钮）。
+  - `artifacts/screenshots/update-install-green.png` —— 绿色按钮特写：白字、垂直居中、行内点+两行文字对齐。
+
+### 收尾：版本推进到 1.4.9（未发布）
+
+- `Directory.Build.props` 版本 `1.4.8` → `1.4.9`（版本唯一来源）；`ReleaseHistory.cs` 顶部新增 `1.4.9` 条目（多版本适配 + 更新页优化，并显式声明不回退 1.4.7/1.4.8 三条改动）。复跑 `dotnet build -c Release`：**0 警告 0 错误**，DLL 内嵌版本字符串已为 `1.4.9`。
+- **新版软件位置（仅供检视，尚未打包/上线）**：`src/VoiceBridge.App/bin/Release/net8.0-windows/WeChatVoiceBridge.exe`（同目录含 `WeChatVoiceBridge.dll` 与全部依赖）。桌面快捷方式**保持 1.4.7 r3 不动**。
+
+### 全量回归（合并 + UI 全部完成后）
+
+- `scripts/Test.ps1`：构建 0 警告 0 错误；**C# 197/197 PASS**；Python **54 通过**（41 个需 Windows 内置 Python+SQLCipher 的 live 测试按约定跳过，属正常）。
+- `scripts/Verify-Source.ps1`：**PASS**（静态边界 + 明显密钥扫描）。
+- `tests/wx-multi/test_audited_wechat_keys.py`（用 `artifacts/win-x64/runtime/python/python.exe`，即内置 Python 3.12.10）：**58/58 PASS**，含 R1 错误映射、R2 掩码单值、R3 空版本、R4 严格解析、49 项 slice 等价性。
+- 结论：**未回退 1.4.7/1.4.8** 任一改动（无出厂默认 API、无内置音色、1.4.8 安装引导需用户确认才显示新版）。
+
+### 用户裁决后下一步（尚未做）
+
+- [ ] 用户检视构建产物 + 截图，认为合格后 → 打包：`scripts/Build-Installer.ps1` / `Publish.ps1` 生成 1.4.9 的 ZIP + Setup，并跑出厂门禁 `Verify-Source.ps1`（PASS + 1619 files 无 per-user 数据/无 live API key）。
+- [ ] 打包后联系 Muse 走发布单推新（`-Version 1.4.9` + 新 SHA256 + 中文 notes），不重发旧包、不自行上传。
+- [ ] 用户实机点更新，目视确认 1.4.8 安装引导行为 + 1.4.9 更新页三态布局。
 
 ---
 

@@ -208,16 +208,26 @@
       <Setter Property="Foreground" Value="{StaticResource UpdateReadyText}"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
       <Setter Property="VerticalContentAlignment" Value="Center"/>
-      <Setter Property="Padding" Value="18,7"/>
-      <Setter Property="MinHeight" Value="36"/>
-      <Setter Property="MinWidth" Value="120"/>
+      <Setter Property="Padding" Value="20,0"/>
+      <Setter Property="Height" Value="36"/>
+      <Setter Property="MinWidth" Value="132"/>
       <Setter Property="Template">
         <Setter.Value><ControlTemplate TargetType="Button">
           <Border x:Name="Frame" CornerRadius="9" Padding="{TemplateBinding Padding}"
                   Background="{StaticResource UpdateReadyFill}"
                   BorderBrush="{StaticResource UpdateReadyBorder}" BorderThickness="1">
             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+              <ContentPresenter.Resources>
+                <!-- The global implicit TextBlock style paints dark text; bind the
+                     generated label back to the button so the solid green "install"
+                     state keeps its white ink. -->
+                <Style TargetType="TextBlock">
+                  <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                  <Setter Property="FontSize" Value="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                </Style>
+              </ContentPresenter.Resources>
+            </ContentPresenter>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -242,16 +252,26 @@
       <Setter Property="Foreground" Value="White"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
       <Setter Property="VerticalContentAlignment" Value="Center"/>
-      <Setter Property="Padding" Value="18,7"/>
-      <Setter Property="MinHeight" Value="36"/>
-      <Setter Property="MinWidth" Value="120"/>
+      <Setter Property="Padding" Value="20,0"/>
+      <Setter Property="Height" Value="36"/>
+      <Setter Property="MinWidth" Value="132"/>
       <Setter Property="Template">
         <Setter.Value><ControlTemplate TargetType="Button">
           <Border x:Name="Frame" CornerRadius="9" Padding="{TemplateBinding Padding}"
                   Background="{StaticResource UpdateInstallFill}"
                   BorderBrush="{StaticResource UpdateInstallBorder}" BorderThickness="1">
             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+              <ContentPresenter.Resources>
+                <!-- The global implicit TextBlock style paints dark text; bind the
+                     generated label back to the button so the solid green "install"
+                     state keeps its white ink. -->
+                <Style TargetType="TextBlock">
+                  <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                  <Setter Property="FontSize" Value="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                </Style>
+              </ContentPresenter.Resources>
+            </ContentPresenter>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">

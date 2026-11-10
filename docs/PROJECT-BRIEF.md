@@ -62,7 +62,8 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 | 项 | 值 |
 | --- | --- |
 | 线上正式版 | **1.4.8**（发布单 `codex_20261109_235238_857190`，`status=ok`，`publishedAt=2026-11-09T22:59:27Z`） |
-| 源码版本 | `Directory.Build.props` = **1.4.8**；下一次打包推新时再升版本 |
+| 源码版本 | `Directory.Build.props` = **1.4.9**（wx-multi 合并 + 更新页 UI 优化，已构建 0 错误；**尚未打包/上线**） |
+| 新版软件位置（供检视） | `src/VoiceBridge.App/bin/Release/net8.0-windows/WeChatVoiceBridge.exe`（同目录含 `WeChatVoiceBridge.dll` 与全部依赖） |
 | 桌面快捷方式 | `D:\OneDrive\桌面\微信语音桥.lnk` → `artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`，**刻意保持 1.4.7**，让线上 1.4.8 严格大于桌面版，用户能亲自点一次更新实测 |
 | 1.4.8 ZIP | 89,464,301 字节 / `A4CA75B3C4F9EECB2D4BADB291161165FE6A7B9107F5343F678736D3E6CCB1C0` |
 | 1.4.8 Setup | 65,302,086 字节 / `A9FB702F06EC212C17E80B5F86FBE042734345769D92B6B68F11AB786FA3128C` |
