@@ -86,6 +86,40 @@
       <Setter Property="Foreground" Value="#6E8779"/>
     </Style>
 
+    <!-- 方块图标按钮（清空之类）：悬停浮底色，禁用时变淡 -->
+    <Style x:Key="IconDangerButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#9A6A5C"/>
+      <Setter Property="Width" Value="30"/>
+      <Setter Property="Height" Value="30"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <!-- Rounded-square frame so the icon reads as a button on the white card. -->
+            <Border x:Name="Surface" Background="{StaticResource CardBg}" CornerRadius="9"
+                    BorderBrush="#E7E0DA" BorderThickness="1">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="#FBEDE8"/>
+                <Setter TargetName="Surface" Property="BorderBrush" Value="#EAC6B8"/>
+                <Setter Property="Foreground" Value="#93412F"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="#F6DCD3"/>
+                <Setter TargetName="Surface" Property="BorderBrush" Value="#DFB09C"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <!-- 列表里的次要操作（编辑 / 完成）：中性淡绿药丸，和删除同一套外形 -->
     <Style x:Key="RowSecondaryButton" TargetType="Button">
       <Setter Property="Cursor" Value="Hand"/>
@@ -745,11 +779,21 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="朗读记录" Style="{StaticResource Caption}" Margin="14,0,0,0"
                            VerticalAlignment="Center"/>
-                <Button x:Name="ClearButton" Grid.Column="2" Content="清空" Style="{StaticResource PlainButton}"
-                        Click="ClearClick"/>
+
               </Grid>
               <Border Style="{StaticResource Group}">
                 <Grid>
+                  <!-- Clear action as a small square icon in the card's top-right corner;
+                       it is disabled (and dimmed like every other inactive icon) while
+                       there is nothing to clear. -->
+                  <Button x:Name="ClearButton" Style="{StaticResource IconDangerButton}"
+                          HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,10,0"
+                          Click="ClearClick" AutomationProperties.Name="清空朗读记录">
+                    <Path Data="M 3,4 L 13,4 M 6,4 L 6,2 L 10,2 L 10,4 M 5,4 L 5.6,13 L 10.4,13 L 11,4 M 7.6,6.5 L 7.6,11 M 9.6,6.5 L 9.6,11"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                          StrokeLineJoin="Round" Width="20" Height="20" Stretch="Uniform"/>
+                  </Button>
                   <Border x:Name="ResultsBox" Padding="4">
                     <!-- Measured: with two contact cards the page leaves 216 DIP under the
                        「朗读记录」 header; 176 keeps the card inside the window with a little
@@ -1185,9 +1229,8 @@
               <TextBlock x:Name="CacheInfo" Style="{StaticResource Footnote}" Margin="2,10,0,0"/>
 
               <StackPanel Orientation="Horizontal" Margin="0,26,0,0">
-                <Button x:Name="SaveButton" Content="保存设置" Style="{StaticResource PrimaryButton}" Click="SaveClick"/>
-                <Button x:Name="CleanButton" Content="清理缓存" Style="{StaticResource PlainButton}" Margin="10,0,0,0"
-                        Click="CleanClick"/>
+                <Button x:Name="CleanButton" Content="清理缓存" Style="{StaticResource RowDangerButton}"
+                        Padding="16,8" FontSize="13" MinWidth="112" Click="CleanClick"/>
               </StackPanel>
               <TextBlock x:Name="SettingsNotice" Style="{StaticResource Footnote}" Margin="2,10,0,0"/>
             </StackPanel>

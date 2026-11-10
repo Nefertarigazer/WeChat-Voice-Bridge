@@ -4,6 +4,23 @@
 
 ---
 
+## 工作区（1.5.2 之后，未升版本号）续 22：清缓存不再清头像 + 记录清空改成方块图标 + 去掉“保存设置”
+
+**用户要求**：① 清空缓存不能删头像/联系人索引，现在清完首页头像直接没了；② 朗读记录右上角“清空”文字改成卡片内的方形矢量图标（无内容时不可点、有内容一点即清）；③ 去掉没必要的“保存设置”，保留“清理缓存”（换成更合适的红色）。
+
+### 改动
+- **清缓存**：`CleanClick` 里原来有 `avatars.Clear()` + 把所有联系人 `Avatar = null`，这就是头像消失的原因；两行删除，只清 `SessionCache` 的数据库副本（缓存目录是 `<微信目录>/.voicebridge-cache`、`<盘>\WeChatVoiceBridgeCache`、`<程序目录>/cache`、`%LOCALAPPDATA%\WeChatVoiceBridge\cache`，**头像目录 `avatars\` 与索引 `contact-index\` 不在其中**）。
+- **朗读记录清空**：头部文字按钮删除；卡片内右上角加 `IconDangerButton`（30×30 圆角 9 的方形边框 + 垃圾桶矢量路径，悬停淡红底、按下更深）。`Render()` 里 `ClearButton.IsEnabled = !noResults`，空列表时 45% 透明、光标为箭头；点击改为 `Results.Items.Clear()`（原来误绑到 `controller.ClearQueue()`，清的是播放队列）。
+- **设置页底部**：删掉 `SaveButton`（设置本来每次都自动保存）与它的 `SaveClick`，只留 `清理缓存`，改用 `RowDangerButton` 淡红药丸（`Padding 16,8`、`MinWidth 112`）。
+
+### 验证
+- 清缓存实测：UIA 点击「清理缓存」→ 回首页截图，**两个联系人头像都还在**（`artifacts/screenshots/avatars-after-clean.png`）。
+- 图标实测：`清空朗读记录` 按钮 `IsEnabled=False`（空列表），截图 `records-icon-frame.png` 显示圆角方形边框 + 垃圾桶。
+- 设置页截图 `settings-clean-button.png`：只有一个淡红「清理缓存」。
+- `dotnet build` 0/0；`Test.ps1` .NET 209/209 + Python 54 PASS；`Verify-Source` PASS。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 21：下沿渐隐加强与“按需显示”
 
 **用户反馈**：边距修好了，但底部那层半透明/模糊效果变浅了，要再重一点。

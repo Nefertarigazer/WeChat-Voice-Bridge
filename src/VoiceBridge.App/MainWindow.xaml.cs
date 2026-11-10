@@ -379,9 +379,9 @@ public partial class MainWindow : Window
         PreviewButton.Content = manualCancel != null ? "取消试听" : "试听最后一条消息";
         PreviewButton.IsEnabled = !active && !closing && !string.IsNullOrWhiteSpace(selectedId);
         var noResults = Results.Items.Count == 0;
+        ClearButton.IsEnabled = !noResults;
         ResultsBox.Visibility = noResults ? Visibility.Collapsed : Visibility.Visible;
         ResultsEmpty.Visibility = noResults ? Visibility.Visible : Visibility.Collapsed;
-        ClearButton.IsEnabled = state.State == BridgeState.Running;
         DeleteVoiceButton.IsEnabled = VoicePresetBox.SelectedItem is string voice &&
             userVoices.Any(item => item.Name == voice);
         DeleteKeyButton.IsEnabled = userKeys.Count > 0 && (!active || userKeys.Count > 1);
@@ -753,7 +753,12 @@ public partial class MainWindow : Window
         Render();
     }
 
-    private void ClearClick(object sender, RoutedEventArgs e) => controller.ClearQueue();
+    /// <summary>The icon in the records card clears the list itself, not the queue.</summary>
+    private void ClearClick(object sender, RoutedEventArgs e)
+    {
+        Results.Items.Clear();
+        Render();
+    }
 
     // -------------------------------------------------------------- preview
 
@@ -1323,19 +1328,13 @@ public partial class MainWindow : Window
 
     private List<ReadingRule> CompleteReadings() => Volatile.Read(ref activeReadings).ToList();
 
-    private void SaveClick(object sender, RoutedEventArgs e) => ApplySettings(() =>
-    {
-        ReadSettings().Save();
-        RestartContactIndexing();
-        return "设置已保存。";
-    });
-
     private void CleanClick(object sender, RoutedEventArgs e) => ApplySettings(() =>
     {
         var settings = ReadSettings();
         var removed = SessionCache.CleanResiduals(settings.WeChatRoot);
-        avatars.Clear();
-        foreach (var card in contactCards) card.Avatar = null;
+        // Only the copied databases are cleared. Avatars and the contact index live in
+        // their own folders, so the cards keep their pictures; nothing here may reset
+        // them (doing so emptied every avatar on the home page).
         RefreshHistory();
         SessionCache.Trim(settings.CacheLimitBytes, settings.WeChatRoot);
         UpdateCacheInfo();
