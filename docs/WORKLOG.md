@@ -4,6 +4,49 @@
 
 ---
 
+## 1.5.1 · 2026-11-10（更新页三处打磨 + 高级页布局 + ⋮ 菜单比例，已上线）
+
+> 状态：**已发布上线**。源码 commit `dc2a9fd`；Muse 发布单 `codex_20261110_141758_3cb004`，回执 `status=ok`。
+
+### 用户要求（按提出顺序）
+
+1. **更新页版本说明要更像标题**：`v1.5.0 · 90.8 MB` 那行小字改成标题样式，安装包体积作为次要信息跟在右侧。
+2. **状态圆点与文字纵向对齐**：不只是灰点，黄点、绿点三种状态都要在同一中线上。
+3. **删掉第二行「已是最新版本」**：格子里只留圆点和一行字，上下居中。
+4. **更新按钮居中范围重定义**：先说「往下一点点」，随后澄清——上是卡片上沿，下是「更新说明框的上沿」，因为按钮与说明之间没有横线，两者是一个整体。
+5. **无说明文字时也要居中**：有更新说明时设计没问题，没有说明时「当前版本」行没居中好。
+6. **「移除」按钮悬停提示多余**：鼠标停上去会弹文字，去掉。
+7. **高级页三处**：语音服务标题与第一个服务分组挨太近；试听区要给「音色」「文本」各加小标题；文本框下面那条横线多余。
+8. **⋮ 菜单位置**：先要求从按钮向右下展开、宽度收窄不出框，再要求参照参考图改成接近正方形的比例，「更像正常软件的直觉位置」。
+
+### 改动
+
+- **更新页（`MainWindow.xaml` / `MainWindow.Updates.cs`）**：
+  - 删除 `UpdateSubtext`（第二行说明）及其全部赋值；状态行改为 `StackPanel Orientation=Horizontal` + 圆点与文字双 `VerticalAlignment=Center`，三态只换 `Fill`。
+  - 新增 `UpdateNoteHeader` 标题行：`UpdateNoteTitle` = `v{版本}`（`SectionTitle` 16 SemiBold），`UpdateNoteSize` = `{大小} MB`（12 灰、`VerticalAlignment=Bottom`、`Margin 8,0,0,2`），与更新状态联动显隐。
+  - 卡片改为**两列 Grid**：左列是「状态行 + 说明标题行」的 `StackPanel`，右列按钮 `VerticalAlignment=Center`，从而按「卡片上沿→说明框上沿」整块居中。
+- **「移除」按钮**：`ContactRemoveAction` 样式删掉 `ToolTip` Setter（两处使用点共用此样式），悬停只留配色。
+- **高级页试听区**：改用 `FieldLabel`（12 灰）在控件上方标「音色」「文本」，块内边距 16/14、块间距 16；删掉文本行下方的 `Hairline` 与按钮行里的空占位，按钮在卡片内右对齐（`Row` + `Margin 0,2,0,6`）。
+- **语音服务标题**：`ProvidersList` 加 `Margin="0,12,0,0"`，不再贴绿色分组头。
+- **⋮ 菜单**：定位改为 `HorizontalOffset = 79.5 - menu.ActualWidth`（**右缘固定距窗口 16 DIP，加宽部分向左吃，再宽也不出框**），`VerticalOffset = -4`（与按钮留约 6px，不压阴影）；`RowMenu` 改 `MinWidth 0 + Width 112`、圆角 12、菜单项 `Padding 16`，实测 112×102 DIP（宽高比 ≈1.1）。
+- `Directory.Build.props` → 1.5.1；`ReleaseHistory` 补 8 条。
+
+### 坑
+
+- **`RowSpan=2` 会把自动行撑高**：最初用 `Grid.RowSpan="2"` 让按钮跨两行居中，结果跨行子元素被 WPF 分摊高度，空行被撑到 18px，卡片 52→70、文字看着偏高 9 DIP。改两列 Grid 后 `probe` 实测偏差 -0.5 DIP。**不要改回 RowSpan**。
+- **DPI 是 2.0，不是 1.5**：窗口 1880×1560 物理 = 940×780 DIP。早期几轮按 1.5 换算出的 106.7 / 23 / 127 DIP 全部作废，文档已按 2.0 重写。
+- 菜单宽度与「不出框」本来是耦合的（⋮ 距窗口右约 95.5 DIP）。改成「右缘固定」后解耦，以后加菜单项不用重算。
+
+### 验证与发布
+
+- `dotnet build` 0/0；`Test.ps1` **.NET + Python 全 PASS**；`Verify-Source` PASS；58 项等价性 PASS（`tests/wx-multi/test_audited_wechat_keys.py` 用内置 Python 直跑，内置环境无 pytest）。
+- `tools/UpdatePanelPreview`（同构渲染 + 像素测量）三态偏差 -0.5/-0.5/0.0 DIP；`tools/UiSmokeTest` 新增 `shot`/`probe`/`nohover`/`menu`/`menuclick` 模式，真机截图与真鼠标点击验证。
+- 打包：`Publish.ps1` → `artifacts\win-x64-v1.5.1\` + ZIP 90,815,896 字节 / `6c43b41dddd0764b7084bb0ebc567818578d2cfae97e48f8e0ab01b0b5e65b1b`；`Build-Installer.ps1 -PayloadDirectory`（**不要传 -Output**）→ Setup 66,213,170 字节 / `cfd0482045045267b5bef2b3526a08c377f7e45517157529a8f3368f66fc4a3b`。Clean-payload PASS（1733 文件）。
+- Muse：先 `status=info`（流水线接手），约 3 分钟后 `status=ok`（`publishedAt=2026-11-10T13:21:18Z`），称哈希链三方一致、旧清单备份 `latest.json.bak-1.5.0`。
+- **独立公网复核**：`latest.json` 200、六字段齐全、version `1.5.1`、size 与 sha256 一致、notes 294 字中文正常；ZIP 与 Setup HEAD 200 且长度一致；**完整下载 ZIP 重算 SHA-256 一致**；本地 Setup 重算与回执一致。
+
+---
+
 ## 1.5.0 · 2026-11-10（API 配置简化 + 音色失效语义 + 凭据指针修复 + 凭据库自动清扫）
 
 > 状态：**全部完成并通过自验，待用户检视后决定是否打包推新**。不打包、不推线上、不更新桌面快捷方式。应用位置：`src\VoiceBridge.App\bin\Release\net8.0-windows\WeChatVoiceBridge.exe`。

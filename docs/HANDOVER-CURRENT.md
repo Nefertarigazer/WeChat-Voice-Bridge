@@ -1,12 +1,12 @@
-# 微信语音桥 · 当前交接（2026-11-10，源码 v1.5.1 待发 · 线上 v1.5.0 已上线）
+# 微信语音桥 · 当前交接（2026-11-10，源码与线上均为 v1.5.1）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录见 `.workbuddy/memory/2026-11-10.md`。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 0. 当前状态（2026-11-10 · v1.5.1 已构建、等用户点头后打包推送）
+## 0. 当前状态（2026-11-10 · v1.5.1 已打包并发布上线）
 
-**当前一节（v1.5.1，源码已完成、未打包、未上线）**：
+**当前一节（v1.5.1，源码完成、已发布）**：
 - 「软件更新」状态行只留一行：9px 圆点 + `当前版本 vX.Y.Z`，水平 `StackPanel`、两者 `VerticalAlignment=Center`，灰/琥珀/绿三态只换 `Fill`；第二行说明（「已是最新版本」「发现新版本」「更新包已就绪」）已删除，状态由卡片下方状态行与按钮文案承载。
 - 按钮整块居中：两列 Grid（左列 = 状态行 + 说明标题行的 `StackPanel`，右列 = 按钮 `VerticalAlignment=Center`），因此按钮居中范围是「卡片上沿 → 说明框上沿」；无说明时左列只剩状态行，按钮即居卡片。**不要改回 `RowSpan` 方案**：跨行子元素会把空的第二行撑到 18px，卡片变高、状态文字看着偏高（已实测差 9 DIP）。
 - 更新说明上方改为**标题行**：`UpdateNoteTitle` = `v{版本}`（`SectionTitle`，16 Semibold）+ `UpdateNoteSize` = `{大小} MB`（12 灰、底线对齐）；原先「v1.5.0 · 90.8 MB」小字不再出现。
@@ -16,7 +16,15 @@
 - 「语音服务」标题与首个分组头之间加 `Margin="0,12,0,0"`（`ProvidersList`）。
 - 「⋮」更多菜单改为**向右下展开、接近方形**：`HorizontalOffset = 79.5 - ActualWidth`（右缘固定距窗口 16 DIP，加宽部分向左吃，绝不顶边），`VerticalOffset = -4`（与按钮留约 6px，别压着阴影）；`RowMenu` 用 `MinWidth 0 + Width 112`、圆角 12、菜单项 `Padding 16`，实测 112×102 DIP。**注意 DPI 是 2.0**，早期记录里按 1.5 换成 DIP 的旧数字（106.7 / 23 / 127）都已作废。79.5 里的 95.5 是「⋮ 左缘→窗口右缘」的布局常数，改外边距要同步。**不要再改回「右缘对齐、向左展开」**，用户明确说那样「往左歪」。
 - 验证：`dotnet build` 0/0、`Test.ps1` **.NET + Python 全 PASS**（直接 `dotnet test` 会因缺 `WVB_PYTHON` 有 7 项环境性失败，必须走 `Test.ps1`）、`Verify-Source` PASS、58 项 PASS；真实应用截图（见 WORKLOG 最新节）；`UiSmokeTest nohover` 实测「移除」按钮悬停 4 秒无 tooltip。
-- **下一步**：用户确认样式后 → 打包（`Publish.ps1` → `Build-Installer.ps1`）→ Muse `publish-voicebridge` → 公网友核 → 回写记录并 push。
+
+**1.5.1 发布台账（2026-11-10，Muse 发布单 `codex_20261110_141758_3cb004`）**：
+- 源码 commit：`dc2a9fd`；payload 产品版本 `1.5.1+dc2a9fd903f1d64ffb3e5597c63f1ac55a00e715`。
+- ZIP `artifacts\WeChat-Voice-Bridge-V1.5.1-win-x64.zip` = 90,815,896 字节 / `6c43b41dddd0764b7084bb0ebc567818578d2cfae97e48f8e0ab01b0b5e65b1b`。
+- Setup `artifacts\WeChat-Voice-Bridge-V1.5.1-Setup.exe` = 66,213,170 字节 / `cfd0482045045267b5bef2b3526a08c377f7e45517157529a8f3368f66fc4a3b`。
+- 门禁：Clean-payload PASS（1733 文件）、`Test.ps1` PASS、`Verify-Source` PASS、58 项等价性 PASS、产物 1.5.1 > 线上 1.5.0。
+- Muse 回执 `status=ok`（`publishedAt=2026-11-10T13:21:18Z`），称哈希链三方一致、旧清单备份为 `latest.json.bak-1.5.0`。
+- **独立公网复核**：`latest.json` 200 / 六字段齐全（version `1.5.1`、size 90,815,896、sha256 与本地一致、notes 294 字中文正常）；ZIP 与 Setup HEAD 均 200 且长度一致；**完整下载 ZIP 重算 SHA-256 = `6c43b41d…65b1b`，与清单一致**；本地 Setup 重算 = `cfd04820…4a3b`，与回执一致。
+- **下一步**：无待办。桌面快捷方式仍指向 1.4.7（用户要求保留，便于亲自点一次更新实测），不要动。
 
 ## 0b. 上一节（v1.5.0 周期，已上线）
 

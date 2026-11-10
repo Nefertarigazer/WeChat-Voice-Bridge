@@ -57,21 +57,21 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 6. **干完活自己 `git commit`**（用户采纳的 Muse 习惯）。仓库有 remote `origin = https://github.com/Nefertarigazer/WeChat-Voice-Bridge.git`，`master` 跟踪 `origin/master`。
 7. 用户偏好：中文交流；Muse 的恶作剧/吓唬内容要清掉，但**工作、发布、工程记录一律保留**。
 
-## 4. 当前版本与线上状态（2026-11-10 13:10 GMT+1）
+## 4. 当前版本与线上状态（2026-11-10 14:22 GMT+1）
 
 | 项 | 值 |
 | --- | --- |
-| 线上正式版 | **1.5.0**（发布单 `codex_20261110_130657_f72a7b`，`status=ok`，`publishedAt=2026-11-10T12:09:47Z`） |
-| 源码版本 | `Directory.Build.props` = **1.5.0**（程序集 1.5.0.0，`1.5.0+ec2d729`） |
-| 1.5.0 ZIP | 90,814,448 字节 / `48E2ADDAF9A6FFB7AF19CC2DFE1943A2176B037F42F7D95397A892BE6EE6CC33` |
-| 1.5.0 Setup | 66,213,216 字节 / `462980BDE3133CF37C11EDD926707D95B5ECADDC44EB1E17148A818F38B11734` |
-| 公网友核 | 清单 200（六字段齐全、notes 为正常 UTF-8 中文）、ZIP 与 Setup HEAD 200 且长度一致、**完整下载 ZIP 重算 SHA-256 一致** |
-| 桌面快捷方式 | `D:\OneDrive\桌面\微信语音桥.lnk` → `artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`，**仍刻意保持 1.4.7**，让线上 1.5.0 严格大于桌面版，用户能亲自点一次更新实测 |
-| 上一版 1.4.8 ZIP | 89,464,301 字节 / `A4CA75B3C4F9EECB2D4BADB291161165FE6A7B9107F5343F678736D3E6CCB1C0` |
-| 上一版 1.4.8 Setup | 65,302,086 字节 / `A9FB702F06EC212C17E80B5F86FBE042734345769D92B6B68F11AB786FA3128C` |
-| Git | `master` 领先 `origin/master`（本机提交）；1.5.0 的包由 `ec2d729` 构建 |
+| 线上正式版 | **1.5.1**（发布单 `codex_20261110_141758_3cb004`，`status=ok`，`publishedAt=2026-11-10T13:21:18Z`） |
+| 源码版本 | `Directory.Build.props` = **1.5.1**（程序集 1.5.1.0，`1.5.1+dc2a9fd`） |
+| 1.5.1 ZIP | 90,815,896 字节 / `6C43B41DDDD0764B7084BB0EBC567818578D2CFAE97E48F8E0AB01B0B5E65B1B` |
+| 1.5.1 Setup | 66,213,170 字节 / `CFD0482045045267B5BEF2B3526A08C377F7E45517157529A8F3368F66FC4A3B` |
+| 公网友核 | 清单 200（六字段齐全、notes 294 字正常 UTF-8 中文）、ZIP 与 Setup HEAD 200 且长度一致、**完整下载 ZIP 重算 SHA-256 一致**、本地 Setup 重算与回执一致 |
+| 桌面快捷方式 | `D:\OneDrive\桌面\微信语音桥.lnk` → `artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`，**仍刻意保持 1.4.7**，让线上 1.5.1 严格大于桌面版，用户能亲自点一次更新实测 |
+| 上一版 1.5.0 ZIP | 90,814,448 字节 / `48E2ADDAF9A6FFB7AF19CC2DFE1943A2176B037F42F7D95397A892BE6EE6CC33` |
+| 上一版 1.5.0 Setup | 66,213,216 字节 / `462980BDE3133CF37C11EDD926707D95B5ECADDC44EB1E17148A818F38B11734` |
+| Git | `master` 与 `origin/master` 同点；1.5.1 的包由 `dc2a9fd` 构建 |
 
-历史：1.4.6 上线；1.4.7 发布单 `codex_20261109_230425_438f4b` 因公网 `public_verify` 403 被拒并回滚，旧包不再使用；公网 `latest.json` 曾 403（Caddy）已恢复；**1.5.0 于 2026-11-10 12:09 UTC 由 Muse 流水线上线（发布单 `codex_20261110_130657_f72a7b`，`status=ok`，旧清单备份 `latest.json.bak-1.4.8`），本助手独立公网复核通过**；A1 服务器 22:13:01 UTC 有一次流水线之外的手工翻版，来源未指认（日志有 `sudo cp`/`sudo mv`，非流水线文件名），**不是本助手所为**，本助手无 A1 登录/sudo 能力。
+历史：1.4.6 上线；1.4.7 发布单 `codex_20261109_230425_438f4b` 因公网 `public_verify` 403 被拒并回滚，旧包不再使用；公网 `latest.json` 曾 403（Caddy）已恢复；1.5.0 于 2026-11-10 12:09 UTC 由 Muse 流水线上线（发布单 `codex_20261110_130657_f72a7b`，旧清单备份 `latest.json.bak-1.4.8`）；**1.5.1 于 2026-11-10 13:21 UTC 由 Muse 流水线上线（发布单 `codex_20261110_141758_3cb004`，旧清单备份 `latest.json.bak-1.5.0`），本助手独立公网复核通过**；A1 服务器 22:13:01 UTC 有一次流水线之外的手工翻版，来源未指认（日志有 `sudo cp`/`sudo mv`，非流水线文件名），**不是本助手所为**，本助手无 A1 登录/sudo 能力。
 
 ## 5. 不可回退的已上线改动（红线）
 
