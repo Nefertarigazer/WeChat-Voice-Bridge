@@ -141,10 +141,9 @@ public partial class MainWindow
         Grid.SetColumnSpan(ContactsList, contactCards.Count == 1 ? 1 : 3);
         ContactsCaption.Text = $"朗读对象 · {contactCards.Count}/8";
         AddContactButton.Content = "＋ 添加";
-        PrefixHint.Text = contactCards.Count > 1
-            ? "依次朗读每个人的消息。音色和提示词可分别设置。"
-            : "";
-        PrefixHint.Visibility = contactCards.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        // The old one-line explainer is gone: the cards speak for themselves.
+        PrefixHint.Text = "";
+        PrefixHint.Visibility = Visibility.Collapsed;
     }
 
     private void PublishRouting()

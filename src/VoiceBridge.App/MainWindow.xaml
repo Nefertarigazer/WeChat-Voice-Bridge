@@ -79,25 +79,45 @@
         <Setter Property="Background" Value="#DDEFE4"/><Setter Property="BorderBrush" Value="#AED4BE"/>
       </Trigger></Style.Triggers>
     </Style>
-    <!-- Delete action inside lists: quiet until hovered, then red. -->
-    <Style x:Key="RowDangerButton" TargetType="Button" BasedOn="{StaticResource PlainButton}">
-      <Setter Property="Foreground" Value="#A85A48"/>
-      <Setter Property="Padding" Value="10,4"/>
+    <!-- 词库表头：小一号、字距略开、颜色压暗，读起来像列名 -->
+    <Style x:Key="TableHead" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="#6E8779"/>
+    </Style>
+
+    <!-- 列表里的删除：淡红药丸，悬停加深、按下更深，比纯文字更像可点的按钮 -->
+    <Style x:Key="RowDangerButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#A85643"/>
+      <Setter Property="Padding" Value="11,5"/>
       <Setter Property="FontSize" Value="12.5"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Surface" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
-              <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
-                         FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            <Border x:Name="Surface" Background="#FBEFEA" BorderBrush="#F1DCD3" BorderThickness="1"
+                    CornerRadius="9" Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5">
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Path x:Name="Glyph" Width="9" Height="9" Stretch="Uniform" Margin="0,0,5,0"
+                      Data="M 2,2 L 8,8 M 8,2 L 2,8" Stroke="{TemplateBinding Foreground}"
+                      StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                      VerticalAlignment="Center"/>
+                <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                           FontSize="{TemplateBinding FontSize}" FontWeight="Medium"
+                           VerticalAlignment="Center"/>
+              </StackPanel>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Surface" Property="Background" Value="#FBEDE8"/>
-                <Setter Property="Foreground" Value="#93412F"/>
+                <Setter TargetName="Surface" Property="Background" Value="#F7E3DA"/>
+                <Setter TargetName="Surface" Property="BorderBrush" Value="#E8BFAF"/>
+                <Setter Property="Foreground" Value="#8F4231"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="Surface" Property="Background" Value="#F6DCD3"/>
+                <Setter TargetName="Surface" Property="Background" Value="#F1D3C7"/>
+                <Setter TargetName="Surface" Property="RenderTransform">
+                  <Setter.Value><ScaleTransform ScaleX="0.97" ScaleY="0.97"/></Setter.Value>
+                </Setter>
               </Trigger>
               <Trigger Property="IsEnabled" Value="False">
                 <Setter TargetName="Surface" Property="Opacity" Value="0.45"/>
@@ -820,22 +840,28 @@
 
               <Border Style="{StaticResource Group}">
                 <StackPanel>
-                  <!-- Column headings: the three fields read as a table, not as
-                       loose boxes. Hidden while the book is empty. -->
-                  <Grid Margin="17,10,17,4" Visibility="{Binding HasItems, ElementName=ReadingList, Converter={StaticResource BoolToVis}}">
-                    <Grid.ColumnDefinitions>
-                      <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
-                      <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="原文" FontSize="11.5" Foreground="{StaticResource Secondary}"/>
-                    <TextBlock Grid.Column="2" Text="读作" FontSize="11.5" Foreground="{StaticResource Secondary}" Margin="12,0,0,0"/>
-                    <TextBlock Grid.Column="3" Text="出现方式" FontSize="11.5" Foreground="{StaticResource Secondary}" Margin="12,0,0,0"/>
-                    <TextBlock Grid.Column="4" Text="操作" FontSize="11.5" Foreground="{StaticResource Secondary}" HorizontalAlignment="Right" Margin="0,0,12,0"/>
-                  </Grid>
+                  <!-- Column headings as a quiet band: a tinted strip, a hairline under
+                       it and letter-spaced caps, so the rows below read as a table
+                       instead of three loose input boxes. -->
+                  <Border Background="#F4F8F6" BorderBrush="#E6EEE9" BorderThickness="0,0,0,1"
+                          CornerRadius="8,8,0,0" Padding="17,9,17,8" Margin="0,10,0,0"
+                          Visibility="{Binding HasItems, ElementName=ReadingList, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="152"/><ColumnDefinition Width="76"/>
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="原文" Style="{StaticResource TableHead}"/>
+                      <TextBlock Grid.Column="2" Text="读作" Style="{StaticResource TableHead}" Margin="12,0,0,0"/>
+                      <TextBlock Grid.Column="3" Text="出现方式" Style="{StaticResource TableHead}" Margin="12,0,0,0"/>
+                      <TextBlock Grid.Column="4" Text="操作" Style="{StaticResource TableHead}"
+                                 HorizontalAlignment="Right" Margin="0,0,12,0"/>
+                    </Grid>
+                  </Border>
                   <ListBox x:Name="ReadingList" ItemTemplate="{StaticResource ReadingRow}" Padding="0,2"/>
-                  <Button x:Name="AddReadingButton" Content="＋ 添加词条" Style="{StaticResource AddReadingAction}"
-                          HorizontalAlignment="Center" Margin="0,10,0,14"
-                          Click="AddReadingClick" AutomationProperties.Name="添加一行"/>
+                  <Button x:Name="AddReadingButton" Content="＋ 添加词条" Style="{StaticResource AccentButton}"
+                          HorizontalAlignment="Center" Margin="0,12" Click="AddReadingClick"
+                          AutomationProperties.Name="添加一行"/>
                 </StackPanel>
               </Border>
             </StackPanel>
