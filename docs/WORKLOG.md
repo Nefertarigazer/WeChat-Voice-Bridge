@@ -4,7 +4,45 @@
 
 ---
 
-## 进行中 · 2026-11-10（wx-multi 多版本适配合并 + 更新页 UI 优化）
+## 1.5.0 · 2026-11-10（API 配置简化 + 音色失效语义 + 凭据指针修复 + 凭据库自动清扫）
+
+> 状态：**全部完成并通过自验，待用户检视后决定是否打包推新**。不打包、不推线上、不更新桌面快捷方式。应用位置：`src\VoiceBridge.App\bin\Release\net8.0-windows\WeChatVoiceBridge.exe`。
+
+### 用户要求（四条）
+
+1. **API 配置界面优化**：同厂商多 Key 取消「未启用/待用/已启用/使用中」括号小字；右侧「启用/编辑/删除」多按钮合并为最右一个白色「启用」按钮（启用后绿色「使用中」+ 行首小绿点，未启用灰点）；「编辑/删除」并入「⋮」竖排三点菜单；全面删除面向开发者的说明性文字（「已启用 Fish Audio 2」「其他 Key 保持待用」「每款软件不预置任何服务密钥」等）。
+2. **音色消失 bug**：新增同厂商 API 后首页联系人音色消失。规则：API 改动不影响所选音色时（增/切换/删非关键 Key）一律不消失、不换样式、不弹任何提示；仅当音色所属厂商的 Key **全部**删除时，音色变灰色斜体、点「开始」提示「音色已失效，请重新选择」、下拉框里名字仍可见但不可点选，仅有效音色可选。
+3. **凭据指针覆写事故修复**：当日新构建启动后重写 settings.json 与 fish-keys.dpapi，Fish 服务 `CredentialId` 指向 32 位空壳凭据（`speech-2466c4b1…`）→ 401 试听失败。修复要求：迁移/启动加载**原样保留**「服务→凭据」映射，禁止占位值覆写；指针恢复到真钥匙条目；自验 = 重启后指针不变 + 实际试听成功。
+4. **凭据库自动清理规矩**：`fish-keys.dpapi` 只保留仍被引用条目（引用 = 任何服务 `CredentialId` + 顶层 `FishKeyName` + 联系人/试听凭据覆盖）；两个时机：①启动加载并完成全部配置迁移**之后**清扫（顺序不能反，防误删迁移目标）；②软件里删除服务时连带清掉因此无引用的条目；本次会话新建、未挂到服务的条目豁免当次清扫、下次启动再判；只删无引用条目，删几条记数到日志。
+
+### 改动清单
+
+- **UI（要求 1）**：`MainWindow.Library.cs` 的 `ProviderRow` 简化为 `Id/Name/Kind/IsActive`；行模板 = 左侧 9px 圆点（`#AEAEB2` 灰 / `#1D9A5B` 绿，`IsActive` 触发）+ 名称 + 白色「启用」按钮（`App.xaml` 新 `ProviderEnableButton`，ControlTemplate 内 Veil 覆盖层实现 hover，绿色态 hover 不褪色）+「⋮」按钮（`ProviderMoreClick` 动态 ContextMenu = 编辑/删除）；`ActivateProviderClick` 去掉 `NeedsActivation` 门槛与提示文案；删除「我的音色」「语音服务」脚注与 `VoiceHint` 块。
+- **音色语义（要求 2）**：`VoiceLibraryMigration.ActiveKeyFor` 加同厂商 fallback（厂商还有任意 Key 即可用；全部删光才失效）+ `IsUsable`；`MainWindow.Library.cs` `RefreshLibrary` 重写为**就地同步** `SyncVoiceChoice`（不再 `voiceChoices.Clear()` —— 清空重建导致 WPF `Selector` 选中态重置，是音色消失的根因）；`ContactCard.cs` `VoiceChoice` 由 record 改为可变类 + `INotifyPropertyChanged`；`MainWindow.xaml` 新 `VoiceChoiceItemTemplate`（失效灰色斜体）与 `VoiceChoiceItemStyle`（`IsEnabled` 绑 `Usable`，名字保留在下拉但不可点选）；三处音色 ComboBox 切换到该模板。错误文案统一为「音色已失效，请重新选择。」；UserGuide 两处同步改写。
+- **凭据指针（要求 3，根因两处）**：① `ProfileEditors.Save` 旧逻辑每次输入新密钥都铸 `"speech-" + Result.Id` 新名、把用户真钥匙名顶掉 → 改为仅在无既有名时铸名，否则保留 `Result.CredentialId`；② `KeyStore.Load` 在 `fish-keys.dpapi` 不可读时曾落入 legacy 导入、整库覆写 → 改为**已存在就绝不写**（读不出返回空、文件原样）。`KeyStore.Replace` 新增为唯一受护栏的写入口（空名/空密钥永不落盘）。`EditProvider` 改走 `KeyStore.Replace`。
+- **凭据清扫（要求 4）**：新 `src/VoiceBridge.Core/CredentialSweep.cs` 纯函数（`ReferencedNames` 收集三类引用源；`UnreferencedEntries` 出删除名单，引用与会话新建永不入选）；`LocalSettings.KeyStore.Load(out createdThisLoad)` 上报 legacy 导入新建名；`MainWindow.xaml.cs` 新 `sessionNewKeys` 会话豁免集（`AddKeyClick`/`EditProvider` 新建名登记，`DeleteKeyClick` 注销）+ `SweepCredentials(when, providers, keyName, contacts)`（删无引用条目 → `KeyStore.Save` → `AppLog.Write` 记条数）；启动时在 `ReadStoredSettings()`（全部迁移）与 `KeyStore.Load()` **之后**清扫一次（`"启动"`）；`DeleteProviderById` 在摘除服务后清扫一次（`"删除服务"`）。新 `AppLog.cs` → `%LOCALAPPDATA%\WeChatVoiceBridge\app.log`（只记条数与事件名，128KB/200 行封顶，写失败不阻塞）。`DeleteKeyClick` 守卫从「被启用的服务使用」收紧为「被任何服务引用」。
+- **版本**：`Directory.Build.props` → 1.5.0；`ReleaseHistory.cs` 新 1.5.0 条目（四项：界面精简、音色不无故消失、凭据指针修复、凭据库自动清理）。
+- **工具**（`tools/`，不入发布物）：`KeyStoreInspector`（只读列条目名/长度/指纹）、`CredentialRepair`（`probe`/`repair <name>`/`verify`，本轮加 `inject <name>` 塞测试孤儿条目）、`UiSmokeTest`（UIA 驱动真实窗口：高级→试听这段文字→首页→读「试听完成。」）。
+
+### 事故记录（凭据指针）
+
+当日早间构建启动后把 `settings.json`/`fish-keys.dpapi` 重写、服务指针被占位值顶掉。用指纹分组 + 真实 Fish 调用辨认真钥匙：51 位 `fp=68BD1117` 组（`默认` 等 5 份拷贝）HTTP 200 为真钥匙；`fp=240975F2` 与 32 位空壳 401。`CredentialRepair repair speech-d1ee2ca3106c44d1af5b91b674944451` 恢复指针（备份 `settings.json.bak-20261110-112909`），并按上文修掉两处根因。教训：修复指针必须在应用**未运行**时做——旧构建退出时会把内存里的坏指针写回。
+
+### 验证（全部通过）
+
+- `dotnet build -c Release` 0 警告 0 错误；产物 `WeChatVoiceBridge.exe` 版本 **1.5.0.0**。
+- `scripts/Test.ps1` PASS（.NET + Python）；直接 `dotnet test`（含 WVB_PYTHON）**211/211**（205 旧 + 6 新清扫测试）；`Verify-Source.ps1` PASS；58 项等价性自检 PASS。
+- **清扫自验（用户指定）**：`CredentialRepair inject orphan-sweep-c/d` 塞两条无引用条目 → 重启应用 → 钥匙库 16 条只剩被引用的 `speech-d1ee2ca3…` 一条，两条孤儿被清；`app.log` 记「凭据清扫（启动）：删除 2 条无引用条目。」（首轮全库清扫记「删除 15 条」）。
+- **试听自验**：`UiSmokeTest` 驱动真实窗口（高级→试听这段文字）→ 提示「**试听完成。**」exit 0；试听后 `settings.json` 指针不变（`CredentialId`/`FishKeyName` 均 `speech-d1ee2ca3106c44d1af5b91b674944451`）。
+- 清扫删除服务路径由 `CredentialSweepTests.DeletingAServiceSweepsOnlyTheEntriesItOrphaned` 等 6 例覆盖（共享指针只清孤儿、待用 Key 不清、会话新建豁免、空白指针安全）。
+
+### 待用户裁决
+
+- 用户检视 `src\VoiceBridge.App\bin\Release\net8.0-windows\WeChatVoiceBridge.exe`；合格后再谈打包推新（届时走 Muse）。
+
+---
+
+## 1.4.9 · 2026-11-10（wx-multi 多版本适配合并 + 更新页 UI 优化）
 
 > 本段是**断点续做的活文档**：每完成一部分就在这里追加，接手者先看这里与 `.workbuddy/memory/2026-11-10.md`。用户本轮指令原文要点见 `PROJECT-BRIEF.md` §7。
 
@@ -389,6 +427,10 @@
 | 1.4.3 | 弹窗外观 + 提示词/词库/热移除 + 快捷方式 | 本地试用，`artifacts/win-x64-v1.4.3` |
 | 1.4.4 | 头像恢复、任务栏合并、词库光标、文档 | 本地试用，`artifacts/win-x64-v1.4.4` |
 | 1.4.5 | 自定义提示词选中状态根治 | 本地试用，`artifacts/win-x64-v1.4.5`；**桌面快捷方式仍指向此处（用户要求保留，用于体验自升级）** |
-| **1.4.6** | **更新按钮三态配色与居中** | **发布产物 ZIP + Setup.exe，由 Muse 推到线上；线上原版本为 1.4.3** |
+| 1.4.6 | 更新按钮三态配色与居中 | 已上线（2026-11-09） |
+| 1.4.7 | 取消出厂默认 API、删 API 保留厂商名、同厂商多 Key 自选 | 已上线（后被 1.4.8 覆盖） |
+| 1.4.8 | 更新完成后由用户决定何时打开新版 | **线上正式版**（`codex_20261109_235238_857190`，2026-11-09 22:59 UTC） |
+| 1.4.9 | wx-multi 多版本适配 + 更新页精简 | 本地，未打包 |
+| **1.5.0** | **API 配置简化 + 音色失效语义 + 凭据指针修复 + 凭据库自动清扫** | **本地 `src\VoiceBridge.App\bin\Release\net8.0-windows\`，待用户检视，未打包** |
 
 **发布状态更正（1.4.6 已上线）**：本会话确实生成了 `WeChat-Voice-Bridge-V1.4.6-win-x64.zip` 与 `...-Setup.exe`，并经 Muse 通道把 1.4.6 推到线上（详见 1.4.6 段）。此处的旧表述是 1.4.5 及更早留下的、已作废。线上正式版自 2026-11-09 起为 **1.4.6**（此前为 1.4.3）。

@@ -54,6 +54,12 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer saveTimer;
     private readonly List<NamedVoice> userVoices = new();
     private readonly List<NamedKey> userKeys = new();
+    /// <summary>
+    /// Entries created during this run and not yet attached to anything. The
+    /// credential sweep skips them so a key the user just added cannot vanish
+    /// mid-flow; the next start judges them again without this exemption.
+    /// </summary>
+    private readonly HashSet<string> sessionNewKeys = new(StringComparer.Ordinal);
     private readonly ObservableCollection<ReadingItem> readingItems = new();
     private ReadingRule[] activeReadings = [];
 
@@ -184,7 +190,13 @@ public partial class MainWindow : Window
             }
             lexiconSeeded = true;
         }
-        userKeys.AddRange(KeyStore.Load());
+        userKeys.AddRange(KeyStore.Load(out var createdThisLoad));
+        foreach (var created in createdThisLoad)
+            sessionNewKeys.Add(created);
+        // The sweep runs strictly after every settings and store migration has
+        // finished — never before, or it could delete a migration's target. It
+        // only removes entries that nothing points at any more.
+        SweepCredentials("启动", settings.Providers, settings.FishKeyName, settings.ContactProfiles);
         LatencyBox.SelectedItem = settings.Latency is "normal" or "low" ? settings.Latency : "balanced";
         VolumeBox.Value = Math.Clamp(settings.Volume, 0, 1);
         PreviewBox.IsChecked = settings.Preview;
@@ -989,6 +1001,8 @@ public partial class MainWindow : Window
         var dialog = new AddItemDialog("添加 API Key", "名称", "API Key", true) { Owner = this };
         if (dialog.ShowDialog() != true)
             return;
+        if (!userKeys.Any(item => item.Name == dialog.ItemName))
+            sessionNewKeys.Add(dialog.ItemName);
         var updated = userKeys.Where(item => item.Name != dialog.ItemName)
             .Append(new NamedKey(dialog.ItemName, dialog.ItemValue)).ToList();
         SaveKeys(updated, dialog.ItemName);
@@ -1001,11 +1015,12 @@ public partial class MainWindow : Window
         var key = userKeys.FirstOrDefault(item => item.Name == selectedKeyName);
         if (key == null)
             return;
-        if (providers.Any(provider => provider.Enabled && provider.CredentialId == key.Name))
+        if (providers.Any(provider => provider.CredentialId == key.Name))
         {
-            KeyNotice.Text = "这份凭据仍被启用的服务使用，请先编辑或停用对应 API。";
+            KeyNotice.Text = "这份凭据仍被某个服务引用，请先编辑或删除对应 API。";
             return;
         }
+        sessionNewKeys.Remove(key.Name);
         var updated = userKeys.Where(item => item != key).ToList();
         SaveKeys(updated, updated.FirstOrDefault()?.Name);
     }
@@ -1025,6 +1040,49 @@ public partial class MainWindow : Window
         KeyNotice.Text = ListeningActive ? "API Key 已更新，从下一条开始生效。" : "API Key 已更新。";
         ScheduleSave();
         Render();
+    }
+
+    /// <summary>
+    /// Credential names held in per-contact or test-voice override settings.
+    /// Today's overrides (model, latency) never name a credential and the test
+    /// voice picks one through the FishKeyName parameter, so this collects
+    /// nothing; it stays as the single wiring point if either settings family
+    /// ever gains a credential override of its own.
+    /// </summary>
+    private static IEnumerable<string> ContactOrTestCredentialOverrides(IEnumerable<ContactProfile>? contacts)
+    {
+        _ = contacts;
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Removes secure-store entries that nothing references any more. Called
+    /// once after startup migration and again when a service is deleted; the
+    /// caller's lists are the post-migration truth at startup and the live
+    /// ones afterwards. Only unreferenced entries go — a name that any service
+    /// pointer, the FishKeyName or a contact/test override still holds is kept
+    /// whatever else happens — and entries created during this run are exempt.
+    /// </summary>
+    private void SweepCredentials(string when,
+        IEnumerable<SpeechProviderProfile?>? currentProviders, string? keyName,
+        IEnumerable<ContactProfile>? contacts = null)
+    {
+        var referenced = CredentialSweep.ReferencedNames(currentProviders, keyName,
+            ContactOrTestCredentialOverrides(contacts));
+        var stale = CredentialSweep.UnreferencedEntries(userKeys.Select(key => key.Name),
+            referenced, sessionNewKeys);
+        if (stale.Count == 0)
+            return;
+        var kept = userKeys.Where(key => !stale.Contains(key.Name)).ToList();
+        try { KeyStore.Save(kept); }
+        catch (Exception) { return; }
+        userKeys.Clear();
+        userKeys.AddRange(kept);
+        foreach (var name in stale)
+            sessionNewKeys.Remove(name);
+        AppLog.Write($"凭据清扫（{when}）：删除 {stale.Count} 条无引用条目。");
+        if (ready)
+            RefreshKeys();
     }
 
     /// <summary>

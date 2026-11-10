@@ -101,7 +101,7 @@ public sealed class SpeechProviderFactory : IDisposable
         if (!Enum.IsDefined(provider.Kind) || string.IsNullOrWhiteSpace(provider.Id))
             throw new BridgeException("语音 API 配置无效，请重新选择接口。");
         if (!provider.Enabled)
-            throw new BridgeException("该音色所属的 API 尚未启用，请先启用对应 API。");
+            throw new BridgeException("音色已失效，请重新选择。");
         if (!string.Equals(voice.ProviderId, provider.Id, StringComparison.Ordinal))
             throw new BridgeException("该音色属于另一个 API，请启用音色所属的 API，或选择当前 API 的音色。");
         if (provider.TimeoutSeconds is < 5 or > 300)

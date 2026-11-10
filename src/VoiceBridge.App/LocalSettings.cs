@@ -143,23 +143,48 @@ internal static class KeyStore
     private static string KeysFile => Path.Combine(Root, "fish-keys.dpapi");
     private static string LegacyFile => Path.Combine(Root, "fish-key.dpapi");
 
-    public static List<NamedKey> Load()
+    /// <summary>
+    /// Reads the sealed store. <paramref name="createdThisLoad"/> lists the
+    /// names that only now came into existence (the legacy one-key import), so
+    /// the credential sweep can treat them as freshly added and judge them at
+    /// the next start instead of the one that just created them.
+    /// </summary>
+    public static List<NamedKey> Load(out List<string> createdThisLoad)
     {
+        createdThisLoad = new List<string>();
         if (File.Exists(KeysFile))
         {
+            // The store already exists: never write to it here. An unreadable file
+            // must be left exactly as it is — falling through to the legacy import
+            // used to replace a whole multi-key store with one legacy key.
             var stored = Unseal(File.ReadAllBytes(KeysFile));
-            if (stored != null)
-                return stored;
+            return stored ?? new();
         }
         if (!File.Exists(LegacyFile))
             return new();
-        // An older release kept one key under its own name. Move it over.
+        // An older release kept one key under its own name. Move it over — this is
+        // the only place that creates the multi-key store, and it runs solely when
+        // there is no store yet.
         var legacy = UnsealText(File.ReadAllBytes(LegacyFile));
         if (string.IsNullOrEmpty(legacy))
             return new();
         var keys = new List<NamedKey> { new("默认", legacy) };
         Save(keys);
+        createdThisLoad.Add("默认");
         return keys;
+    }
+
+    /// <summary>
+    /// Stores a secret under an existing name (replacing that entry's value) or
+    /// under a new name. A blank secret is never stored and never replaces a real
+    /// one, so no code path can downgrade a working credential to a placeholder.
+    /// </summary>
+    public static List<NamedKey> Replace(List<NamedKey> keys, string name, string secret)
+    {
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(secret))
+            return keys;
+        return keys.Where(item => !string.Equals(item.Name, name, StringComparison.Ordinal))
+            .Append(new NamedKey(name, secret)).ToList();
     }
 
     public static void Save(List<NamedKey> keys)

@@ -10,9 +10,47 @@ using VoiceBridge.FishAudio;
 
 namespace VoiceBridge.App;
 
-internal sealed record VoiceChoice(string Id, string Name, string ProviderName)
+/// <summary>
+/// One entry of every voice dropdown. Mutable with change notifications on
+/// purpose: the shared list is refreshed in place when services change, so the
+/// open/selected ComboBox item is never torn down and re-created (which used to
+/// blank the selection the user had already made).
+/// </summary>
+internal sealed class VoiceChoice : INotifyPropertyChanged
 {
+    private string name;
+    private string providerName;
+    private bool usable;
+
+    public VoiceChoice(string id, string name, string providerName, bool usable)
+    {
+        Id = id;
+        this.name = name;
+        this.providerName = providerName;
+        this.usable = usable;
+    }
+
+    public string Id { get; }
+    public string Name
+    {
+        get => name;
+        set { name = value; Notify(); Notify(nameof(Label)); }
+    }
+    public string ProviderName
+    {
+        get => providerName;
+        set { providerName = value; Notify(); }
+    }
+    /// <summary>False only when the voice's vendor has no API key left at all.</summary>
+    public bool Usable
+    {
+        get => usable;
+        set { usable = value; Notify(); }
+    }
     public string Label => Name;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void Notify([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new(name));
 }
 internal sealed class AnnouncementChoice(string id, string label) : INotifyPropertyChanged
 {

@@ -202,4 +202,100 @@ public sealed class ProviderActivationTests
         Assert.Equal("gone-db", bound[1].ProviderId);
         Assert.Equal("fish-new", bound[2].ProviderId);
     }
+
+    // ---- Voice availability: only losing every key of a vendor matters ----
+
+    [Fact]
+    public void AVoiceStaysUsableWhileAnyKeyOfItsVendorSurvives()
+    {
+        var first = Key("fish-1");
+        var second = Key("fish-2", enabled: false);
+        var voice = Voice("v1", "fish-1", SpeechProviderKind.Fish);
+
+        // Two keys, only one active: still usable, and the active key is chosen.
+        Assert.True(VoiceLibraryMigration.IsUsable(voice, [first, second]));
+        Assert.Equal("fish-1", VoiceLibraryMigration.ActiveKeyFor(voice, [first, second])!.Id);
+
+        // The voice's own key is deleted; the other key of the vendor covers it.
+        Assert.True(VoiceLibraryMigration.IsUsable(voice, [second]));
+        Assert.Equal("fish-2", VoiceLibraryMigration.ActiveKeyFor(voice, [second])!.Id);
+
+        // Every key of the vendor is gone: only now is the voice unavailable.
+        Assert.False(VoiceLibraryMigration.IsUsable(voice, [Key("db-1", SpeechProviderKind.Doubao)]));
+        Assert.Null(VoiceLibraryMigration.ActiveKeyFor(voice, []));
+    }
+
+    [Fact]
+    public void SwitchingTheActiveKeyNeverInvalidatesAVoice()
+    {
+        var first = Key("fish-1");
+        var second = Key("fish-2", enabled: false);
+        var voice = Voice("v1", "fish-1", SpeechProviderKind.Fish);
+
+        var switched = ProviderActivation.Activate([first, second], "fish-2");
+
+        Assert.True(VoiceLibraryMigration.IsUsable(voice, switched));
+        Assert.Equal("fish-2", VoiceLibraryMigration.ActiveKeyFor(voice, switched)!.Id);
+    }
+
+    [Fact]
+    public void AddingASecondKeyOfTheSameVendorKeepsTheSelectionUsable()
+    {
+        var first = Key("fish-1");
+        var voice = Voice("v1", "fish-1", SpeechProviderKind.Fish);
+        var second = Add([first], Key("fish-2")); // stays on standby
+
+        Assert.True(VoiceLibraryMigration.IsUsable(voice, [first, second]));
+        Assert.Equal("fish-1", VoiceLibraryMigration.ActiveKeyFor(voice, [first, second])!.Id);
+    }
+
+    [Fact]
+    public void AVoiceOfAnotherVendorIsNeverRunByAnUnrelatedKey()
+    {
+        var doubao = Key("db-1", SpeechProviderKind.Doubao);
+        var fishVoice = Voice("v1", "gone-fish", SpeechProviderKind.Fish);
+
+        Assert.False(VoiceLibraryMigration.IsUsable(fishVoice, [doubao]));
+        Assert.Null(VoiceLibraryMigration.ActiveKeyFor(fishVoice, [doubao]));
+    }
+
+    // ---- Settings load must never rewrite the service -> credential link ----
+
+    [Fact]
+    public void LoadingSettingsKeepsEveryServicePointingAtItsOwnCredential()
+    {
+        var fish = Key("fish-1") with { CredentialId = "speech-kept" };
+        var doubao = Key("db-1", SpeechProviderKind.Doubao) with { CredentialId = "speech-other" };
+        var factory = Key("fish-default") with { CredentialId = "speech-shell" };
+
+        // The exact chain LocalSettings.Load() runs at startup.
+        var providers = ProviderMigration.RemoveFactoryDefault(
+            [fish, doubao, factory], out var removedFactory);
+        var voices = VoiceLibraryMigration.CacheVendor([Voice("v1", "fish-1")], providers, out var cached);
+        _ = VoiceLibraryMigration.CleanContactReferences(
+            [new ContactProfile { AccountId = "a", ConversationId = "c", VoiceProfileId = "v1" }],
+            ["gone"]);
+
+        Assert.True(removedFactory);
+        Assert.Equal(1, cached);
+        // No step of the migration may substitute a generated or placeholder name.
+        Assert.Equal("speech-kept", providers.Single(item => item.Id == "fish-1").CredentialId);
+        Assert.Equal("speech-other", providers.Single(item => item.Id == "db-1").CredentialId);
+        Assert.DoesNotContain(providers, item => item.CredentialId == "speech-shell");
+    }
+
+    [Fact]
+    public void SwitchingAndAddingKeysLeavesTheOtherConnectionsCredentialsAlone()
+    {
+        var first = Key("fish-1") with { CredentialId = "speech-kept" };
+        var second = Key("fish-2", enabled: false) with { CredentialId = "speech-second" };
+        var doubao = Key("db-1", SpeechProviderKind.Doubao) with { CredentialId = "speech-other" };
+        var all = new[] { first, second, doubao };
+
+        var switched = ProviderActivation.Activate(all, "fish-2");
+
+        Assert.Equal("speech-kept", switched.Single(item => item.Id == "fish-1").CredentialId);
+        Assert.Equal("speech-second", switched.Single(item => item.Id == "fish-2").CredentialId);
+        Assert.Equal("speech-other", switched.Single(item => item.Id == "db-1").CredentialId);
+    }
 }

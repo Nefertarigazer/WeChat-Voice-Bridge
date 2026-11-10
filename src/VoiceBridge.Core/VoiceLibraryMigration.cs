@@ -120,6 +120,38 @@ public static class VoiceLibraryMigration
     }
 
     /// <summary>
+    /// The key that will actually synthesize this voice. A public voice id works
+    /// with any valid key of the same vendor, so the voice survives losing the
+    /// particular key that created it: the vendor's active key is used, and if
+    /// none is marked active the vendor's remaining key is used as-is.
+    /// Null only when the vendor has no key left at all — that is the single
+    /// condition that makes a voice unavailable.
+    /// </summary>
+    public static SpeechProviderProfile? ActiveKeyFor(
+        VoiceProfile? voice, IEnumerable<SpeechProviderProfile>? providers)
+    {
+        if (voice is null)
+            return null;
+        var all = (providers ?? Array.Empty<SpeechProviderProfile>())
+            .Where(item => item is not null && !string.IsNullOrEmpty(item.Id)).ToList();
+        var own = all.FirstOrDefault(item => item.Id == voice.ProviderId);
+        if (own is { Enabled: true })
+            return own;
+        if (VendorOf(voice, all) is not { } kind)
+            return null;
+        return all.FirstOrDefault(item => item.Enabled && item.Kind == kind)
+            ?? all.FirstOrDefault(item => item.Kind == kind);
+    }
+
+    /// <summary>
+    /// A voice is unavailable only when every key of its vendor is gone. Adding a
+    /// key, switching which key is active, or deleting one of several keys never
+    /// affects a voice the user already selected.
+    /// </summary>
+    public static bool IsUsable(VoiceProfile? voice, IEnumerable<SpeechProviderProfile>? providers) =>
+        ActiveKeyFor(voice, providers) is not null;
+
+    /// <summary>
     /// Once the user adds an API service, voices whose service is missing become
     /// usable again by pointing them at that service instead of showing a missing
     /// API. Voices already bound to a live service are never touched, and a voice

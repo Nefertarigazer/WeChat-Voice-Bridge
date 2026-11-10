@@ -162,9 +162,14 @@ internal sealed class ProviderEditor : ProfileEditor
             address = $"https://{address}.tts.speech.microsoft.com/cognitiveservices/v1";
         if (!int.TryParse(timeout.Text, out var seconds) || seconds is < 5 or > 300) throw new BridgeException("超时秒数请填写 5 至 300。");
         var label = string.IsNullOrWhiteSpace(name.Text) ? SpeechProviderFactory.Label(selected) : name.Text.Trim();
+        // Keep the existing service -> credential link. Re-entering a key replaces
+        // the value of the entry this connection already points at; only a
+        // connection that never had a credential gets a generated name. Minting a
+        // fresh "speech-<id>" name on every secret entry used to strand the user's
+        // key behind a placeholder entry the service did not point at.
         var key = selected == Result.Kind ? Result.CredentialId : "";
-        // New keys belong to this connection, including when an older setting shared a credential.
-        if (NewSecret.Length > 0) key = "speech-" + Result.Id;
+        if (!string.IsNullOrWhiteSpace(NewSecret))
+            key = key.Length > 0 ? key : "speech-" + Result.Id;
         var models = selected == SpeechProviderKind.Fish
             ? new[] { fishFree.IsChecked == true ? FishSpeech.Model : "", fishPaid.IsChecked == true ? FishSpeech.PaidModel : "" }.Where(item => item.Length > 0).ToArray()
             : selected == SpeechProviderKind.OpenAiCompatible
@@ -185,7 +190,7 @@ internal sealed class ProviderEditor : ProfileEditor
         if (selected == SpeechProviderKind.OpenAiCompatible && string.IsNullOrWhiteSpace(candidate.Model)) throw new BridgeException("请填写服务支持的模型名称。");
         if (selected == SpeechProviderKind.Doubao && candidate.ResourceId.Length == 0) throw new BridgeException("请填写音色对应的资源 ID。");
         if (SpeechProviderFactory.RequiresCredential(candidate) && key.Length == 0) throw new BridgeException("请填写 API Key。");
-        if (NewSecret.Length > 0) SpeechProviderFactory.ValidateCredential(candidate, NewSecret);
+        if (!string.IsNullOrWhiteSpace(NewSecret)) SpeechProviderFactory.ValidateCredential(candidate, NewSecret);
         Result = candidate;
     }
 }
