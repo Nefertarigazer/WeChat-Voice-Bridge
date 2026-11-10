@@ -54,10 +54,11 @@
   - 每条更新一行、左侧 5px 绿色圆点 + 12px 正文 + `LineHeight=19`，由 `MainWindow.Updates.cs` 新增的 `FillNotes()` 按 `\n` 拆分生成，长说明可扫读；
   - 去掉内层 `MaxHeight=132` 滚动框：整页本来就在 `ContentScroller` 里，硬切只会把最后一行截成半截。说明为空时连面板一起隐藏（`UpdateNotesBox`）。
   - 原 `UpdateNotes`（TextBlock）已由 `UpdateNotesPanel`（StackPanel）+ `FillNotes()` 取代，全仓无其它引用。
+- **第三轮微调（用户看图后）**：① 删掉 `v1.4.9 · 89.5 MB` + 「更新内容」标签整行（`UpdateSize` 控件移除，体积信息改挂 `UpdatePackage.ToolTip`，不再占版面）；说明面板现在是该区块唯一内容、去掉上边距。② **「状态点全变绿」是预览工具的 bug，不是应用回归**——真机三色一直是对的：`MainWindow.xaml.cs` 里 `IdleDot=#AEAEB2`（灰，无更新）/ `WarnDot=#B2760A`（琥珀，发现新版）/ `LiveDot=#1D9A5B`（绿，可安装），`RenderUpdate()` 按 `manifest/verifiedUpdate` 三态赋值。之前截图三态都填了 `Positive` 绿色，已改为按真实色值渲染，并加画「已是最新」灰点态做对照。
 - **截图（已生成，供用户检视）**：
   - `artifacts/screenshots/update-ui-states.png` —— 三态并排（已是最新 / 发现新版本 / 下载完成绿色按钮）。
   - `artifacts/screenshots/update-install-green.png` —— 绿色按钮特写：白字、垂直居中、行内点+两行文字对齐。
-  - `artifacts/screenshots/update-panel-with-notes.png`（= `update-panel-final.png`/`v4`）—— **按钮 + 下方版本说明整块**，两种状态上下对照，按真实 660 内容宽渲染，用于判断「按钮与下面文字」是否协调。
+  - `artifacts/screenshots/update-panel-with-notes.png` —— **按钮 + 下方版本说明整块**，三态上下对照（灰点已是最新 / 琥珀点发现新版 / 绿点可安装），按真实 660 内容宽渲染，用于判断「按钮与下面文字」是否协调。
   - 预览工具：`tools/UpdatePanelPreview/`（复用 `App.xaml` 真实样式资源，按 660 宽离屏渲染；`tools/UpdateNotesPreview/` 是更早那版「更新区 + 版本介绍对话框」合成图工具）。截图属本地产物、被 `.gitignore` 忽略，不入库；工具源码入库。
 
 ### 收尾：版本推进到 1.4.9（未发布）

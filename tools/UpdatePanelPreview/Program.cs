@@ -41,9 +41,15 @@ internal static class Program
         });
 
         // -------- one full group, faithful to MainWindow.xaml (content width 660) --------
+        // Real dot colours from MainWindow.xaml.cs (IdleDot / WarnDot / LiveDot);
+        // the earlier preview wrongly used "Positive" for all three states.
+        Brush DotGray = Freeze(0xAE, 0xAE, 0xB2);
+        Brush DotAmber = Freeze(0xB2, 0x76, 0x0A);
+        Brush DotGreen = Freeze(0x1D, 0x9A, 0x5B);
+
         FrameworkElement BuildGroup(
-            string stateLabel, string subtext, string buttonLabel, Style buttonStyle, Brush dot,
-            string statusText, string caption)
+            string subtext, string buttonLabel, Style buttonStyle, Brush dot, Brush ink,
+            string statusText, string caption, bool hasNotes)
         {
             var host = new StackPanel { Width = 660, Margin = new Thickness(0, 0, 0, 26) };
 
@@ -95,7 +101,7 @@ internal static class Program
             };
             // Mirror MainWindow.Updates.cs: label colour is set explicitly, so the
             // solid-green state keeps white ink instead of inheriting dark text.
-            btn.Foreground = B(buttonStyle == S("UpdateInstallButton") ? "WhiteText" : "UpdateReadyText");
+            btn.Foreground = ink;
             btn.Content = buttonLabel;
             Grid.SetColumn(btn, 2);
             grid.Children.Add(btn);
@@ -103,54 +109,43 @@ internal static class Program
             row.Child = grid;
             groupStack.Children.Add(row);
 
-            // --- version-notes block directly under the button row (new layout) ---
-            var package = new Border { Style = S("Row") };
-            var packageStack = new StackPanel();
-
-            var sizeRow = new Grid();
-            sizeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            sizeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            sizeRow.Children.Add(new TextBlock { Text = "v1.4.9 · 89.5 MB", Style = S("RowLabel") });
-            var notesTag = new TextBlock { Text = "更新内容", Style = S("Footnote"), Margin = new Thickness(0, 0, 2, 0), VerticalAlignment = VerticalAlignment.Center };
-            Grid.SetColumn(notesTag, 1);
-            sizeRow.Children.Add(notesTag);
-            packageStack.Children.Add(sizeRow);
-
-            var inset = new Border
+            // --- notes block directly under the button row (no version/size caption) ---
+            if (hasNotes)
             {
-                Background = new SolidColorBrush(Color.FromRgb(0xF6, 0xF9, 0xF7)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE7, 0xEE, 0xE9)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(12, 10, 12, 10),
-                Margin = new Thickness(0, 8, 0, 0),
-            };
-            var notesPanel = new StackPanel();
-            var items = notes.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            for (var i = 0; i < items.Length; i++)
-            {
-                var line = new Grid { Margin = new Thickness(0, 0, 0, i == items.Length - 1 ? 0 : 8) };
-                line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
-                line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                line.Children.Add(new Ellipse
+                var package = new Border { Style = S("Row") };
+                var inset = new Border
                 {
-                    Width = 5, Height = 5, Fill = B("Accent"),
-                    VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(1, 7, 0, 0)
-                });
-                var t = new TextBlock
-                {
-                    Text = items[i], FontSize = 12, Foreground = B("Label"),
-                    TextWrapping = TextWrapping.Wrap, LineHeight = 19
+                    Background = new SolidColorBrush(Color.FromRgb(0xF6, 0xF9, 0xF7)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(0xE7, 0xEE, 0xE9)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(10),
+                    Padding = new Thickness(12, 10, 12, 10),
                 };
-                Grid.SetColumn(t, 1);
-                line.Children.Add(t);
-                notesPanel.Children.Add(line);
+                var notesPanel = new StackPanel();
+                var items = notes.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                for (var i = 0; i < items.Length; i++)
+                {
+                    var line = new Grid { Margin = new Thickness(0, 0, 0, i == items.Length - 1 ? 0 : 8) };
+                    line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
+                    line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    line.Children.Add(new Ellipse
+                    {
+                        Width = 5, Height = 5, Fill = B("Accent"),
+                        VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(1, 7, 0, 0)
+                    });
+                    var t = new TextBlock
+                    {
+                        Text = items[i], FontSize = 12, Foreground = B("Label"),
+                        TextWrapping = TextWrapping.Wrap, LineHeight = 19
+                    };
+                    Grid.SetColumn(t, 1);
+                    line.Children.Add(t);
+                    notesPanel.Children.Add(line);
+                }
+                inset.Child = notesPanel;
+                package.Child = inset;
+                groupStack.Children.Add(package);
             }
-            inset.Child = notesPanel;
-            packageStack.Children.Add(inset);
-
-            package.Child = packageStack;
-            groupStack.Children.Add(package);
 
             host.Children.Add(group);
 
@@ -165,15 +160,23 @@ internal static class Program
 
         var body = new StackPanel();
 
+        // ① up to date: grey dot, grey button, no notes block
         body.Children.Add(BuildGroup(
-            stateLabel: "发现新版本", subtext: "发现新版本", buttonLabel: "更新到 v1.4.9",
-            buttonStyle: S("UpdateReadyButton"), dot: B("Positive"),
-            statusText: "正在下载 v1.4.9…", caption: "① 发现新版本 · 薄荷描边按钮"));
+            subtext: "已是最新版本", buttonLabel: "检查更新",
+            buttonStyle: S("SecondaryButton"), dot: DotGray, ink: B("Label"),
+            statusText: "已是最新版本。", caption: "① 已是最新 · 灰点 + 灰按钮", hasNotes: false));
 
+        // ② update available: amber dot, mint outline button, notes below
         body.Children.Add(BuildGroup(
-            stateLabel: "更新包已就绪", subtext: "更新包已就绪", buttonLabel: "重启安装更新",
-            buttonStyle: S("UpdateInstallButton"), dot: B("Positive"),
-            statusText: "更新包已下载并通过校验，可直接重启安装。", caption: "② 下载完成 · 实心绿安装按钮"));
+            subtext: "发现新版本", buttonLabel: "更新到 v1.4.9",
+            buttonStyle: S("UpdateReadyButton"), dot: DotAmber, ink: B("UpdateReadyText"),
+            statusText: "正在下载 v1.4.9…", caption: "② 发现新版本 · 琥珀点 + 薄荷描边按钮", hasNotes: true));
+
+        // ③ downloaded: green dot, solid green button, notes below
+        body.Children.Add(BuildGroup(
+            subtext: "更新包已就绪", buttonLabel: "重启安装更新",
+            buttonStyle: S("UpdateInstallButton"), dot: DotGreen, ink: B("WhiteText"),
+            statusText: "更新包已下载并通过校验，可直接重启安装。", caption: "③ 下载完成 · 绿点 + 实心绿安装按钮", hasNotes: true));
 
         const double scale = 2.0;
         // Wrap in a fixed-width frame with real padding instead of setting Width on a
@@ -217,6 +220,13 @@ internal static class Program
         window.Close();
         Console.WriteLine($"WROTE {outPath} {w}x{h} (x{scale})");
         return 0;
+    }
+
+    private static Brush Freeze(byte r, byte g, byte b)
+    {
+        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+        brush.Freeze();
+        return brush;
     }
 
     private static void Png(BitmapSource bmp, Stream outStream)

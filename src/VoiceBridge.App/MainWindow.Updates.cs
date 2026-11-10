@@ -276,7 +276,9 @@ public partial class MainWindow
         if (manifest is null)
             return;
 
-        UpdateSize.Text = $"v{manifest.Version} · {manifest.Size / 1_000_000d:0.0} MB";
+        // The size/version caption line was removed for a cleaner block; the size is
+        // still surfaced on the button's tooltip so nothing is lost.
+        UpdatePackage.ToolTip = $"v{manifest.Version} · {manifest.Size / 1_000_000d:0.0} MB";
         FillNotes(manifest.Notes);
     }
 
