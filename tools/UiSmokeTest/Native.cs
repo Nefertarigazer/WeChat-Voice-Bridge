@@ -46,6 +46,52 @@ internal static class Native
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Rect { public int Left, Top, Right, Bottom; }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out Rect rect);
+
+    [DllImport("user32.dll")]
+    private static extern bool PrintWindow(IntPtr hWnd, IntPtr hdc, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetProcessDPIAware();
+
+    public static void Bounds(IntPtr hWnd, out int left, out int top, out int right, out int bottom)
+    {
+        SetProcessDPIAware();
+        GetWindowRect(hWnd, out var rect);
+        (left, top, right, bottom) = (rect.Left, rect.Top, rect.Right, rect.Bottom);
+    }
+
+    private delegate bool EnumProc(IntPtr hWnd, IntPtr data);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumProc proc, IntPtr data);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    /// <summary>Visible top-level windows of a process, straight from Win32.</summary>
+    public static List<IntPtr> Windows(int pid)
+    {
+        var found = new List<IntPtr>();
+        EnumWindows((hWnd, _) =>
+        {
+            GetWindowThreadProcessId(hWnd, out var owner);
+            if (owner == pid && IsWindowVisible(hWnd)) found.Add(hWnd);
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
+    /// <summary>PW_RENDERFULLCONTENT: also captures WPF and layered (transparent) windows.</summary>
+    public static void Print(IntPtr hWnd, IntPtr hdc) => PrintWindow(hWnd, hdc, 2);
+
     [DllImport("user32.dll")]
     private static extern bool SetCursorPos(int x, int y);
 

@@ -40,6 +40,14 @@ if (args.Length > 0 && string.Equals(args[0], "nohover", StringComparison.Ordina
                    args.Length > 3 ? args[3] : "nohover.png",
                    args.Length > 4 ? args[4] : "NavHome");
 
+// dialog <pid> <png-prefix> <navId> <button> [item] [item2…]: presses a button that
+// opens a dialog, screenshots its first page, then for each item selects the list
+// entry or combo choice with that name, presses 下一步 and screenshots the next page.
+// The dialog is cancelled at the end, so nothing is saved.
+if (args.Length > 0 && string.Equals(args[0], "dialog", StringComparison.Ordinal))
+    return DialogShots(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "dialog",
+        args.Length > 3 ? args[3] : "NavAdvanced", args.Length > 4 ? args[4] : "添加 API 服务", args.Skip(5).ToArray());
+
 var pid = args.Length > 0 && int.TryParse(args[0], out var parsed) ? parsed : 0;
 if (pid == 0)
 {
@@ -435,6 +443,94 @@ static int MenuClick(string pidText, string itemName)
         (cancel.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();
     Thread.Sleep(600);
     return 0;
+}
+
+static int DialogShots(string pidText, string prefix, string navId, string buttonName, string[] items)
+{
+    var pid = int.TryParse(pidText, out var parsed) && parsed > 0
+        ? parsed
+        : Process.GetProcessesByName("WeChatVoiceBridge").FirstOrDefault()?.Id ?? 0;
+    if (pid == 0) { Console.WriteLine("FATAL: WeChatVoiceBridge is not running"); return 4; }
+    var process = Process.GetProcessById(pid);
+    for (var i = 0; i < 20 && process.MainWindowHandle == IntPtr.Zero; i++) { Thread.Sleep(500); process.Refresh(); }
+    if (process.MainWindowHandle == IntPtr.Zero) { Console.WriteLine("FATAL: no main window"); return 4; }
+    Native.Show(process.MainWindowHandle);
+    Thread.Sleep(700);
+    var root = AutomationElement.FromHandle(process.MainWindowHandle);
+    var nav = WaitFor(() => ByAutomationId(root, navId));
+    if (nav is null) { Console.WriteLine($"FATAL: {navId} not found"); return 4; }
+    (nav.GetCurrentPattern(SelectionItemPattern.Pattern) as SelectionItemPattern)!.Select();
+    Thread.Sleep(1500);
+    var opener = WaitFor(() => ByNameContains(root, buttonName, ControlType.Button));
+    if (opener is null) { Console.WriteLine($"FATAL: button [{buttonName}] not found"); return 4; }
+    // Invoke blocks while the modal dialog is open, so press it from another thread.
+    var press = new Thread(() =>
+    {
+        try { (opener.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke(); }
+        catch (Exception error) { Console.WriteLine("invoke: " + error.GetType().Name + " " + error.Message); }
+    }) { IsBackground = true };
+    press.Start();
+    AutomationElement? dialog = null;
+    for (var i = 0; i < 60 && dialog is null; i++)
+    {
+        Thread.Sleep(300);
+        foreach (var hWnd in Native.Windows(pid))
+            if (hWnd != process.MainWindowHandle)
+            {
+                try { dialog = AutomationElement.FromHandle(hWnd); }
+                catch (Exception) { }
+            }
+    }
+    if (dialog is null)
+    {
+        Console.WriteLine($"opener [{opener.Current.Name}] enabled={opener.Current.IsEnabled}; main=0x{process.MainWindowHandle:X}");
+        foreach (AutomationElement window in AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition))
+            if (window.Current.ProcessId == pid)
+                Console.WriteLine($"  window 0x{window.Current.NativeWindowHandle:X} [{window.Current.Name}]");
+        Console.WriteLine("FATAL: no dialog opened");
+        return 6;
+    }
+    var handle = new IntPtr(dialog.Current.NativeWindowHandle);
+    Thread.Sleep(800);
+    Capture(handle, $"{prefix}-0.png");
+    var step = 1;
+    foreach (var item in items)
+    {
+        var entry = ByNameContains(dialog, item, ControlType.ListItem);
+        if (entry is not null && entry.TryGetCurrentPattern(SelectionItemPattern.Pattern, out var select))
+            ((SelectionItemPattern)select).Select();
+        else Console.WriteLine($"note: list item [{item}] not found");
+        Thread.Sleep(300);
+        var next = ByNameContains(dialog, "下一步", ControlType.Button);
+        if (next is not null) (next.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();
+        Thread.Sleep(900);
+        Capture(handle, $"{prefix}-{step}.png");
+        // Back to the first page for the next item.
+        var back = ByNameContains(dialog, "上一步", ControlType.Button);
+        if (back is not null) (back.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();
+        Thread.Sleep(500);
+        step++;
+    }
+    var cancel = ByNameContains(dialog, "取消", ControlType.Button);
+    if (cancel is not null) (cancel.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();
+    Thread.Sleep(500);
+    Console.WriteLine("PASS: dialog captured");
+    return 0;
+}
+
+// PrintWindow renders the window itself, so another window on top cannot spoil the shot.
+static void Capture(IntPtr handle, string path)
+{
+    Native.Bounds(handle, out var left, out var top, out var right, out var bottom);
+    using var bmp = new Bitmap(Math.Max(1, right - left), Math.Max(1, bottom - top));
+    using (var g = Graphics.FromImage(bmp))
+    {
+        var dc = g.GetHdc();
+        Native.Print(handle, dc);
+        g.ReleaseHdc(dc);
+    }
+    bmp.Save(path, ImageFormat.Png);
+    Console.WriteLine($"saved: {path} ({bmp.Width}x{bmp.Height})");
 }
 
 // UIA lookups race the page's first render; poll for a few seconds instead of

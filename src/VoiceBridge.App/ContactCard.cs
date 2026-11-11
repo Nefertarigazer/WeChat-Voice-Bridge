@@ -149,8 +149,8 @@ internal sealed class ContactCard : INotifyPropertyChanged
         {
             speechSignature = signature;
             Models.Clear();
-            foreach (var model in models) Models.Add(new(model, model switch
-            { FishSpeech.Model => "S2.1 Pro · 免费", FishSpeech.PaidModel => "Drama 3 · 付费", _ => model }));
+            var catalog = provider is null ? null : ProviderCatalog.For(provider);
+            foreach (var model in models) Models.Add(new(model, catalog?.ModelLabelOf(model) ?? model));
         }
         Notify(nameof(Model)); Notify(nameof(FishLatency)); Notify(nameof(HasModels));
         Notify(nameof(CanSwitchModels)); Notify(nameof(ModelLabel));

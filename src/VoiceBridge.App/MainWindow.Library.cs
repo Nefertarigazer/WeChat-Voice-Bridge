@@ -50,22 +50,21 @@ public partial class MainWindow
         var vendor = VoiceLibraryMigration.VendorOf(voice, providers);
         var sibling = vendor is null ? null : providers.FirstOrDefault(item => ServiceIdentity.Of(item) == vendor);
         if (sibling is not null) return ServiceLabel(sibling);
+        if (ProviderCatalog.Find(vendor) is { } preset) return preset.Label;
         return voice.ProviderKind is { } kind ? SpeechProviderFactory.Label(kind) : "未知语音服务";
     }
 
     /// <summary>
     /// The heading a service is listed under, shared by its keys and its voices.
-    /// Built-in vendors use their name; any other service adds its address, so two
-    /// OpenAI-compatible services never end up under one heading.
+    /// A mainstream vendor uses its catalog name; a generic or local service adds
+    /// its address, so two OpenAI-compatible services never end up under one heading.
     /// </summary>
     private static string ServiceLabel(SpeechProviderProfile provider)
     {
-        var label = SpeechProviderFactory.Label(provider.Kind);
-        var vendor = ServiceIdentity.Of(provider);
-        if (vendor is ServiceIdentity.Fish or ServiceIdentity.OpenAi or ServiceIdentity.Azure or ServiceIdentity.Volcengine)
-            return vendor == ServiceIdentity.OpenAi ? "OpenAI" : label;
+        var preset = ProviderCatalog.For(provider);
+        if (preset.Category == PresetCategory.Mainstream) return preset.Label;
         return Uri.TryCreate(provider.Endpoint, UriKind.Absolute, out var address)
-            ? label + " · " + address.Authority : label;
+            ? preset.Label + " · " + address.Authority : preset.Label;
     }
 
     /// <summary>
@@ -391,7 +390,11 @@ public partial class MainWindow
                 var usable = ActiveProviderFor(voice, providers) is not null;
                 seen.Add(voice.Id);
                 SyncVoiceChoice(voice.Id, voice.Name, group, usable);
-                rows.Add(new LibraryRow(voice.Id, voice.Name, voice.VoiceId, group, !usable));
+                // A voice tied to one model says so next to its id.
+                var detail = voice.VoiceId.Length > 0 ? voice.VoiceId : voice.ReferenceAudioPath;
+                if (voice.Model.Length > 0)
+                    detail += " · 固定 " + (own is null ? voice.Model : ProviderCatalog.For(own).ModelLabelOf(voice.Model));
+                rows.Add(new LibraryRow(voice.Id, voice.Name, detail, group, !usable));
             }
             // Drop choices whose voice is gone. Entries are never rebuilt wholesale:
             // clearing the shared list used to reset every ComboBox selection and
@@ -570,11 +573,11 @@ public partial class MainWindow
         try
         {
             var updated = editor.Result;
-            // Every key belongs to one service. A new key, or one whose protocol
-            // changed, gets its identity now; an edited key keeps the one it has so
-            // its voices stay with it.
-            if (provider == null || updated.Kind != provider.Kind || string.IsNullOrWhiteSpace(updated.Vendor))
-                updated = updated with { Vendor = ServiceIdentity.Derive(updated with { Vendor = "" }) };
+            // Every key belongs to one service. The editor assigns it from the catalog
+            // entry (an edited key keeps the one it has so its voices stay with it);
+            // this only covers anything that still arrives without one.
+            if (string.IsNullOrWhiteSpace(updated.Vendor))
+                updated = updated with { Vendor = ServiceIdentity.Derive(updated) };
             // Adding a key is not applying it: when this vendor already has an
             // active key, the new one stays on standby and nothing switches over.
             if (provider == null && ProviderActivation.StaysOnStandby(providers, updated))

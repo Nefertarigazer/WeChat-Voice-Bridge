@@ -423,7 +423,7 @@ public static class ProviderCatalog
             Summary = "按模板拼请求，适配没有专属入口的小众厂商",
             CustomEndpoint = true, EndpointHint = "接收 POST 请求的完整地址",
             Key = KeyNeed.Optional, CustomModels = true, VoiceLabel = "音色",
-            Notes = ["请求体里可用 {{text}} {{voice}} {{model}} {{speed}}；Key 只能写进请求头 {{key}}。"]
+            Notes = ["出于安全考虑，{{key}} 只能写在请求头里，不能写进请求体或地址。"]
         },
 
         // ------------------------------------------------------------ local models

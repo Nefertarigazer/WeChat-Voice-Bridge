@@ -687,13 +687,16 @@
                 <Path x:Name="Tick" Visibility="Collapsed" Data="M 2,6 L 5,9 L 11,2" Width="11" Height="9" Stretch="Uniform" Stroke="White" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
               </Border>
               <ContentPresenter Grid.Column="1" VerticalAlignment="Center" RecognizesAccessKey="True"/>
-              <Border Grid.Column="2" Background="White" CornerRadius="6" Padding="8,3" Margin="12,0,0,0" VerticalAlignment="Center">
+              <Border x:Name="BadgeBox" Grid.Column="2" Background="White" CornerRadius="6" Padding="8,3" Margin="12,0,0,0" VerticalAlignment="Center">
                 <TextBlock x:Name="Badge" Text="{TemplateBinding Tag}" FontSize="11" Foreground="{StaticResource Accent}"/>
               </Border>
             </Grid>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="Tag" Value="付费"><Setter TargetName="Badge" Property="Foreground" Value="#9A681D"/></Trigger>
+            <!-- Models without a price tag show no empty pill. -->
+            <Trigger Property="Tag" Value="{x:Null}"><Setter TargetName="BadgeBox" Property="Visibility" Value="Collapsed"/></Trigger>
+            <Trigger Property="Tag" Value=""><Setter TargetName="BadgeBox" Property="Visibility" Value="Collapsed"/></Trigger>
             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Card" Property="BorderBrush" Value="#95B8A6"/></Trigger>
             <Trigger Property="IsChecked" Value="True">
               <Setter TargetName="Card" Property="Background" Value="#EDF7F1"/>

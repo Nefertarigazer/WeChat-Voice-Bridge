@@ -14,7 +14,9 @@
 - **节 4 已完成**：工厂支持 ElevenLabs / MiniMax / 阿里百炼 / Gemini / 自定义 HTTP，Fish 扩到 4 个模型并允许本机 fish-speech，.NET 250/250。
 - **节 5 已完成**：Edge 免费朗读复用 edge-tts 7.3.1（常驻子进程 `worker/edge_speak.py` + `EdgeSpeechHost`），`Publish.ps1` 锁定 14 个轮子到 `worker\tts-deps`；真实联网测试通过。.NET 253/253。
 - **开发版前提**：`bin\Release\net8.0-windows\` 下除了 `runtime\`、`worker\deps\`，现在还需要 `worker\tts-deps\`（已放好）。
-- **续跑点**：节 6 界面——`ProfileEditors.cs` 的 `ProviderEditor` 第一页改成按 `ProviderCatalog` 分三组的列表（主流 / 通用 / 本地），第二页字段按预设生成（地址或地域下拉、Key 是否必填、模型勾选 + 自填、获取 Key 链接、注意事项）；`VoiceEditor` 按预设给音色示例下拉（可手填）、参考音频形态、可选「固定模型」；新服务写入 `Preset` 与 `Vendor`（`preset.VendorFor`）。
+- **节 6 已完成**：添加服务对话框按目录分三组、字段按预设生成；添加音色给常用音色与「固定模型」。截图见 WORKLOG 节 6。
+- **界面约定（节 6 起）**：对话框里的下拉框模板不支持 `IsEditable`（`App.xaml` 的 ComboBox 模板没有编辑框），需要「可选可填」时用「文本框 + 常用项下拉」的组合，不要直接设 `IsEditable`。
+- **续跑点**：节 7 教程——`src/VoiceBridge.App/UserGuide.xaml.cs` 的 `GuideSections` 改写 03/04/10 节并新增「各家接入说明」（主流厂商逐家、通用协议、本地模型），内容与 `ProviderCatalog` 一致；同步重写 `docs/providers.md`。
 - **约束**：不打包、不上线、不改桌面快捷方式；保留三条红线；任务二（隐私模式 / 提醒模式）等任务一稳定后再做。
 - **环境**：SDK 实际在 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk-tmp\dotnet.exe`（文档里旧写法 `wvb-sdk\sdk\dotnet.exe` 已不存在）。
 
