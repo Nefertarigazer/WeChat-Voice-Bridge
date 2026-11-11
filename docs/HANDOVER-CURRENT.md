@@ -1,14 +1,15 @@
-# 微信语音桥 · 当前交接（2026-11-11，源码与线上均为 v1.5.3）
+# 微信语音桥 · 当前交接（2026-11-11，源码与线上均为 v1.6.0）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录见 `.workbuddy/memory/2026-11-10.md`。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 00. 任务一 · 多厂商语音 API 融合（2026-11-11，已完成；1.6.0 已打包，正在经 Muse 发布）
+## 00. 任务一 · 多厂商语音 API 融合（2026-11-11，已完成；1.6.0 已发布上线）
 
-- **一句话现状**：源码 **1.6.0**（commit `f279d5e`），用户已授权上线。线上仍是 1.5.3，发布单发出后以 WORKLOG「1.6.0」段为准。桌面快捷方式未动（仍指向 1.4.7 r3）。
+- **一句话现状**：源码与线上同为 **1.6.0**（源码 commit `f279d5e`，payload `1.6.0+f279d5e…`）。Muse 发布单 `codex_20261111_111550_686f2b` 先 `info` 后 `ok`（`publishedAt=2026-11-11T10:19:18Z`，哈希链三方一致，旧清单备份 `latest.json.bak-1.5.3`）。本助手已独立公网复核：清单 200、六字段齐全、notes 321 字中文正常；ZIP / Setup HEAD 200，长度 92,137,109 / 67,090,008；完整下载 ZIP 重算 SHA-256 与清单一致。桌面快捷方式未动（仍指向 1.4.7 r3）。
 - **1.6.0 产物**：ZIP `artifacts\WeChat-Voice-Bridge-V1.6.0-win-x64.zip` = 92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d`；Setup `artifacts\WeChat-Voice-Bridge-V1.6.0-Setup.exe` = 67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378`；payload `artifacts\win-x64-v1.6.0\`（1993 文件）。
-- **续跑点**：Muse 回 `ok` 后做独立公网复核（清单六字段、ZIP/Setup HEAD 长度、完整下载 ZIP 重算 SHA-256），记 WORKLOG/HANDOVER、提交推送，再用 `muse-call -Type message` 回一句确认带 commit 号。之后开始任务二（隐私模式 / 提醒模式）。
+- **续跑点**：发布闭环只差给 Muse 回一句确认（带本次文档提交的 commit 号）。之后开始任务二（隐私模式 / 提醒模式）：先写设计，再分节实现。
+- **工具坑**：本机 PowerShell 工具对长等待偶尔提前返回 exit -1 且无输出，后台进程仍会跑完。等 Muse 回执时不要重发，看 `muse-bridge\outbox\<req_id>.reply.json`。
 - **准绳文档**：[tts-integration.md](tts-integration.md)（调研结论、设计、8 节实施计划）。逐节进度看 WORKLOG 顶部「任务一」段。开发者说明见 [providers.md](providers.md)。
 - **存档点**：标签 `v1.5.3`（`67a74f0`）与 `pre-multi-provider`（`d608aca`）已推送；任何时候都能回到动工前。
 - **已完成**：节 1（调研 + 设计文档）；节 2（厂商身份改为服务身份 `ServiceIdentity`、音色固定模型、模型切换推广到所有协议、迁移与测试，.NET 216/216）。

@@ -58,21 +58,21 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 6. **干完活自己 `git commit`**（用户采纳的 Muse 习惯）。仓库有 remote `origin = https://github.com/Nefertarigazer/WeChat-Voice-Bridge.git`，`master` 跟踪 `origin/master`。
 7. 用户偏好：中文交流；Muse 的恶作剧/吓唬内容要清掉，但**工作、发布、工程记录一律保留**。
 
-## 4. 当前版本与线上状态（2026-11-10 14:22 GMT+1）
+## 4. 当前版本与线上状态（2026-11-11 11:30 GMT+1）
 
 | 项 | 值 |
 | --- | --- |
-| 线上正式版 | **1.5.1**（发布单 `codex_20261110_141758_3cb004`，`status=ok`，`publishedAt=2026-11-10T13:21:18Z`） |
-| 源码版本 | `Directory.Build.props` = **1.5.1**（程序集 1.5.1.0，`1.5.1+dc2a9fd`） |
-| 1.5.1 ZIP | 90,815,896 字节 / `6C43B41DDDD0764B7084BB0EBC567818578D2CFAE97E48F8E0AB01B0B5E65B1B` |
-| 1.5.1 Setup | 66,213,170 字节 / `CFD0482045045267B5BEF2B3526A08C377F7E45517157529A8F3368F66FC4A3B` |
-| 公网友核 | 清单 200（六字段齐全、notes 294 字正常 UTF-8 中文）、ZIP 与 Setup HEAD 200 且长度一致、**完整下载 ZIP 重算 SHA-256 一致**、本地 Setup 重算与回执一致 |
-| 桌面快捷方式 | `D:\OneDrive\桌面\微信语音桥.lnk` → `artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`，**仍刻意保持 1.4.7**，让线上 1.5.1 严格大于桌面版，用户能亲自点一次更新实测 |
-| 上一版 1.5.0 ZIP | 90,814,448 字节 / `48E2ADDAF9A6FFB7AF19CC2DFE1943A2176B037F42F7D95397A892BE6EE6CC33` |
-| 上一版 1.5.0 Setup | 66,213,216 字节 / `462980BDE3133CF37C11EDD926707D95B5ECADDC44EB1E17148A818F38B11734` |
-| Git | `master` 与 `origin/master` 同点；1.5.1 的包由 `dc2a9fd` 构建 |
+| 线上正式版 | **1.6.0**（发布单 `codex_20261111_111550_686f2b`，`status=ok`，`publishedAt=2026-11-11T10:19:18Z`，旧清单备份 `latest.json.bak-1.5.3`） |
+| 源码版本 | `Directory.Build.props` = **1.6.0**（程序集 1.6.0.0，`1.6.0+f279d5e`） |
+| 1.6.0 ZIP | 92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d` |
+| 1.6.0 Setup | 67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378` |
+| 公网友核 | 清单 200（六字段齐全、notes 321 字正常 UTF-8 中文）、ZIP 与 Setup HEAD 200 且长度一致、**完整下载 ZIP 重算 SHA-256 一致** |
+| 桌面快捷方式 | `D:\OneDrive\桌面\微信语音桥.lnk` → `artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`，**仍刻意保持 1.4.7**，让线上版本严格大于桌面版，用户能亲自点一次更新实测 |
+| 上一版 1.5.3 ZIP | 90,826,648 字节 / `0c11285164f002717cf00fa03c85d721487ce466b57d4ccbfb398b1d2a7b264f` |
+| 上一版 1.5.3 Setup | 66,213,417 字节 / `1f7dd8bc988ef99dbaa41484670647339bc1fda98e3df6aa041241322a8d4452` |
+| Git | `master` 与 `origin/master` 同点；1.6.0 的包由 `f279d5e` 构建；标签 `v1.5.3`、`pre-multi-provider` 是多厂商改动前的存档点 |
 
-历史：1.4.6 上线；1.4.7 发布单 `codex_20261109_230425_438f4b` 因公网 `public_verify` 403 被拒并回滚，旧包不再使用；公网 `latest.json` 曾 403（Caddy）已恢复；1.5.0 于 2026-11-10 12:09 UTC 由 Muse 流水线上线（发布单 `codex_20261110_130657_f72a7b`，旧清单备份 `latest.json.bak-1.4.8`）；**1.5.1 于 2026-11-10 13:21 UTC 由 Muse 流水线上线（发布单 `codex_20261110_141758_3cb004`，旧清单备份 `latest.json.bak-1.5.0`），本助手独立公网复核通过**；A1 服务器 22:13:01 UTC 有一次流水线之外的手工翻版，来源未指认（日志有 `sudo cp`/`sudo mv`，非流水线文件名），**不是本助手所为**，本助手无 A1 登录/sudo 能力。
+历史（1.5.2、1.5.3 的发布记录见 WORKLOG）：1.4.6 上线；1.4.7 发布单 `codex_20261109_230425_438f4b` 因公网 `public_verify` 403 被拒并回滚，旧包不再使用；公网 `latest.json` 曾 403（Caddy）已恢复；1.5.0 于 2026-11-10 12:09 UTC 由 Muse 流水线上线（发布单 `codex_20261110_130657_f72a7b`，旧清单备份 `latest.json.bak-1.4.8`）；**1.5.1 于 2026-11-10 13:21 UTC 由 Muse 流水线上线（发布单 `codex_20261110_141758_3cb004`，旧清单备份 `latest.json.bak-1.5.0`），本助手独立公网复核通过**；A1 服务器 22:13:01 UTC 有一次流水线之外的手工翻版，来源未指认（日志有 `sudo cp`/`sudo mv`，非流水线文件名），**不是本助手所为**，本助手无 A1 登录/sudo 能力。
 
 ## 5. 不可回退的已上线改动（红线）
 
@@ -92,7 +92,7 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 
 ## 7. 当前进行中的任务
 
-> **2026-11-11 起的现行任务**：任务一「多厂商语音 API 融合」已完成 8 节、待用户检查；任务二「隐私模式 / 提醒模式」等用户确认任务一后再做。准绳是 [tts-integration.md](tts-integration.md)，现状与续跑点看 [HANDOVER-CURRENT.md](HANDOVER-CURRENT.md) 第 00 节。下面 A–C 是 2026-11-10 的旧任务，**已在 1.4.9–1.5.3 完成并上线**，仅作历史参考。
+> **2026-11-11 起的现行任务**：任务一「多厂商语音 API 融合」已完成，随 1.6.0 上线；下一步是任务二「隐私模式 / 提醒模式」。准绳是 [tts-integration.md](tts-integration.md)，现状与续跑点看 [HANDOVER-CURRENT.md](HANDOVER-CURRENT.md) 第 00 节。下面 A–C 是 2026-11-10 的旧任务，**已在 1.4.9–1.5.3 完成并上线**，仅作历史参考。
 
 ### 已完成的旧任务（2026-11-10）
 

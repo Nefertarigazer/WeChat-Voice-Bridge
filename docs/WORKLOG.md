@@ -4,7 +4,7 @@
 
 ---
 
-## 1.6.0 · 2026-11-11（多厂商语音接入，打包待发布）
+## 1.6.0 · 2026-11-11（多厂商语音接入，已发布上线）
 
 **用户授权**：「联系 muse 推新版本吧」。
 
@@ -18,6 +18,15 @@
 - `Build-Installer.ps1 -PayloadDirectory` → Setup **67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378`**。
 - 产物核验：EXE `ProductVersion=1.6.0+f279d5eae23de32e385234aab9b1021a1efa6e53`、`FileVersion=1.6.0.0`，Setup `ProductVersion=1.6.0`；ZIP 1996 项，含 `worker/edge_speak.py`、`worker/tts-deps/edge_tts`、`worker/audited_wechat_keys.py`、`runtime/python/python.exe`，无 settings.json / .dpapi / .key / 数据库 / WAL / SHM；1.6.0 > 线上 1.5.3。
 - 坑：OneDrive 目录里刚写完的 ZIP / Setup 偶尔要等几秒才能被下一条命令看见（第一次 `Build-Installer` 报找不到发布目录，稍后重跑正常），不是打包失败。
+
+### 上线结果（Muse 发布单 `codex_20261111_111550_686f2b`）
+- 发布前四项核对：WORKLOG / HANDOVER 已记（commit `40d01ef`）、工作区干净、远端 HEAD = 本地 `40d01ef`；本地 ZIP 再算一次哈希仍是 `f58cdf57…6a6d7d`；Muse 收件箱里此前没有 1.6.0 发布单，只发了这一次。
+- Muse：先 `status=info`（流水线接手），约 3 分钟后 `status=ok`（`publishedAt=2026-11-11T10:19:18Z`），称**哈希链三方一致**（申报＝PC 实测＝A1 落地）、Setup 一并发布、旧清单备份 `latest.json.bak-1.5.3`。
+- **独立公网复核**（2026-11-11 10:30 UTC）：`GET latest.json` **200**（1029 字节），六字段齐全：`version=1.6.0`、`publishedAt=2026-11-11T10:19:18Z`、`size=92137109`、`sha256=f58cdf57…6a6d7d`、url 指向 1.6.0 ZIP，notes 321 字中文正常（UTF-8 无乱码）。
+- ZIP / Setup `HEAD` 均 **200**，`Content-Length` = 92,137,109 / 67,090,008，与本地一致。
+- **完整下载 ZIP 重算 SHA-256 = `f58cdf57…6a6d7d`，与清单一致**（字节数一致）；临时文件已删。
+- 桌面快捷方式仍未动（指向 1.4.7 r3，供用户本人点一次更新实测）。
+- 坑：本机 PowerShell 工具对长时间等待（`Start-Sleep` 超过约 45 秒、`muse-call` 等回执）偶尔提前返回 exit -1 且无输出，但进程仍在后台跑完。不要因此重发发布单；用 `Tee-Object` 写日志、看 `muse-bridge\sent|claimed|archive|outbox` 里同一 req_id 的文件判断进度。
 
 ---
 
