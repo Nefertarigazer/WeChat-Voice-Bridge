@@ -9,8 +9,8 @@
 - **一句话现状**：源码与线上同为 **1.6.0**（源码 commit `f279d5e`，payload `1.6.0+f279d5e…`）。Muse 发布单 `codex_20261111_111550_686f2b` 先 `info` 后 `ok`（`publishedAt=2026-11-11T10:19:18Z`，哈希链三方一致，旧清单备份 `latest.json.bak-1.5.3`）。本助手已独立公网复核：清单 200、六字段齐全、notes 321 字中文正常；ZIP / Setup HEAD 200，长度 92,137,109 / 67,090,008；完整下载 ZIP 重算 SHA-256 与清单一致。桌面快捷方式未动（仍指向 1.4.7 r3）。
 - **1.6.0 产物**：ZIP `artifacts\WeChat-Voice-Bridge-V1.6.0-win-x64.zip` = 92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d`；Setup `artifacts\WeChat-Voice-Bridge-V1.6.0-Setup.exe` = 67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378`；payload `artifacts\win-x64-v1.6.0\`（1993 文件）。
 - **发布闭环已完成**：文档提交 `7dfa96c` 已推送，Muse 已回确认（`codex_20261111_113411_4a62b1`，`ok`，无进一步动作）。
-- **任务二（隐私模式 / 提醒模式）**：准绳是 [privacy-reminder.md](privacy-reminder.md)，**尚未动代码**。用户已否决首页磁贴，改为**每位联系人各自设置**：多人卡片用方案 A（药丸挪到名字右侧、两个对称胶囊、琥珀色「✓ 已读」），单人用方案 B（模式宽卡放在状态卡下面，单人变多人要有丝滑动画）。需求见该文 §1「补充二」「补充三」，设计见 §8 与「第三版修订」。等用户确认 WORKLOG「节 0 续二」里的四个问题。
-- **续跑点**：用户确认后从节 1 开始：写只读探针（`tempfile.TemporaryDirectory()`，放在 OneDrive 之外；只输出计数与类型），确认自己发出的消息（含手机端）在 `Msg_` 表里的 `real_sender_id`、`local_type`、`sort_seq`；入口参考 `worker/wechat_adapter.py` 的 `WeChatStore.query()`。
+- **任务二（隐私模式 / 提醒模式）**：准绳是 [privacy-reminder.md](privacy-reminder.md)，**尚未动代码**。用户已否决首页磁贴，改为**每位联系人各自设置**：多人卡片用方案 A（药丸挪到名字右侧、两个对称胶囊、琥珀色「✓ 已读」），单人用方案 B（模式宽卡放在状态卡下面，单人变多人要有丝滑动画）。需求见该文 §1「补充二」「补充三」，设计见 §8 与「第三版修订」。用户已定稿（§1「补充四」）并授权直接实现。节 1 只读探针完成（`tools/probes/outgoing_probe.py`，结论见该文 §7）。
+- **续跑点**：节 2——`worker/wechat_adapter.py` 的 `WeChatStore.query()` 在同一快照里为每个联系人查「回复游标之后、发送者不是对方、类型不是 10000/10002」的最大 `sort_seq`，随 `message` 包带回 `replies`；测试放 `tests/python/test_live_adapter.py`（已有 `Name2Id(peer, "self")` 夹具）。之后按 `privacy-reminder.md` §6 的节次继续。
 - **工具坑**：本机 PowerShell 工具对长等待偶尔提前返回 exit -1 且无输出，后台进程仍会跑完。等 Muse 回执时不要重发，看 `muse-bridge\outbox\<req_id>.reply.json`。
 - **准绳文档**：[tts-integration.md](tts-integration.md)（调研结论、设计、8 节实施计划）。逐节进度看 WORKLOG 顶部「任务一」段。开发者说明见 [providers.md](providers.md)。
 - **存档点**：标签 `v1.5.3`（`67a74f0`）与 `pre-multi-provider`（`d608aca`）已推送；任何时候都能回到动工前。
