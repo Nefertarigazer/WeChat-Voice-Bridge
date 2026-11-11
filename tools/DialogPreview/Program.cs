@@ -91,6 +91,7 @@ void ReleaseNotes(Window owner, string version)
     Pump(400);
     var bar = (ScrollBar)scroller.Template.FindName("PART_VerticalScrollBar", scroller);
     var tag = "notes-" + version;
+    Console.WriteLine($"[{version}] laid out at {VisualTreeHelper.GetDpi(dialog).PixelsPerDip:0.##}x DPI");
     Console.WriteLine($"[{version}] box {scroller.ActualHeight:0.##} (max {scroller.MaxHeight:0.##}), " +
         $"content {scroller.ExtentHeight:0.##}, scrollable {scroller.ScrollableHeight:0.##}");
     Save(dialog, Path.Combine(output, tag + "-1-opened.png"));

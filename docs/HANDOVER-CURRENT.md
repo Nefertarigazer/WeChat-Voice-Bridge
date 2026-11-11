@@ -10,7 +10,7 @@
 - **1.6.0 产物**：ZIP `artifacts\WeChat-Voice-Bridge-V1.6.0-win-x64.zip` = 92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d`；Setup `artifacts\WeChat-Voice-Bridge-V1.6.0-Setup.exe` = 67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378`；payload `artifacts\win-x64-v1.6.0\`（1993 文件）。
 - **发布闭环已完成**：文档提交 `7dfa96c` 已推送，Muse 已回确认（`codex_20261111_113411_4a62b1`，`ok`，无进一步动作）。
 - **任务二（隐私模式 / 提醒模式）：代码完成，正在做用户要求的第二轮打磨，做完后升 1.7.0 并经 Muse 发布**（用户原话：「都修好测好后联系 muse 上传吧」）。准绳是 [privacy-reminder.md](privacy-reminder.md)（定稿需求 §1「补充三」「补充四」，界面 §8「第三版修订」），逐节记录在 WORKLOG「任务二 · 节 1–9」。
-  - **续跑点**：节 9a（设置卡片精简、提醒词书面语、试听可取消、「选择本机音频」动作项）和节 9b（更新说明滚动条只在滚动时出现、底部正好露出半行）都已完成。下一步：升 1.7.0 → 写 ReleaseHistory → 打包 → 一张 Muse 发布单 → 公网复核 → 记录。
+  - **续跑点**：节 9a、9b 已完成；节 10 已把源码升到 **1.7.0** 并写好 ReleaseHistory（线上仍是 1.6.0）。下一步：门禁（Test 等价步骤、`Verify-Source`、wx-multi 58）→ `Publish.ps1` 到 `artifacts\win-x64-v1.7.0` + ZIP → `Build-Installer.ps1 -PayloadDirectory` → 核对 ProductVersion `1.7.0+<提交号>` → 写台账、提交、推送 → 发一张 Muse 发布单 → 公网复核 → 记录。
   - **界面检查工具** `tools/DialogPreview`（Debug 编译）：屏幕外打开真实的更新说明与设置卡片，自动检查半行、滚动条、试听/取消并存截图。**不要在工具里构造 `App`**，它会触发 `OnStartup`、敲正在运行的那份应用。
   - **更新说明约定**：底部不要再加渐隐（会洗掉露出的半行）；滚动条透明度只由代码控制，不要在模板里加回 `IsMouseOver` 触发器。
   - **用户正在运行开发版**（`bin\Release\net8.0-windows`，文件被锁）。不要结束它。应用改用 `-r win-x64` 编译；`Test.ps1` 第一步会编不过，用同样步骤、应用加 `-r win-x64` 代替。打包 `Publish.ps1` 本来就带 `-r win-x64`，不受影响。实机巡检做不了（单实例，第二份会直接唤醒用户那份）。
