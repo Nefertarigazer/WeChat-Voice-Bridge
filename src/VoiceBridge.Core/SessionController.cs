@@ -20,6 +20,37 @@ public sealed class SessionController : IAsyncDisposable
     public event Action<ProcessingEvent>? Processed;
     /// <summary>The user replied in a watched chat, from any device. Never spoken.</summary>
     public event Action<ReplySignal>? Replied;
+    /// <summary>An incoming message was accepted, including one merged into an earlier unread message.</summary>
+    public event Action<ChatMessage>? Received;
+    /// <summary>A message or reminder is done: played, skipped or failed (after its last part).</summary>
+    public event Action<ChatMessage>? Finished;
+
+    /// <summary>
+    /// Messages it accepts are read as one with an earlier message of the same chat that is
+    /// still waiting in the queue (privacy mode: 「微信来了 3 条消息」). Read under the state gate.
+    /// </summary>
+    public Func<ChatMessage, bool>? Merge { get; set; }
+
+    /// <summary>Queue a reminder behind the messages already waiting. False when it cannot be queued.</summary>
+    public bool Announce(ChatMessage reminder)
+    {
+        lock (gate)
+        {
+            if (current is not { } session || !IsRunning(session) || reminder.Kind != MessageKind.Reminder ||
+                reminder.AccountId != session.Targets[0].AccountId ||
+                !session.Conversations.Contains(reminder.ConversationId) ||
+                string.IsNullOrWhiteSpace(reminder.Key) || string.IsNullOrWhiteSpace(reminder.Text) ||
+                reminder.Text.Length > MaxTextLength)
+                return false;
+            if (!session.Queue.Writer.TryWrite(reminder))
+            {
+                Processed?.Invoke(new("队列已满，跳过提醒"));
+                return false;
+            }
+            Set(status.State, status.Pending + 1, status.Activity, null);
+            return true;
+        }
+    }
 
     public bool Start(Target target, bool consent, int capacity, bool preview,
         Func<IMessageSource> sourceFactory, ISpeech speech, IPlayer player,
@@ -103,6 +134,7 @@ public sealed class SessionController : IAsyncDisposable
                 return;
             ++session.QueueEpoch;
             session.Chunks.Clear();
+            session.Merging.Clear();
             if (session.Prefetched is { } pending) _ = pending.Stop.CancelAsync();
             while (session.Queue.Reader.TryRead(out _)) { }
             Set(status.State, 0, status.Activity, status.Error);
@@ -177,6 +209,7 @@ public sealed class SessionController : IAsyncDisposable
         session.Cancellation = session.Stop.CancelAsync();
         session.AudioStop = Task.Run(session.Player.Stop);
         while (session.Queue.Reader.TryRead(out _)) { }
+        session.Merging.Clear();
     }
 
     private Admission Admit(Session session, ChatMessage message)
@@ -204,12 +237,20 @@ public sealed class SessionController : IAsyncDisposable
                 return Admission.Duplicate;
             if (session.Seen.Count > 100_000)
                 throw new BridgeException("本次会话消息数已达上限，请重新开始。", true);
-            if (message.Text.Length > MaxTextLength || !session.Queue.Writer.TryWrite(message))
+            var merging = message.Text.Length <= MaxTextLength && Merge is { } merge && merge(message);
+            if (merging && session.Merging.TryGetValue(message.ConversationId, out var group))
+                group.Count++;
+            else
             {
-                Processed?.Invoke(new(message.Text.Length > MaxTextLength ? "跳过超长消息" : "队列已满，跳过新消息"));
-                return Admission.Dropped;
+                if (message.Text.Length > MaxTextLength || !session.Queue.Writer.TryWrite(message))
+                {
+                    Processed?.Invoke(new(message.Text.Length > MaxTextLength ? "跳过超长消息" : "队列已满，跳过新消息"));
+                    return Admission.Dropped;
+                }
+                if (merging) session.Merging[message.ConversationId] = new(message);
+                Set(status.State, status.Pending + 1, status.Activity, null);
             }
-            Set(status.State, status.Pending + 1, status.Activity, null);
+            Received?.Invoke(message);
             var preview = session.Preview ? string.Concat(message.Text.EnumerateRunes().Take(60)) : null;
             Processed?.Invoke(new("已接收", preview, message.FixtureDetectionMs, message.QueryMs,
                 message.ConversationId));
@@ -223,11 +264,18 @@ public sealed class SessionController : IAsyncDisposable
 
     private sealed record Chunk(ChatMessage Message, string Text, ISpeech Speech);
     private static string MessageIdentity(ChatMessage message) => message.AccountId + "\0" + message.ConversationId + "\0" + message.Key;
+    private sealed class MergeGroup(ChatMessage first)
+    {
+        public ChatMessage First { get; } = first;
+        public int Count { get; set; } = 1;
+    }
     private sealed class Work(ChatMessage message, long epoch, CancellationToken token)
     {
         public string Key => MessageIdentity(message);
         public ChatMessage Message => message;
         public long Epoch => epoch;
+        /// <summary>A later part of a long text: the cue already played before the first part.</summary>
+        public bool Continuation { get; init; }
         public CancellationTokenSource Stop { get; } = CancellationTokenSource.CreateLinkedTokenSource(token);
         public Task<AudioData> Audio { get; set; } = null!;
         public long SentAt { get; set; }
@@ -244,9 +292,16 @@ public sealed class SessionController : IAsyncDisposable
                 if (!IsRunning(session)) return null;
                 while (session.Chunks.TryDequeue(out var candidate))
                     if (!session.Skipped.Contains(MessageIdentity(candidate.Message))) { chunk = candidate; break; }
-                if (chunk != null) work = new(chunk.Message, session.QueueEpoch, session.Token);
+                if (chunk != null) work = new(chunk.Message, session.QueueEpoch, session.Token) { Continuation = true };
                 else if (session.Queue.Reader.TryRead(out var message))
                 {
+                    // Taking the message closes its group: later ones start a new announcement.
+                    if (session.Merging.TryGetValue(message.ConversationId, out var group) &&
+                        ReferenceEquals(group.First, message))
+                    {
+                        session.Merging.Remove(message.ConversationId);
+                        if (group.Count > 1) message = message with { Merged = group.Count };
+                    }
                     work = new(message, session.QueueEpoch, session.Token);
                     Set(status.State, Math.Max(0, status.Pending - 1), status.Activity, null);
                 }
@@ -269,7 +324,9 @@ public sealed class SessionController : IAsyncDisposable
         var text = chunk?.Text;
         if (text == null)
         {
-            text = session.PrepareSpeech is null ? work.Message.Text : await session.PrepareSpeech(work.Message, token);
+            // A reminder is composed by the app and already final; only chat text is re-rendered.
+            text = session.PrepareSpeech is null || work.Message.Kind == MessageKind.Reminder
+                ? work.Message.Text : await session.PrepareSpeech(work.Message, token);
             token.ThrowIfCancellationRequested();
             if (speech is IMessageSpeechResolver resolver)
             {
@@ -321,6 +378,17 @@ public sealed class SessionController : IAsyncDisposable
                     utterance.Token.ThrowIfCancellationRequested();
                     // One look-ahead request overlaps playback. Audio remains bounded and playback is sequential.
                     next = NextAsync(session);
+                    if (!work.Continuation && work.Message.Cue is { } cue)
+                        await session.Player.PlayAsync(cue, action =>
+                        {
+                            lock (gate)
+                            {
+                                if (!IsRunning(session) || utterance.IsCancellationRequested) return false;
+                                action();
+                                return true;
+                            }
+                        }, utterance.Token);
+                    utterance.Token.ThrowIfCancellationRequested();
                     long started = 0;
                     await session.Player.PlayAsync(audio, action =>
                     {
@@ -345,7 +413,12 @@ public sealed class SessionController : IAsyncDisposable
                     {
                         session.Utterance = null; session.CurrentKey = null;
                         skipped = session.UtteranceCancellation; session.UtteranceCancellation = Task.CompletedTask;
-                        if (IsRunning(session)) Set(status.State, status.Pending, "等待新消息", null);
+                        if (IsRunning(session))
+                        {
+                            Set(status.State, status.Pending, "等待新消息", null);
+                            if (!session.Chunks.Any(part => MessageIdentity(part.Message) == work.Key))
+                                Finished?.Invoke(work.Message);
+                        }
                     }
                     try { await skipped; } finally { utterance.Dispose(); }
                 }
@@ -406,6 +479,8 @@ public sealed class SessionController : IAsyncDisposable
             SingleWriter = true, FullMode = BoundedChannelFullMode.Wait
         });
         public Queue<Chunk> Chunks { get; } = new();
+        /// <summary>Per chat, the queued privacy announcement later messages are merged into.</summary>
+        public Dictionary<string, MergeGroup> Merging { get; } = new(StringComparer.Ordinal);
         public HashSet<string> Skipped { get; } = new(StringComparer.Ordinal);
         public long QueueEpoch { get; set; }
         public Work? Prefetched { get; set; }

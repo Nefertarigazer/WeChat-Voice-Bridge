@@ -21,6 +21,9 @@ public sealed record ContactProfile
     public string AnnouncementPresetId { get; init; } = "";
     public List<AnnouncementPreset> AnnouncementPresets { get; init; } = [];
     public string? AvatarUrl { get; init; }
+    /// <summary>Both modes are off for a newly added contact.</summary>
+    public PrivacySettings Privacy { get; init; } = new();
+    public ReminderSettings Reminder { get; init; } = new();
 
     /// <summary>
     /// The model this contact picked on the home page, for any service that lists

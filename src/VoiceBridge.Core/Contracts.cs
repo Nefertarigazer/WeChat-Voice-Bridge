@@ -23,10 +23,13 @@ public sealed record WordEntry(string Word, string Say);
 
 public sealed record SpeechParts(string[] Parts, bool Announcement, IReadOnlyList<ReadingRule>? PreviewRules);
 
+/// <param name="Merged">How many messages of this chat are read as this one (privacy mode).</param>
+/// <param name="Cue">A sound played once before the speech (reminders).</param>
 public sealed record ChatMessage(
     string Key, string AccountId, string ConversationId, Direction Direction, bool IsText,
     string Text, long Sequence, double? FixtureDetectionMs = null, double? QueryMs = null,
-    long? FileEventAt = null, long? QueryRequestedAt = null, SpeechParts? Speech = null);
+    long? FileEventAt = null, long? QueryRequestedAt = null, SpeechParts? Speech = null,
+    MessageKind Kind = MessageKind.Chat, int Merged = 1, AudioData? Cue = null);
 public delegate Task PcmFeed(Func<ReadOnlyMemory<byte>, CancellationToken, ValueTask> consume, CancellationToken token);
 public sealed record AudioData(byte[] Bytes, bool IsWave = false, PcmFeed? Pcm = null)
 {
