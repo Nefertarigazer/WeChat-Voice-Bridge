@@ -7,7 +7,8 @@
         FontFamily="Microsoft YaHei UI" FontSize="14"
         TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
   <Window.Resources>
-    <!-- Overlay scrollbar: reveal on hover without changing the text width. -->
+    <!-- Overlay scrollbar over the text, never narrowing it. Hidden until the notes
+         move; the code-behind fades it in while scrolling and out shortly after. -->
     <Style x:Key="NotesScrollViewer" TargetType="ScrollViewer">
       <Setter Property="Template">
         <Setter.Value>
@@ -25,14 +26,6 @@
                          Value="{Binding VerticalOffset, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}"
                          Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Opacity="0"/>
             </Grid>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="PART_VerticalScrollBar" Property="Opacity" Value="1"/>
-              </Trigger>
-              <Trigger SourceName="PART_VerticalScrollBar" Property="IsMouseCaptureWithin" Value="True">
-                <Setter TargetName="PART_VerticalScrollBar" Property="Opacity" Value="1"/>
-              </Trigger>
-            </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
       </Setter>
@@ -98,10 +91,12 @@
       </StackPanel>
       <Border Grid.Row="1" Background="White" BorderBrush="#E4E9E5" BorderThickness="1" CornerRadius="12">
         <Grid>
+        <!-- The vertical padding sits inside the scrolled content, so the viewport reaches
+             the frame and a cut-off line can end exactly at its bottom edge. -->
         <ScrollViewer x:Name="NotesScroller" MaxHeight="340" VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled" Style="{StaticResource NotesScrollViewer}"
-                      Padding="16,14,22,18" CanContentScroll="False" Focusable="True">
-          <StackPanel>
+                      Padding="16,0,22,0" CanContentScroll="False" Focusable="True">
+          <StackPanel x:Name="NotesContent" Margin="0,14,0,18">
             <TextBlock x:Name="ReleaseHeading" Text="本次更新" FontWeight="SemiBold" Margin="0,0,0,12"/>
             <ItemsControl x:Name="NotesItems">
               <ItemsControl.ItemTemplate>
@@ -117,22 +112,14 @@
             <TextBlock Text="完整版本记录可在「使用说明 → 更新日志」查看。" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
           </StackPanel>
         </ScrollViewer>
-        <!-- Fixed viewport frame; only unfinished content fades at the edges. -->
+        <!-- Text scrolled past the top fades out. The bottom has no fade: there the box
+             ends in the middle of a line, and that half line shows more follows. -->
         <Border x:Name="NotesTopFade" Height="20" VerticalAlignment="Top" Margin="1,1,12,0"
                 IsHitTestVisible="False" Visibility="Collapsed">
           <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
               <GradientStop Color="#FFFFFFFF" Offset="0"/>
               <GradientStop Color="#00FFFFFF" Offset="1"/>
-            </LinearGradientBrush>
-          </Border.Background>
-        </Border>
-        <Border x:Name="NotesBottomFade" Height="30" VerticalAlignment="Bottom" Margin="1,0,12,1"
-                IsHitTestVisible="False" Visibility="Collapsed">
-          <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#00FFFFFF" Offset="0"/>
-              <GradientStop Color="#FFFFFFFF" Offset="1"/>
             </LinearGradientBrush>
           </Border.Background>
         </Border>
