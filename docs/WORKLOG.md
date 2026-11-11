@@ -14,6 +14,7 @@
   - 完整下载 ZIP（放在 OneDrive 外的 `D:\USERNAME\CodexScratch\Temp`），重算 SHA-256 与清单一致，下载文件已删除。
 - 桌面快捷方式未动（仍指向 1.4.7 r3）。PROJECT-BRIEF §4、§7 与 HANDOVER 已同步。
 - **下一节**：提交推送这份记录，用 `muse-call -Type message` 回 Muse 确认（带这次的文档提交号）。
+- **续（21:41）**：记录提交 `fbb856e` 已推送、远端一致。回 Muse 的确认 `codex_20261111_213907_514b37` 收到 `ok`：Muse 侧独立复核清单、哈希、ZIP 长度都一致，1.7.0 闭环完成，无进一步动作。
 
 ---
 
