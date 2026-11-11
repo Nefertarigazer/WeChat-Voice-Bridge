@@ -213,6 +213,7 @@ public partial class MainWindow : Window
                     AddResult(line);
             });
         };
+        InitializeAttention();
 
         LatencyBox.ItemsSource = new[] { "balanced", "normal", "low" };
         LatencyBox.SelectionChanged += (_, _) => ScheduleSave();
@@ -329,6 +330,8 @@ public partial class MainWindow : Window
             source = null;
             livePlayer = null;
             Results.Items.Clear();
+            // Replies are invisible while stopped, so nothing can stay "waiting".
+            replies.Clear();
         }
 
         StatusTitle.Text = state.State switch
@@ -403,8 +406,10 @@ public partial class MainWindow : Window
     {
         "文件通知 → 接收" => null,
         "查询请求 → 接收" => null,
-        "已接收" => (contactCards.FirstOrDefault(card => card.Profile.ConversationId == item.ConversationId)?.Name ?? "对方")
-            + (item.Preview == null || PreviewBox.IsChecked != true ? "发来一条新消息" : "：" + item.Preview),
+        "已接收" => contactCards.FirstOrDefault(card => card.Profile.ConversationId == item.ConversationId) is var card
+            ? (card?.Name ?? "对方") + (item.Preview == null || PreviewBox.IsChecked != true ||
+                card?.Profile.Privacy is { Enabled: true } ? "发来一条新消息" : "：" + item.Preview)
+            : "对方发来一条新消息",
         "收到首个有效音频帧" => "正在合成…",
         "已向音频设备提交播放" => "正在播放…",
         "播放完成" => "已朗读",
@@ -802,6 +807,12 @@ public partial class MainWindow : Window
         await Task.Yield();
         try
         {
+            if (contact.Privacy is { Enabled: true })
+            {
+                // Privacy mode never reads a message aloud, the preview included.
+                await SpeakAsync(speech, player, PrivacyText(contact, 1), token, completeManual: false);
+                return;
+            }
             var text = await WithDirectoryAsync(wechat, (reader, cancellation) =>
                 reader.LastMessageAsync(wechat, contact.ConversationId, cancellation), token);
             token.ThrowIfCancellationRequested();

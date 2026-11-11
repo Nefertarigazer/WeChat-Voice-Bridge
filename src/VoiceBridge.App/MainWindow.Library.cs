@@ -784,13 +784,20 @@ public partial class MainWindow
             var snapshot = Volatile.Read(ref owner.routing);
             var contact = snapshot.Contacts.FirstOrDefault(item => item.AccountId == message.AccountId &&
                 item.ConversationId == message.ConversationId) ?? throw new BridgeException("联系人已不在获准名单中。");
+            var voice = owner.SpeechFor(contact.VoiceProfileId, snapshot, contact);
+            // A reminder was composed (and rendered) when it was queued.
+            if (message.Kind == MessageKind.Reminder)
+                return new(voice, text);
+            // Privacy mode says who wrote (or the code phrase), never what.
+            if (contact.Privacy is { Enabled: true })
+                return new(voice, owner.PrivacyText(contact, message.Merged));
             // The worker applies the word book to the message body. Apply the same
             // rules to the announcement, which is only composed here, before joining.
             var rules = Volatile.Read(ref owner.activeReadings);
             var spoken = contact.Prepare(text, snapshot.Contacts.Length,
                 rules.Length == 0 ? null : prefix => ReadingText.Apply(prefix, rules, ignoreScope: true));
             if (spoken.Length > SpeechText.MaximumLength) throw new BridgeException("加上提示词后超过两万字，已跳过这条消息。");
-            return new(owner.SpeechFor(contact.VoiceProfileId, snapshot, contact), spoken);
+            return new(voice, spoken);
         }
         public Task<AudioData> SynthesizeAsync(ChatMessage message, string text, Action firstAudio, CancellationToken token)
         {

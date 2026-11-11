@@ -4,6 +4,21 @@
 
 ---
 
+## 任务二 · 节 4：应用接线（隐私播报、提醒调度、提醒音；还没有新界面）（2026-11-11）
+
+- **做了什么**：
+  - `src/VoiceBridge.App/MainWindow.Attention.cs`（新）：`MainWindow` 持有一个 `ReplyTracker`；订阅会话的 `Received`、`Replied`、`Finished`，都经 `Dispatcher.InvokeAsync` 回到界面线程，并核对会话戳。`controller.Merge` 只读不可变的路由快照，在 worker 线程上判定「这个人开了隐私」。1 秒一次的 `DispatcherTimer` 取到期提醒，组句后 `controller.Announce`，朗读记录加一行「提醒：……」。记录里永远不出现内容：读内容的提醒，记录改用说人名的说法。提醒音 `ReminderSounds`：「不响提醒音」、Windows 自带的闹钟 1–10 与铃声 1–10（`C:\Windows\Media\Alarm01–10.wav`、`Ring01–10.wav`），或本机 .wav/.mp3 全路径；读一次后缓存，读不到就不响。
+  - `RoutedSpeech.Resolve`：提醒原样使用（入队时已组好、已过词库）；开了隐私的联系人改说 `AttentionText.Privacy(…, message.Merged)`，并过词库；其他照旧加提示词。
+  - 朗读记录 `Friendly("已接收")`：开了隐私的联系人只显示「某某发来一条新消息」，即使设置里开了显示内容。
+  - 试听：开了隐私的联系人不读最后一条消息，只读隐私播报句。
+  - 结束监听时（`Render` 里会话收尾那一段）清空待回复。
+- **对没开两个模式的用户**：行为不变（默认都关：不合并、不提醒、不改说法），只多一个每秒一次的空检查。
+- **改动文件**：`MainWindow.Attention.cs`（新）、`MainWindow.xaml.cs`、`MainWindow.Library.cs`。
+- **验证**：应用编译 0 错误；`Test.ps1` .NET **277/277**、Python 55（42 跳过，基线）；`Verify-Source` PASS。接线本身要等界面能打开开关后实机验证（节 8）。
+- **下一节**：节 5，多人卡片（方案 A）：「试听」「移除」挪到名字右侧、监听时隐藏「试听」、有没回的消息时换成琥珀色「✓ 已读」、头像红色角标、两个对称胶囊（隐私 = 靛蓝、提醒 = 橙色，关时浅灰，小开关 + 竖排 ⋮）。
+
+---
+
 ## 任务二 · 节 3：Core 的提醒与隐私逻辑（2026-11-11，界面未接）
 
 - **做了什么**：
