@@ -17,7 +17,7 @@ public enum ModeKind { Privacy, Reminder }
 /// One mode of one contact on the home page: icon, name, a small switch and a ⋮ button for its
 /// settings. Privacy is indigo and reminders orange when on; both are a quiet grey when off.
 /// </summary>
-public sealed class ModeCapsule : Border
+public sealed class ModeCapsule : Border, IModeSwitch
 {
     public static readonly DependencyProperty IsOnProperty = DependencyProperty.Register(nameof(IsOn), typeof(bool),
         typeof(ModeCapsule), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,

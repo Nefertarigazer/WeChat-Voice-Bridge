@@ -13,7 +13,12 @@
 - **进度**：节 1 探针、节 2「worker 报告你回复了」、节 3 Core 逻辑（`Attention.cs`、`ReplyTracker.cs`、`SessionController.Announce/Merge/Received/Finished`、`ContactProfile.Privacy/Reminder`）已完成，WORKLOG 有细节。**界面还没接**，用户现在看不到任何变化。
 - **节 4 已完成**：应用接线在 `MainWindow.Attention.cs`（`ReplyTracker`、1 秒定时器、`Announce`、提醒音 `ReminderSounds`），隐私播报在 `RoutedSpeech.Resolve`、试听、朗读记录。界面上还没有开关，所以用户看不到变化。
 - **节 5 已完成**：多人卡片方案 A（`ModeCapsule.cs`、`ContactCard` 新属性、`BadgedAvatar`、`ContactReadAction`），截图 `artifacts/screenshots/task2-multi-a-print.png`、`task2-capsules-2.png`。⋮ 的设置卡片还没做（`OpenModeSettings` 是空的）。
-- **续跑点**：节 6——单人方案 B：只有一位联系人时，在状态卡与「朗读对象」之间放两张宽卡（图标圆 + 标题 + `PrivacySummary`/`ReminderSummary` + 开关 + ⋮），单人卡片里不放胶囊；添加第二个人时宽卡收进卡片、删回一个人时反向，要做丝滑的过渡动画（布局切换在 `MainWindow.Library.cs` 的 `UpdateContactsCaption`）。之后节 7 两张设置卡片（复用「更新说明」外观）、节 8 使用说明 + 实机验证。
+- **节 6 已完成（代码）**：单人方案 B（`ModeCard.cs`、`SingleModes`）+ 单人 ↔ 多人变形动画（`MainWindow.Morph.cs`，在添加 / 移除联系人时由 `MorphContacts` 包住）。实机效果未验证，放到节 8。
+- **续跑点**：节 7——`MainWindow.Attention.cs` 的 `OpenModeSettings(card, kind)` 目前是空的。做两张设置卡片，外观复用 `ReleaseNotesDialog`（米白底 `#FFFEFB`、`#DCE3DF` 细边、圆角 14、右上角关闭、22 号标题 + 灰色副标题、内嵌白色圆角框、底部居中「完成」）。
+  - 隐私卡：三选一（只报来消息 / 播报名字 / 自定义暗语 + 输入框）。
+  - 提醒卡：每隔 / 最多持续（步进器，1–180 分钟）、持续提醒开关、提醒音（`ReminderSounds.BuiltIn` 下拉 + 试听 + 选择本机音频）、提醒词下拉（`AttentionText.WordingChoices`）。
+  - 改动通过 `card.UpdateAttention(...)` 写回。
+  - 之后节 8：使用说明 + 实机验证（备份 `settings.json` 与 `release-notes-seen.json` 后再操作，最后复原）。
 - **实机截图守则**：开发版第一次启动会弹「已更新到 v1.6.0」。用 `tools/UiSmokeTest print 0 <png>` 截主窗口（PrintWindow），截完 `Stop-Process`，**不要点掉弹窗**。如果 `%LOCALAPPDATA%\WeChatVoiceBridge\release-notes-seen.json` 被写成 1.6.0，改回 `"1.5.3"`，用户自己打开时才看得到更新说明。
 - **跑适配器测试**：`Test.ps1` 会跳过需要 SQLCipher 的 42 个 Python 测试；改了 `wechat_adapter.py` 时，用 `src\VoiceBridge.App\bin\Release\net8.0-windows\runtime\python\python.exe -B -m unittest discover -s tests\python -p "test_live_adapter.py"`（以及 `test_multi_contact.py`）单独跑。
 - **工具坑**：本机 PowerShell 工具对长等待偶尔提前返回 exit -1 且无输出，后台进程仍会跑完。等 Muse 回执时不要重发，看 `muse-bridge\outbox\<req_id>.reply.json`。

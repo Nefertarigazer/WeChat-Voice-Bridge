@@ -166,6 +166,9 @@ public partial class MainWindow
         foreach (var card in contactCards) card.SetPeopleCount(contactCards.Count);
         SingleContactSurface.Content = contactCards.Count == 1 ? contactCards[0] : null;
         SingleContactSurface.Visibility = contactCards.Count == 1 ? Visibility.Visible : Visibility.Collapsed;
+        // One contact: the modes sit above the card as two wide cards (scheme B).
+        SingleModes.DataContext = contactCards.Count == 1 ? contactCards[0] : null;
+        SingleModes.Visibility = contactCards.Count == 1 ? Visibility.Visible : Visibility.Collapsed;
         ContactsList.Visibility = contactCards.Count == 1 ? Visibility.Collapsed : Visibility.Visible;
         SingleSpeechGap.Width = new GridLength(contactCards.Count == 1 ? 12 : 0);
         SingleSpeechColumn.Width = contactCards.Count == 1 ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
@@ -244,21 +247,27 @@ public partial class MainWindow
         { Name = contact.Name, Alias = contact.Wechat, AvatarUrl = contact.AvatarUrl, Selected = true };
         if (!string.IsNullOrWhiteSpace(ContactSearch.Text)) RememberSearch(ContactSearch.Text.Trim());
         UpsertContact(profile);
-        if (exists == null)
+        // Going from one person to two changes the cards' shape: morph instead of jumping.
+        MorphContacts(() =>
         {
-            if (contactCards.Count == 1) contactCards[0].AdaptDefaultAnnouncement(addingSecond: true);
-            exists = CardFor(profile); contactCards.Add(exists);
-        }
-        SetPrimaryContact(exists.Profile);
-        _ = FetchAvatarAsync(exists);
-        RememberContact(profile);
-        pickingContact = false;
-        ContactSearch.Text = "";
-        ContactResults.ItemsSource = null;
-        ResultsPanel.Visibility = Visibility.Collapsed;
-        ContactHint.Text = "";
-        notice = null;
-        UpdateContactsCaption();
+            if (exists == null)
+            {
+                if (contactCards.Count == 1) contactCards[0].AdaptDefaultAnnouncement(addingSecond: true);
+                exists = CardFor(profile); contactCards.Add(exists);
+            }
+            SetPrimaryContact(exists.Profile);
+            _ = FetchAvatarAsync(exists);
+            RememberContact(profile);
+            pickingContact = false;
+            ContactSearch.Text = "";
+            ContactResults.ItemsSource = null;
+            ResultsPanel.Visibility = Visibility.Collapsed;
+            ContactHint.Text = "";
+            notice = null;
+            UpdateContactsCaption();
+            // The picker closes now as well, so the morph measures the final layout.
+            ApplySelection();
+        });
         PublishRouting();
         SaveNow();
         Render();
@@ -296,11 +305,16 @@ public partial class MainWindow
     private void RemoveContactClick(object sender, RoutedEventArgs e)
     {
         if (closing || sender is not Button { Tag: ContactCard card }) return;
-        if (!contactCards.Remove(card)) return;
-        UpsertContact(card.Profile with { Selected = false });
-        if (contactCards.Count == 1) contactCards[0].AdaptDefaultAnnouncement(addingSecond: false);
-        SetPrimaryContact(contactCards.FirstOrDefault()?.Profile);
-        UpdateContactsCaption();
+        if (!contactCards.Contains(card)) return;
+        // Going from two people to one changes the cards' shape: morph instead of jumping.
+        MorphContacts(() =>
+        {
+            contactCards.Remove(card);
+            UpsertContact(card.Profile with { Selected = false });
+            if (contactCards.Count == 1) contactCards[0].AdaptDefaultAnnouncement(addingSecond: false);
+            SetPrimaryContact(contactCards.FirstOrDefault()?.Profile);
+            UpdateContactsCaption();
+        });
         // PublishRouting replaces the immutable snapshot; the running session reads it
         // on every message, so this person stops being read without restarting the baseline.
         PublishRouting();

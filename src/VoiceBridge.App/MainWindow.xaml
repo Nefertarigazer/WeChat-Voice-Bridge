@@ -717,6 +717,17 @@
                 </Grid>
               </Border>
 
+              <!-- Only one contact: its two modes as wide cards above its card. With more
+                   contacts the same switches move into each card's capsules. -->
+              <Grid x:Name="SingleModes" Margin="0,12,0,0" Visibility="Collapsed">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <local:ModeCard x:Name="SinglePrivacy" Kind="Privacy" IsOn="{Binding PrivacyOn, Mode=TwoWay}"
+                                Summary="{Binding PrivacySummary}" Tag="{Binding}" SettingsRequested="ModeSettingsRequested"/>
+                <local:ModeCard x:Name="SingleReminder" Grid.Column="2" Kind="Reminder" IsOn="{Binding ReminderOn, Mode=TwoWay}"
+                                Summary="{Binding ReminderSummary}" Waiting="{Binding ShowRead}" Tag="{Binding}"
+                                SettingsRequested="ModeSettingsRequested"/>
+              </Grid>
+
               <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition x:Name="SingleSpeechGap" Width="0"/><ColumnDefinition x:Name="SingleSpeechColumn" Width="0"/></Grid.ColumnDefinitions>
@@ -815,7 +826,7 @@
 
 
 
-              <Grid Margin="0,10,0,8">
+              <Grid x:Name="RecordsHeader" Margin="0,10,0,8">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -823,7 +834,7 @@
                            VerticalAlignment="Center"/>
 
               </Grid>
-              <Border Style="{StaticResource Group}">
+              <Border x:Name="RecordsCard" Style="{StaticResource Group}">
                 <Grid>
                   <!-- Clear action as a small square icon in the card's top-right corner;
                        it is disabled (and dimmed like every other inactive icon) while
@@ -1286,6 +1297,10 @@
             <local:UserGuide Margin="0,0,0,48" Visibility="{Binding IsChecked, ElementName=NavHelp, Converter={StaticResource BoolToVis}}"/>
           </Grid>
         </ScrollViewer>
+
+        <!-- Pictures of the old layout fly here while the contact cards change shape
+             (one contact ↔ two); see MainWindow.Morph.cs. Empty the rest of the time. -->
+        <Canvas x:Name="MorphLayer" IsHitTestVisible="False" ClipToBounds="True"/>
 
         <!-- 页面下沿渐隐：内容滚到底时不会像被硬切一刀。四段渐变更厚实一点，
              最上面也留一点点底色，避免“忽然出现”的感觉。 -->

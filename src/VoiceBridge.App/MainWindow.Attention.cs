@@ -80,8 +80,8 @@ public partial class MainWindow
 
     private void ModeSettingsRequested(object sender, System.Windows.RoutedEventArgs e)
     {
-        if (sender is ModeCapsule { Tag: ContactCard card } capsule)
-            OpenModeSettings(card, capsule.Kind);
+        if (sender is System.Windows.FrameworkElement { Tag: ContactCard card } element && element is IModeSwitch mode)
+            OpenModeSettings(card, mode.Kind);
     }
 
     /// <summary>The settings card for one mode of one contact (节 7).</summary>

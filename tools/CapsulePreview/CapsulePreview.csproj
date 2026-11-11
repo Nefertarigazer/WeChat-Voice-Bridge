@@ -10,5 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\VoiceBridge.App\ModeCapsule.cs" Link="ModeCapsule.cs" />
+    <Compile Include="..\..\src\VoiceBridge.App\ModeCard.cs" Link="ModeCard.cs" />
   </ItemGroup>
 </Project>
