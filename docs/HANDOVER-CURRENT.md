@@ -9,13 +9,11 @@
 - **一句话现状**：源码与线上同为 **1.6.0**（源码 commit `f279d5e`，payload `1.6.0+f279d5e…`）。Muse 发布单 `codex_20261111_111550_686f2b` 先 `info` 后 `ok`（`publishedAt=2026-11-11T10:19:18Z`，哈希链三方一致，旧清单备份 `latest.json.bak-1.5.3`）。本助手已独立公网复核：清单 200、六字段齐全、notes 321 字中文正常；ZIP / Setup HEAD 200，长度 92,137,109 / 67,090,008；完整下载 ZIP 重算 SHA-256 与清单一致。桌面快捷方式未动（仍指向 1.4.7 r3）。
 - **1.6.0 产物**：ZIP `artifacts\WeChat-Voice-Bridge-V1.6.0-win-x64.zip` = 92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d`；Setup `artifacts\WeChat-Voice-Bridge-V1.6.0-Setup.exe` = 67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378`；payload `artifacts\win-x64-v1.6.0\`（1993 文件）。
 - **发布闭环已完成**：文档提交 `7dfa96c` 已推送，Muse 已回确认（`codex_20261111_113411_4a62b1`，`ok`，无进一步动作）。
-- **任务二（隐私模式 / 提醒模式）**：准绳是 [privacy-reminder.md](privacy-reminder.md)，**尚未动代码**。用户已否决首页磁贴，改为**每位联系人各自设置**：多人卡片用方案 A（药丸挪到名字右侧、两个对称胶囊、琥珀色「✓ 已读」），单人用方案 B（模式宽卡放在状态卡下面，单人变多人要有丝滑动画）。需求见该文 §1「补充二」「补充三」，设计见 §8 与「第三版修订」。用户已定稿（§1「补充四」）并授权直接实现。节 1 只读探针完成（`tools/probes/outgoing_probe.py`，结论见该文 §7）。
-- **进度**：节 1 探针、节 2「worker 报告你回复了」、节 3 Core 逻辑（`Attention.cs`、`ReplyTracker.cs`、`SessionController.Announce/Merge/Received/Finished`、`ContactProfile.Privacy/Reminder`）已完成，WORKLOG 有细节。**界面还没接**，用户现在看不到任何变化。
-- **节 4 已完成**：应用接线在 `MainWindow.Attention.cs`（`ReplyTracker`、1 秒定时器、`Announce`、提醒音 `ReminderSounds`），隐私播报在 `RoutedSpeech.Resolve`、试听、朗读记录。界面上还没有开关，所以用户看不到变化。
-- **节 5 已完成**：多人卡片方案 A（`ModeCapsule.cs`、`ContactCard` 新属性、`BadgedAvatar`、`ContactReadAction`），截图 `artifacts/screenshots/task2-multi-a-print.png`、`task2-capsules-2.png`。⋮ 的设置卡片还没做（`OpenModeSettings` 是空的）。
-- **节 6 已完成（代码）**：单人方案 B（`ModeCard.cs`、`SingleModes`）+ 单人 ↔ 多人变形动画（`MainWindow.Morph.cs`，在添加 / 移除联系人时由 `MorphContacts` 包住）。实机效果未验证，放到节 8。
-- **节 7 已完成**：两张设置卡片（`ModeSettingsDialog.cs`），实机巡检完成（`tools/UiSmokeTest task2`，截图在 `artifacts/screenshots/tour*`，巡检前后已备份 / 复原用户设置）。
-- **续跑点**：节 8——`UserGuide.xaml.cs` 新增「隐私模式与提醒模式」一节（开关在哪、三种播报方式、计时规则、已读、提醒音），`docs/user-guide.md` 同步，`privacy-reminder.md` 标为已实现，然后交给用户实测。
+- **任务二（隐私模式 / 提醒模式）：代码完成，等用户实测**。未升版本号、未打包、未上线。准绳是 [privacy-reminder.md](privacy-reminder.md)（定稿需求 §1「补充三」「补充四」，界面 §8「第三版修订」），逐节记录在 WORKLOG「任务二 · 节 1–8」。
+  - worker：`wechat_adapter.py` 的回复游标与 `take_replies()`，`main.py` 在 `message` / `heartbeat` 里带 `replies`。
+  - Core：`Attention.cs`（设置与播报句）、`ReplyTracker.cs`（待回复与计时），以及 `SessionController` 的 `Replied` / `Received` / `Finished` / `Merge` / `Announce`。
+  - App：`MainWindow.Attention.cs`（接线、定时器、提醒音）、`ModeCapsule.cs`（多人胶囊）、`ModeCard.cs`（单人宽卡）、`MainWindow.Morph.cs`（单人 ↔ 多人变形）、`ModeSettingsDialog.cs`（设置卡片）、使用说明第 10 节。
+  - 工具：`tools/probes/outgoing_probe.py`（只读探针）、`tools/CapsulePreview`（离屏渲染胶囊 / 宽卡）、`tools/UiSmokeTest` 的 `print` 与 `task2` 模式（`task2` 会改设置，必须先备份）。
 - **用户实测清单**：
   - 开始监听后，让对方发消息，看「✓ 已读」与角标出现，提醒按 3/6/9… 分钟播报（先响提醒音）。
   - 在手机上回一条，提醒应停下、角标消失。
