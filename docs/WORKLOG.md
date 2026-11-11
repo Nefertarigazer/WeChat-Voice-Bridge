@@ -4,7 +4,7 @@
 
 ---
 
-## 1.5.3 · 2026-11-10（打包完成，待 Muse 发布）
+## 1.5.3 · 2026-11-11（已发布上线）
 
 **用户授权**：「联系 muse 打包推新」。
 
@@ -17,6 +17,13 @@
 - `Publish.ps1` → `artifacts\win-x64-v1.5.3\` + ZIP **90,826,648 字节 / `0c11285164f002717cf00fa03c85d721487ce466b57d4ccbfb398b1d2a7b264f`**；Clean-payload PASS（1733 文件）。
 - `Build-Installer.ps1 -PayloadDirectory` → Setup **66,213,417 字节 / `1f7dd8bc988ef99dbaa41484670647339bc1fda98e3df6aa041241322a8d4452`**。
 - 产物核验：`ProductVersion=1.5.3+67a74f0`、`FileVersion=1.5.3.0`；1.5.3 > 线上 1.5.2。
+
+### 上线结果（Muse 发布单 `codex_20261111_010936_89c978`）
+- Muse：先 `status=info`（流水线接手），约 3 分钟后 `status=ok`（`publishedAt=2026-11-11T00:13:22Z`），称**哈希链三方一致**（申报＝PC 实测＝A1 落地）、Setup 一并发布、旧清单备份 `latest.json.bak-1.5.2`。
+- **独立公网复核**：`GET latest.json` **200**（952 字节），六字段齐全：`version=1.5.3`、`publishedAt=2026-11-11T00:13:22Z`、`size=90826648`、`sha256=0c112851…a7b264f`、url 指向 1.5.3 ZIP，notes 234 字中文正常（UTF-8 无乱码）。
+- ZIP / Setup `HEAD` 均 **200**，`Content-Length` = 90,826,648 / 66,213,417，与本地一致。
+- **完整下载 ZIP 重算 SHA-256 = `0c112851…a7b264f`，与清单一致**（字节数一致）；临时文件已删。
+- 桌面快捷方式仍未动（指向 1.4.7 r3，供用户本人点一次更新实测）。
 
 ---
 

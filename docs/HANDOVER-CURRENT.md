@@ -1,4 +1,4 @@
-# 微信语音桥 · 当前交接（2026-11-10，源码 v1.5.3 / 线上 v1.5.2，发布中）
+# 微信语音桥 · 当前交接（2026-11-11，源码与线上均为 v1.5.3）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录见 `.workbuddy/memory/2026-11-10.md`。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
@@ -36,11 +36,14 @@
 - 字幕条距底 26px（上移）；文字尾部 `TrimEnd('。')` 只去句号，其他标点保留。
 - 验证：build 0/0；`Test.ps1` .NET 209/209 + Python 54；`Verify-Source` PASS。
 
-**1.5.3 发布台账（2026-11-10，待 Muse）**：
+**1.5.3 发布台账（2026-11-11，Muse 发布单 `codex_20261111_010936_89c978`）**：
 - 源码 commit `67a74f0`；payload `1.5.3+67a74f0`。
 - ZIP `artifacts\WeChat-Voice-Bridge-V1.5.3-win-x64.zip` = 90,826,648 字节 / `0c11285164f002717cf00fa03c85d721487ce466b57d4ccbfb398b1d2a7b264f`。
 - Setup `artifacts\WeChat-Voice-Bridge-V1.5.3-Setup.exe` = 66,213,417 字节 / `1f7dd8bc988ef99dbaa41484670647339bc1fda98e3df6aa041241322a8d4452`。
 - 门禁：Clean-payload PASS（1733 文件）、`Test.ps1` PASS、`Verify-Source` PASS、1.5.3 > 线上 1.5.2。
+- Muse 回执 `status=ok`（`publishedAt=2026-11-11T00:13:22Z`），称哈希链三方一致、旧清单备份 `latest.json.bak-1.5.2`。
+- **独立公网复核**：清单 200（六字段齐全、notes 234 字中文正常）、ZIP 与 Setup HEAD 200 且长度一致、**完整下载 ZIP 重算 SHA-256 一致**。
+- **下一步**：无待办。桌面快捷方式仍指向 1.4.7 r3，不要动。
 
 **1.5.2 发布台账（2026-11-10，Muse 发布单 `codex_20261110_174906_4f5a16`）**：
 - 源码 commit：`4ae22b4`；payload `1.5.2+4ae22b4be0acef8cdcfb733fe610f9e2bfd2641b`（先提交再打包）。
