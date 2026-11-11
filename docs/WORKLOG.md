@@ -4,6 +4,22 @@
 
 ---
 
+## 1.5.3 · 2026-11-10（打包完成，待 Muse 发布）
+
+**用户授权**：「联系 muse 打包推新」。
+
+### 版本与内容
+- `Directory.Build.props` → **1.5.3**；`ReleaseHistory` 新增 1.5.3 条目（8 条：平滑滚动、提示字幕、去掉所有悬停提示、右键菜单统一、词库重做、记录清空图标与设置页按钮、清缓存不再清头像、左栏改名与首页文案精简）。
+- 源码 commit `67a74f0`（先提交再打包，产物内嵌 `1.5.3+67a74f0`）。
+
+### 门禁与产物
+- `Test.ps1`：**.NET 209/209 PASS + Python 54 PASS（41 skip 基线）**；`Verify-Source` PASS。
+- `Publish.ps1` → `artifacts\win-x64-v1.5.3\` + ZIP **90,826,648 字节 / `0c11285164f002717cf00fa03c85d721487ce466b57d4ccbfb398b1d2a7b264f`**；Clean-payload PASS（1733 文件）。
+- `Build-Installer.ps1 -PayloadDirectory` → Setup **66,213,417 字节 / `1f7dd8bc988ef99dbaa41484670647339bc1fda98e3df6aa041241322a8d4452`**。
+- 产物核验：`ProductVersion=1.5.3+67a74f0`、`FileVersion=1.5.3.0`；1.5.3 > 线上 1.5.2。
+
+---
+
 ## 工作区（1.5.2 之后，未升版本号）续 23：清空图标换成用户提供的矢量垃圾桶
 
 **用户要求**：用他下载的垃圾桶矢量图，放进一个带背景色的小方按钮里；背景色与「移除」按钮一致。
