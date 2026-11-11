@@ -38,10 +38,32 @@ public partial class MainWindow
     private sealed record RoutingSnapshot(ContactProfile[] Contacts, VoiceProfile[] Voices,
         SpeechProviderProfile[] Providers, Dictionary<string, string> Credentials);
 
-    /// <summary>Vendor label survives deleting the connection that created a voice.</summary>
-    private static string VendorName(VoiceProfile voice, IEnumerable<SpeechProviderProfile> providers) =>
-        VoiceLibraryMigration.VendorOf(voice, providers) is { } kind
-            ? SpeechProviderFactory.Label(kind) : "未知语音接口";
+    /// <summary>
+    /// Vendor label survives deleting the connection that created a voice: another
+    /// key of the same service lends its name, otherwise the cached protocol does.
+    /// </summary>
+    private static string VendorName(VoiceProfile voice, IEnumerable<SpeechProviderProfile> providers)
+    {
+        var vendor = VoiceLibraryMigration.VendorOf(voice, providers);
+        var sibling = vendor is null ? null : providers.FirstOrDefault(item => ServiceIdentity.Of(item) == vendor);
+        if (sibling is not null) return ServiceLabel(sibling);
+        return voice.ProviderKind is { } kind ? SpeechProviderFactory.Label(kind) : "未知语音服务";
+    }
+
+    /// <summary>
+    /// The heading a service is listed under, shared by its keys and its voices.
+    /// Built-in vendors use their name; any other service adds its address, so two
+    /// OpenAI-compatible services never end up under one heading.
+    /// </summary>
+    private static string ServiceLabel(SpeechProviderProfile provider)
+    {
+        var label = SpeechProviderFactory.Label(provider.Kind);
+        var vendor = ServiceIdentity.Of(provider);
+        if (vendor is ServiceIdentity.Fish or ServiceIdentity.OpenAi or ServiceIdentity.Azure or ServiceIdentity.Volcengine)
+            return vendor == ServiceIdentity.OpenAi ? "OpenAI" : label;
+        return Uri.TryCreate(provider.Endpoint, UriKind.Absolute, out var address)
+            ? label + " · " + address.Authority : label;
+    }
 
     /// <summary>
     /// The key that will actually synthesize this voice: any valid key of the
@@ -351,9 +373,10 @@ public partial class MainWindow
             foreach (var voice in library)
             {
                 var own = providers.FirstOrDefault(item => item.Id == voice.ProviderId);
+                // Voices are grouped by service, like the keys in the service list.
                 // After deleting a connection the vendor name stays on the group;
                 // only the state of the row changes (see the ItemTemplate style).
-                var group = !string.IsNullOrWhiteSpace(own?.Name) ? own!.Name : VendorName(voice, providers);
+                var group = own is not null ? ServiceLabel(own) : VendorName(voice, providers);
                 var usable = ActiveProviderFor(voice, providers) is not null;
                 seen.Add(voice.Id);
                 SyncVoiceChoice(voice.Id, voice.Name, group, usable);
@@ -369,7 +392,7 @@ public partial class MainWindow
             VoiceLibraryList.ItemsSource = grouped;
             var providerRows = providers.Select(provider => new ProviderRow(provider.Id,
                 string.IsNullOrWhiteSpace(provider.Name) ? SpeechProviderFactory.Label(provider.Kind) : provider.Name,
-                SpeechProviderFactory.Label(provider.Kind),
+                ServiceLabel(provider),
                 provider.Enabled)).ToList();
             var providerGroups = new ListCollectionView(providerRows);
             providerGroups.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ProviderRow.Kind)));
@@ -536,6 +559,11 @@ public partial class MainWindow
         try
         {
             var updated = editor.Result;
+            // Every key belongs to one service. A new key, or one whose protocol
+            // changed, gets its identity now; an edited key keeps the one it has so
+            // its voices stay with it.
+            if (provider == null || updated.Kind != provider.Kind || string.IsNullOrWhiteSpace(updated.Vendor))
+                updated = updated with { Vendor = ServiceIdentity.Derive(updated with { Vendor = "" }) };
             // Adding a key is not applying it: when this vendor already has an
             // active key, the new one stays on standby and nothing switches over.
             if (provider == null && ProviderActivation.StaysOnStandby(providers, updated))
@@ -569,7 +597,7 @@ public partial class MainWindow
             if (provider == null)
             {
                 var active = updated.Enabled ? updated
-                    : providers.FirstOrDefault(item => item.Kind == updated.Kind && item.Enabled);
+                    : providers.FirstOrDefault(item => ServiceIdentity.Same(item, updated) && item.Enabled);
                 if (active != null)
                 {
                     var bound = VoiceLibraryMigration.BindOrphanVoices(library, providers, active, out _);
@@ -597,16 +625,21 @@ public partial class MainWindow
     {
         var deleted = providers.FirstOrDefault(item => item.Id == id);
         if (deleted is null) return;
+        var vendor = ServiceIdentity.Of(deleted);
         for (var i = 0; i < library.Count; i++)
-            if (library[i].ProviderId == id && library[i].ProviderKind is null)
-                library[i] = library[i] with { ProviderKind = deleted.Kind };
+            if (library[i].ProviderId == id)
+                library[i] = library[i] with
+                {
+                    ProviderKind = library[i].ProviderKind ?? deleted.Kind,
+                    Vendor = string.IsNullOrWhiteSpace(library[i].Vendor) ? vendor : library[i].Vendor
+                };
         providers.RemoveAll(item => item.Id == id);
         // If another key of this vendor remains, its voices follow that key
         // immediately: any valid key of the vendor runs the same voice ids.
         // A vendor left with only standby keys has nothing to choose between, so
         // its remaining key becomes active (deleting is not "adding applies it").
-        var replacement = providers.FirstOrDefault(item => item.Kind == deleted.Kind && item.Enabled)
-            ?? providers.FirstOrDefault(item => item.Kind == deleted.Kind);
+        var replacement = providers.FirstOrDefault(item => ServiceIdentity.Of(item) == vendor && item.Enabled)
+            ?? providers.FirstOrDefault(item => ServiceIdentity.Of(item) == vendor);
         if (replacement != null)
         {
             if (!replacement.Enabled)
@@ -695,6 +728,9 @@ public partial class MainWindow
         var provider = ActiveProviderFor(voice, snapshot.Providers)
             ?? throw new BridgeException("音色已失效，请重新选择。");
         if (contact != null) provider = contact.ApplySpeechPreferences(provider);
+        // A voice that only works with one model always uses it, whatever the
+        // contact card or the service default says.
+        provider = SpeechModels.Use(provider, voice.Model);
         var key = snapshot.Credentials.GetValueOrDefault(provider.CredentialId, "");
         SpeechProviderFactory.ValidateCredential(provider, key);
         var effectiveVoice = voice with { ProviderId = provider.Id };

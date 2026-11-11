@@ -100,7 +100,9 @@ internal sealed class ProviderEditor : ProfileEditor
     public ProviderEditor(SpeechProviderProfile? original) : base(original == null ? "添加语音服务" : "编辑语音服务", original == null)
     {
         Result = original ?? new() { Id = Guid.NewGuid().ToString("N"), Kind = SpeechProviderKind.Fish, Model = FishSpeech.Model };
-        kind = new ComboBox { ItemsSource = Enum.GetValues<SpeechProviderKind>().Select(item => new ProviderKindChoice(item, SpeechProviderFactory.Label(item))).ToArray(),
+        kind = new ComboBox { ItemsSource = new[] { SpeechProviderKind.Fish, SpeechProviderKind.OpenAiCompatible,
+                SpeechProviderKind.AzureSpeech, SpeechProviderKind.Doubao, SpeechProviderKind.GptSoVits }
+                .Select(item => new ProviderKindChoice(item, SpeechProviderFactory.Label(item))).ToArray(),
             DisplayMemberPath = "Label", SelectedValuePath = "Kind", SelectedValue = Result.Kind };
         Choice.Children.Add(new TextBlock { Text = "选择要连接的语音服务", Margin = new(0,12,0,10) }); Choice.Children.Add(kind);
         if (original != null) BuildDetails();
@@ -285,6 +287,7 @@ internal sealed class VoiceEditor : ProfileEditor
         var candidate = Result with { Name = name.Text.Trim(),
             ProviderId = choice.Placeholder ? Result.ProviderId : selected.Id,
             ProviderKind = choice.Placeholder ? Result.ProviderKind : selected.Kind,
+            Vendor = choice.Placeholder ? Result.Vendor : ServiceIdentity.Of(selected),
             VoiceId = id, Language = locale, ReferenceAudioPath = audioPath.Text.Trim(),
             ReferenceText = referenceText.Text.Trim(), PromptLanguage = promptLanguage.Text.Trim(),
             Instructions = selected.Kind == SpeechProviderKind.OpenAiCompatible ? instructions.Text.Trim() : "",

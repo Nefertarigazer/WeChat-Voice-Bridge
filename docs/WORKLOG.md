@@ -18,6 +18,21 @@
 - **验证**：纯文档，无构建。
 - **下一节**：节 2 数据模型（`Vendor` / `Preset` / 音色固定模型 + 迁移 + 按服务身份的启用规则 + 测试）。
 
+### 节 2：厂商身份从「协议」改成「服务」+ 音色可固定模型
+
+- **为什么**：原来 `ProviderActivation`、`VoiceLibraryMigration`、删除/添加服务都按协议类型 `Kind` 分组，所有 OpenAI 兼容服务（硅基流动、本机 Kokoro……）会被当成同一家：只能启用其中一个 Key，音色还会串用。这是推广到多厂商的根本障碍。
+- **新增 `src/VoiceBridge.Core/ServiceIdentity.cs`**：
+  - `ServiceIdentity.Of/Same/Derive/Legacy/NormalizeEndpoint/CacheVendor`。已存的 `Vendor` 优先；老配置按协议推导：Fish 官方→`fish`、Azure→`azure`、豆包→`volcengine`、OpenAI 官方或空地址→`openai`，其他 OpenAI 兼容 / GPT-SoVITS / 非官方 Fish 按「协议@规范化地址」各成一个服务（大小写、末尾 `/`、`/audio/speech`、`/v1` 不区分）。
+  - `SpeechModels.Current/Use/Listed`：统一「当前模型」的读写——豆包的模型是资源 ID，其他协议是 `Model`；老 Fish 配置没有列表时仍给出原来的两个模型。
+- **数据字段**（`SpeechProfiles.cs`）：`SpeechProviderProfile` 加 `Preset`、`Vendor`、`Template`（自定义 HTTP 模板，节 4 用）；`VoiceProfile` 加 `Vendor`、`Model`（固定模型）；`SpeechProviderKind` 末尾追加 `ElevenLabs, MiniMax, DashScope, Gemini, EdgeTts, CustomHttp`（只追加不重排，保证老配置数字不变；添加服务界面暂时只列原有 5 种，新协议在节 4/5 接上）。新增 `CustomHttpTemplate` 记录。
+- **规则改按服务身份**：`ProviderActivation`（加 Key 不应用、≥2 个 Key 才需选择、启用只切同一服务）、`VoiceLibraryMigration`（`VendorOf` 改返回字符串；`ActiveKeyFor`/`BindOrphanVoices`/`UseActiveKey` 按身份比较并把身份写回音色；`CacheVendor` 同时补 `ProviderKind` 与 `Vendor`）、`MainWindow.Library.cs`（`EditProvider` 给新 Key 赋身份、孤儿音色只绑同一服务；`DeleteProviderById` 先把身份缓存到音色再找同服务的替补 Key）。
+- **模型**：`ContactProfile.ApplySpeechPreferences` 对所有协议生效，但只接受服务列出的模型（旧的、被移除的选择不会把请求切到未勾选的模型）；`SpeechFor` 最后套用音色固定的模型（优先级：音色固定 > 联系人选择 > 服务默认）；`ContactCard.RefreshSpeechOptions` 新增 `pinnedModel`，音色固定模型时卡片只显示该模型、不给切换；非 Fish 协议的模型列表统一走 `SpeechModels.Listed`（豆包首页会显示资源 ID）。
+- **分组显示**：服务列表与音色库都按「服务」分组（新 `ServiceLabel`：内置四家用厂商名，其他服务带上地址，例如「OpenAI 兼容接口 · api.siliconflow.cn」）。音色组名原来是 Key 的名字，现在与服务列表一致。
+- **迁移**：`LocalSettings.Load()` 在摘出厂条目后调用 `ServiceIdentity.CacheVendor`，有变化就保存一次。本机实际配置（1 个 Fish Key + 4 个 Fish 音色）会得到 `fish`。老版本读到新字段会忽略，不影响回退。
+- **测试**：`ProviderActivationTests` 更新 4 处断言为字符串身份，新增 7 例（两个 OpenAI 兼容服务是两家；同地址两个 Key 是一家；已存身份优先于地址；老配置推导与幂等；首页模型只接受列出的；豆包用资源 ID 切模型；孤儿音色按协议推出身份）。
+- **验证**：`Test.ps1` **.NET 216/216 PASS**（209 + 7）+ Python 54 PASS（41 skip 基线）；`Verify-Source` PASS。界面未改动外观，未截图。
+- **下一节**：节 3 厂商目录 `ProviderCatalog`。
+
 ---
 
 ## 1.5.3 · 2026-11-11（已发布上线）

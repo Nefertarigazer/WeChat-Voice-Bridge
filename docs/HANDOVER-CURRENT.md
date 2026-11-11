@@ -8,8 +8,9 @@
 
 - **准绳文档**：[tts-integration.md](tts-integration.md)（调研结论、设计、8 节实施计划）。逐节进度看 WORKLOG 顶部「任务一」段。
 - **存档点**：标签 `v1.5.3`（`67a74f0`）与 `pre-multi-provider`（`d608aca`）已推送；任何时候都能回到动工前。
-- **已完成**：节 1（调研 + 设计文档）。
-- **续跑点**：节 2 数据模型——`SpeechProviderProfile` 加 `Vendor`/`Preset`，`VoiceProfile` 加 `Vendor`/`Model`（固定模型）；`ProviderActivation`、`VoiceLibraryMigration`、`MainWindow.Library.cs` 的 `EditProvider`/`DeleteProviderById` 从按 `Kind` 改为按 `Vendor`；`LocalSettings.Load()` 做迁移；补测试。
+- **已完成**：节 1（调研 + 设计文档）；节 2（厂商身份改为服务身份 `ServiceIdentity`、音色固定模型、模型切换推广到所有协议、迁移与测试，.NET 216/216）。
+- **关键约定（节 2 起）**：判断「是不是同一家」一律用 `ServiceIdentity.Of/Same`，**不要再用 `Kind ==`**；读写当前模型一律用 `SpeechModels.Current/Use/Listed`（豆包的模型是资源 ID）。`SpeechProviderKind` 只能在末尾追加。
+- **续跑点**：节 3 厂商目录——新建 `ProviderCatalog`（预设 Id、显示名、分组、协议、默认地址/地域、Key 是否必填、模型列表与说明、音色形态与示例、获取 Key 链接），加一致性测试；新服务的 `Vendor` 由预设决定（主流厂商 = 预设 Id）。
 - **约束**：不打包、不上线、不改桌面快捷方式；保留三条红线；任务二（隐私模式 / 提醒模式）等任务一稳定后再做。
 - **环境**：SDK 实际在 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk-tmp\dotnet.exe`（文档里旧写法 `wvb-sdk\sdk\dotnet.exe` 已不存在）。
 

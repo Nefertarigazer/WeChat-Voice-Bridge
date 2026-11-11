@@ -119,7 +119,7 @@ public sealed class ProviderActivationTests
     {
         var voice = Voice("v1", "deleted-service", SpeechProviderKind.Fish);
 
-        Assert.Equal(SpeechProviderKind.Fish, VoiceLibraryMigration.VendorOf(voice, []));
+        Assert.Equal(ServiceIdentity.Fish, VoiceLibraryMigration.VendorOf(voice, []));
         Assert.Null(VoiceLibraryMigration.VendorOf(voice with { ProviderKind = null }, []));
     }
 
@@ -127,15 +127,27 @@ public sealed class ProviderActivationTests
     public void CacheVendorFillsInTheVendorWhileItsConnectionStillExists()
     {
         var live = Voice("v1", "service-1");
-        var alreadyKnown = Voice("v2", "gone", SpeechProviderKind.Doubao);
+        var alreadyKnown = Voice("v2", "gone", SpeechProviderKind.Doubao) with { Vendor = ServiceIdentity.Volcengine };
 
         var cached = VoiceLibraryMigration.CacheVendor(
             [live, alreadyKnown], [Key("service-1", SpeechProviderKind.Doubao)], out var count);
 
         Assert.Equal(1, count);
         Assert.Equal(SpeechProviderKind.Doubao, cached[0].ProviderKind);
+        Assert.Equal(ServiceIdentity.Volcengine, cached[0].Vendor);
         Assert.Equal("voice-1", cached[0].VoiceId);
         Assert.Equal(alreadyKnown, cached[1]);
+    }
+
+    [Fact]
+    public void AnOrphanFromAnOlderBuildGetsTheVendorItsProtocolImplied()
+    {
+        var orphan = Voice("v1", "gone", SpeechProviderKind.Doubao);
+
+        var cached = VoiceLibraryMigration.CacheVendor([orphan], [], out var count);
+
+        Assert.Equal(1, count);
+        Assert.Equal(ServiceIdentity.Volcengine, cached[0].Vendor);
     }
 
     [Fact]
@@ -144,14 +156,113 @@ public sealed class ProviderActivationTests
         const string json = """{"Id":"v1","Name":"旧音色","ProviderId":"live","VoiceId":"voice-1"}""";
         var legacy = JsonSerializer.Deserialize<VoiceProfile>(json)!;
         Assert.Null(legacy.ProviderKind);
+        Assert.Equal("", legacy.Vendor);
+        Assert.Equal("", legacy.Model);
 
         var cached = VoiceLibraryMigration.CacheVendor(
             [legacy], [Key("live", SpeechProviderKind.Fish)], out var count);
         Assert.Equal(1, count);
 
         var reloaded = JsonSerializer.Deserialize<VoiceProfile>(JsonSerializer.Serialize(cached[0]))!;
-        Assert.Equal(SpeechProviderKind.Fish, VoiceLibraryMigration.VendorOf(reloaded, []));
+        Assert.Equal(ServiceIdentity.Fish, VoiceLibraryMigration.VendorOf(reloaded, []));
         Assert.Equal("voice-1", reloaded.VoiceId);
+    }
+
+    // ---- A vendor is a service, not a protocol ----
+
+    private static SpeechProviderProfile Compatible(string id, string endpoint, bool enabled = true) => new()
+    {
+        Id = id, Kind = SpeechProviderKind.OpenAiCompatible, Endpoint = endpoint, Model = "tts",
+        Enabled = enabled, CredentialId = "cred-" + id
+    };
+
+    [Fact]
+    public void TwoOpenAiCompatibleServicesAreTwoVendors()
+    {
+        var siliconflow = Compatible("sf", "https://api.siliconflow.cn/v1");
+        var kokoro = Compatible("kokoro", "http://127.0.0.1:8880/v1");
+
+        Assert.False(ServiceIdentity.Same(siliconflow, kokoro));
+        // Each keeps its own active key: adding Kokoro is not blocked by SiliconFlow.
+        Assert.False(ProviderActivation.StaysOnStandby([siliconflow], kokoro));
+        Assert.False(ProviderActivation.NeedsActivation([siliconflow, kokoro], kokoro));
+
+        // A SiliconFlow voice is never run by the Kokoro key.
+        var voice = Voice("v1", "sf") with { Vendor = ServiceIdentity.Of(siliconflow) };
+        Assert.Null(VoiceLibraryMigration.ActiveKeyFor(voice, [kokoro]));
+        Assert.Equal("sf", VoiceLibraryMigration.ActiveKeyFor(voice, [kokoro, siliconflow])!.Id);
+    }
+
+    [Fact]
+    public void TwoKeysForTheSameAddressAreTwoKeysOfOneService()
+    {
+        var first = Compatible("a", "https://api.siliconflow.cn/v1");
+        var second = Compatible("b", "https://API.siliconflow.cn/v1/audio/speech/");
+
+        Assert.True(ServiceIdentity.Same(first, second));
+        Assert.True(ProviderActivation.StaysOnStandby([first], second));
+        var switched = ProviderActivation.Activate([first, second with { Enabled = false }], "b");
+        Assert.Equal("b", Assert.Single(switched, item => item.Enabled).Id);
+    }
+
+    [Fact]
+    public void AStoredVendorWinsOverTheAddress()
+    {
+        // A mainstream preset groups every key of the vendor, whatever region it calls.
+        var china = Compatible("cn", "https://api.minimax.cn/v1") with { Vendor = "minimax-cn" };
+        var beijing = Compatible("bj", "https://api-bj.minimaxi.com/v1") with { Vendor = "minimax-cn" };
+
+        Assert.True(ServiceIdentity.Same(china, beijing));
+        Assert.True(ProviderActivation.NeedsActivation([china, beijing], china));
+    }
+
+    [Fact]
+    public void OldSettingsKeepTheirBuiltInVendorsAndSplitCompatibleServices()
+    {
+        var official = Compatible("o", "https://api.openai.com/v1/audio/speech");
+        var blank = Compatible("blank", "");
+        var gateway = Compatible("g", "https://gateway.example.com/v1");
+
+        var cached = ServiceIdentity.CacheVendor([Key("fish-1"), official, blank, gateway,
+            Key("db", SpeechProviderKind.Doubao), Key("az", SpeechProviderKind.AzureSpeech)], out var filled);
+
+        Assert.Equal(6, filled);
+        Assert.Equal(new[] { ServiceIdentity.Fish, ServiceIdentity.OpenAi, ServiceIdentity.OpenAi,
+                "openai-compatible@https://gateway.example.com", ServiceIdentity.Volcengine, ServiceIdentity.Azure },
+            cached.Select(item => item.Vendor));
+        // A second pass changes nothing.
+        ServiceIdentity.CacheVendor(cached, out var again);
+        Assert.Equal(0, again);
+    }
+
+    [Fact]
+    public void AModelPickedOnTheHomePageAppliesOnlyWhenTheServiceListsIt()
+    {
+        var provider = Compatible("sf", "https://api.siliconflow.cn/v1") with
+        {
+            Model = "FunAudioLLM/CosyVoice2-0.5B", AvailableModels = ["fishaudio/fish-speech-1.5"]
+        };
+        var listed = new ContactProfile { ModelOverride = "fishaudio/fish-speech-1.5" };
+        var stale = new ContactProfile { ModelOverride = "removed-model" };
+
+        Assert.Equal("fishaudio/fish-speech-1.5", listed.ApplySpeechPreferences(provider).Model);
+        Assert.Equal("FunAudioLLM/CosyVoice2-0.5B", stale.ApplySpeechPreferences(provider).Model);
+    }
+
+    [Fact]
+    public void VolcengineSwitchesItsModelThroughTheResourceId()
+    {
+        var doubao = Key("db", SpeechProviderKind.Doubao) with
+        {
+            ResourceId = "seed-tts-2.0", AvailableModels = ["seed-tts-1.0"], Model = ""
+        };
+
+        Assert.Equal(new[] { "seed-tts-2.0", "seed-tts-1.0" }, SpeechModels.Listed(doubao));
+        var picked = new ContactProfile { ModelOverride = "seed-tts-1.0" }.ApplySpeechPreferences(doubao);
+        Assert.Equal("seed-tts-1.0", picked.ResourceId);
+        Assert.Equal("", picked.Model);
+        Assert.Equal("seed-icl-2.0", SpeechModels.Use(doubao, "seed-icl-2.0").ResourceId);
+        Assert.Same(doubao, SpeechModels.Use(doubao, ""));
     }
 
     [Fact]
@@ -168,6 +279,7 @@ public sealed class ProviderActivationTests
         Assert.Equal(1, count);
         Assert.Equal("fish-new", rebound[0].ProviderId);
         Assert.Equal(SpeechProviderKind.Fish, rebound[0].ProviderKind);
+        Assert.Equal(ServiceIdentity.Fish, rebound[0].Vendor);
         Assert.Equal(doubaoVoice, rebound[1]);
     }
 

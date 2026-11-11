@@ -111,25 +111,34 @@ internal sealed class ContactCard : INotifyPropertyChanged
         }
     }
 
-    public bool RefreshSpeechOptions(SpeechProviderProfile? provider, bool multipleConnections)
+    /// <param name="pinnedModel">
+    /// The model the chosen voice is tied to, if any. Such a voice always uses it, so
+    /// the card shows that model instead of offering a switch that would not apply.
+    /// </param>
+    public bool RefreshSpeechOptions(SpeechProviderProfile? provider, bool multipleConnections, string pinnedModel = "")
     {
         var before = Profile;
         if (speechReady && speechProviderId != provider?.Id)
             Profile = Profile with { ModelOverride = "", FishLatencyOverride = "" };
         speechReady = true; speechProviderId = provider?.Id ?? "";
-        defaultModel = provider?.Model ?? ""; defaultLatency = provider?.Latency ?? "balanced";
+        defaultModel = provider is null ? "" : SpeechModels.Current(provider); defaultLatency = provider?.Latency ?? "balanced";
         fishOptions = provider?.Kind == SpeechProviderKind.Fish;
         connectionName = provider?.Name ?? ""; showConnection = multipleConnections && provider != null;
         string[] models = [];
-        if (provider != null)
+        if (provider != null && pinnedModel.Length > 0)
+        {
+            models = [pinnedModel];
+            defaultModel = pinnedModel;
+        }
+        else if (provider != null)
         {
             if (fishOptions)
             {
                 try { models = SpeechProviderFactory.FishModels(provider); }
                 catch (BridgeException) { /* Invalid settings can still be repaired through the editor. */ }
             }
-            else if (provider.Kind == SpeechProviderKind.OpenAiCompatible)
-                models = new[] { provider.Model }.Concat(provider.AvailableModels ?? []).Where(item => !string.IsNullOrWhiteSpace(item)).Distinct(StringComparer.Ordinal).ToArray();
+            else
+                models = SpeechModels.Listed(provider);
         }
         if (Profile.ModelOverride.Length > 0 && !models.Contains(Profile.ModelOverride, StringComparer.Ordinal))
             Profile = Profile with { ModelOverride = "" };

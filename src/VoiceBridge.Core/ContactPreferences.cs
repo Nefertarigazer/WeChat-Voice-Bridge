@@ -22,13 +22,22 @@ public sealed record ContactProfile
     public List<AnnouncementPreset> AnnouncementPresets { get; init; } = [];
     public string? AvatarUrl { get; init; }
 
-    public SpeechProviderProfile ApplySpeechPreferences(SpeechProviderProfile provider) => provider with
+    /// <summary>
+    /// The model this contact picked on the home page, for any service that lists
+    /// more than one model. A model the service does not list is ignored, so a
+    /// stale choice can never switch a request to an unchecked (possibly paid) model.
+    /// </summary>
+    public SpeechProviderProfile ApplySpeechPreferences(SpeechProviderProfile provider)
     {
-        Model = provider.Kind is SpeechProviderKind.Fish or SpeechProviderKind.OpenAiCompatible && ModelOverride.Length > 0
-            ? ModelOverride : provider.Model,
-        Latency = provider.Kind == SpeechProviderKind.Fish && FishLatencyOverride.Length > 0
-            ? FishLatencyOverride : provider.Latency
-    };
+        var chosen = ModelOverride.Length > 0 &&
+            SpeechModels.Listed(provider).Contains(ModelOverride, StringComparer.Ordinal)
+                ? SpeechModels.Use(provider, ModelOverride) : provider;
+        return chosen with
+        {
+            Latency = provider.Kind == SpeechProviderKind.Fish && FishLatencyOverride.Length > 0
+                ? FishLatencyOverride : provider.Latency
+        };
+    }
 
     public string Prefix(int people) => Announcement switch
     {

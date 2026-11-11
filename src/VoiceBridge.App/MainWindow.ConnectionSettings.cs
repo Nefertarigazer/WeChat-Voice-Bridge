@@ -9,7 +9,7 @@ public partial class MainWindow
     {
         var voice = library.FirstOrDefault(item => item.Id == card.Profile.VoiceProfileId);
         var provider = voice is null ? null : ActiveProviderFor(voice, providers);
-        return card.RefreshSpeechOptions(provider, providers.Count > 1);
+        return card.RefreshSpeechOptions(provider, providers.Count > 1, voice?.Model ?? "");
     }
 
     private void StoreProvider(SpeechProviderProfile updated)

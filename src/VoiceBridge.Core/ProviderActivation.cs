@@ -6,8 +6,10 @@ namespace VoiceBridge.Core;
 
 /// <summary>
 /// One key per vendor is in use at a time. Keys of different vendors are
-/// independent: each vendor may have its own active key. These rules live in
-/// the data layer so they can be tested without a WPF window.
+/// independent: each vendor may have its own active key. A vendor is a service
+/// identity (<see cref="ServiceIdentity"/>), not a protocol, so two services that
+/// both speak the OpenAI protocol each keep their own active key. These rules
+/// live in the data layer so they can be tested without a WPF window.
 /// </summary>
 public static class ProviderActivation
 {
@@ -19,7 +21,8 @@ public static class ProviderActivation
     public static bool StaysOnStandby(
         IEnumerable<SpeechProviderProfile>? existing, SpeechProviderProfile candidate) =>
         (existing ?? Array.Empty<SpeechProviderProfile>())
-            .Any(item => item is not null && item.Kind == candidate.Kind && item.Enabled);
+            .Any(item => item is not null && item.Id != candidate.Id &&
+                ServiceIdentity.Same(item, candidate) && item.Enabled);
 
     /// <summary>
     /// Show the "启用" button only when one vendor has more than one key. A
@@ -28,7 +31,7 @@ public static class ProviderActivation
     public static bool NeedsActivation(
         IEnumerable<SpeechProviderProfile>? providers, SpeechProviderProfile candidate) =>
         (providers ?? Array.Empty<SpeechProviderProfile>())
-            .Count(item => item is not null && item.Kind == candidate.Kind) >= 2;
+            .Count(item => item is not null && ServiceIdentity.Same(item, candidate)) >= 2;
 
     /// <summary>
     /// Make one key of a vendor active and put its other keys on standby. Keys of
@@ -42,7 +45,7 @@ public static class ProviderActivation
         var target = list.FirstOrDefault(item => item.Id == id);
         if (target is null || !NeedsActivation(list, target))
             return list;
-        return list.Select(item => item.Kind == target.Kind
+        return list.Select(item => ServiceIdentity.Same(item, target)
             ? item with { Enabled = item.Id == id } : item).ToList();
     }
 }

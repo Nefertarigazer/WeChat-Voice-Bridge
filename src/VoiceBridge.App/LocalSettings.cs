@@ -79,7 +79,11 @@ internal sealed record LocalSettings
         // Builds before 1.4.7 seeded one undeletable factory Fish connection and a
         // handful of preset voices that pointed at it. Drop both kinds of factory
         // data at read time; every service and voice the user added is kept.
-        var providers = ProviderMigration.RemoveFactoryDefault(settings.Providers, out var removedFactoryDefault);
+        var withoutFactory = ProviderMigration.RemoveFactoryDefault(settings.Providers, out var removedFactoryDefault);
+        // Before 1.6 the vendor of a key was its protocol, which merged every
+        // OpenAI-compatible service into one. Give each saved key its own service
+        // identity once, while its address is still known.
+        var providers = ServiceIdentity.CacheVendor(withoutFactory, out var cachedServices);
         var voices = VoiceLibraryMigration.RemoveFactoryVoices(settings.VoiceLibrary, out var removedVoiceIds);
         // Remember each voice's vendor while its connection still exists. Deleting
         // that connection later must not erase the vendor name from the library.
@@ -99,7 +103,7 @@ internal sealed record LocalSettings
         // Persist the cleanup once, so an upgraded settings.json no longer carries
         // factory entries or references to them. A failed write must never lose the
         // user's other settings.
-        if (removedFactoryDefault || removedVoiceIds.Count > 0 || cachedVendors > 0)
+        if (removedFactoryDefault || removedVoiceIds.Count > 0 || cachedVendors > 0 || cachedServices > 0)
         {
             try { migrated.Save(); }
             catch (Exception) { /* The in-memory lists are already clean; retry next start. */ }

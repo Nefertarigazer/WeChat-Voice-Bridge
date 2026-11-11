@@ -70,25 +70,29 @@ public static class VoiceLibraryMigration
             ? "" : id ?? "";
 
     /// <summary>
-    /// The vendor of a voice: the cached value when present, otherwise derived
-    /// from the connection it currently points at. Null only when both are gone,
-    /// which happens for settings written by a build that knew no vendor field.
+    /// The service a voice belongs to: the cached identity when present, otherwise
+    /// the identity of the connection it points at, otherwise the vendor implied by
+    /// its cached protocol. Null only when none of the three survived, which
+    /// happens for settings written by a build that knew no vendor at all.
     /// </summary>
-    public static SpeechProviderKind? VendorOf(
+    public static string? VendorOf(
         VoiceProfile? voice, IEnumerable<SpeechProviderProfile>? providers)
     {
         if (voice is null)
             return null;
-        if (voice.ProviderKind is { } cached)
-            return cached;
-        return (providers ?? Array.Empty<SpeechProviderProfile>())
-            .FirstOrDefault(item => item is not null && item.Id == voice.ProviderId)?.Kind;
+        if (!string.IsNullOrWhiteSpace(voice.Vendor))
+            return voice.Vendor;
+        var own = (providers ?? Array.Empty<SpeechProviderProfile>())
+            .FirstOrDefault(item => item is not null && item.Id == voice.ProviderId);
+        if (own is not null)
+            return ServiceIdentity.Of(own);
+        return voice.ProviderKind is { } kind ? ServiceIdentity.Legacy(kind) : null;
     }
 
     /// <summary>
     /// Fill in the vendor on voices saved by older builds. Called once at load
     /// time, while their connections still exist, so deleting a connection later
-    /// cannot lose the vendor name shown in the library.
+    /// cannot lose the vendor the voice belongs to.
     /// </summary>
     public static List<VoiceProfile> CacheVendor(
         IEnumerable<VoiceProfile>? voices,
@@ -104,17 +108,15 @@ public static class VoiceLibraryMigration
         {
             if (voice is null)
                 continue;
-            if (voice.ProviderKind is null)
-            {
-                var kind = connections.FirstOrDefault(item => item.Id == voice.ProviderId)?.Kind;
-                if (kind is { } found)
-                {
-                    result.Add(voice with { ProviderKind = found });
-                    cached++;
-                    continue;
-                }
-            }
-            result.Add(voice);
+            var own = connections.FirstOrDefault(item => item.Id == voice.ProviderId);
+            var updated = voice;
+            if (updated.ProviderKind is null && own is not null)
+                updated = updated with { ProviderKind = own.Kind };
+            if (string.IsNullOrWhiteSpace(updated.Vendor) && VendorOf(updated, connections) is { } vendor)
+                updated = updated with { Vendor = vendor };
+            if (updated != voice)
+                cached++;
+            result.Add(updated);
         }
         return result;
     }
@@ -137,10 +139,10 @@ public static class VoiceLibraryMigration
         var own = all.FirstOrDefault(item => item.Id == voice.ProviderId);
         if (own is { Enabled: true })
             return own;
-        if (VendorOf(voice, all) is not { } kind)
+        if (VendorOf(voice, all) is not { } vendor)
             return null;
-        return all.FirstOrDefault(item => item.Enabled && item.Kind == kind)
-            ?? all.FirstOrDefault(item => item.Kind == kind);
+        return all.FirstOrDefault(item => item.Enabled && ServiceIdentity.Of(item) == vendor)
+            ?? all.FirstOrDefault(item => ServiceIdentity.Of(item) == vendor);
     }
 
     /// <summary>
@@ -176,14 +178,17 @@ public static class VoiceLibraryMigration
             {
                 result.Add(voice);
             }
-            else if (VendorOf(voice, all) is { } vendor && vendor != target.Kind)
+            else if (VendorOf(voice, all) is { } vendor && vendor != ServiceIdentity.Of(target))
             {
                 // A different vendor's voice ids cannot be used by this service.
                 result.Add(voice);
             }
             else
             {
-                result.Add(voice with { ProviderId = target.Id, ProviderKind = target.Kind });
+                result.Add(voice with
+                {
+                    ProviderId = target.Id, ProviderKind = target.Kind, Vendor = ServiceIdentity.Of(target)
+                });
                 bound++;
             }
         }
@@ -210,12 +215,13 @@ public static class VoiceLibraryMigration
         {
             if (voice is null)
                 continue;
-            if (VendorOf(voice, all) != target.Kind)
+            var vendor = ServiceIdentity.Of(target);
+            if (VendorOf(voice, all) != vendor)
             {
                 result.Add(voice);
                 continue;
             }
-            var updated = voice with { ProviderId = target.Id, ProviderKind = target.Kind };
+            var updated = voice with { ProviderId = target.Id, ProviderKind = target.Kind, Vendor = vendor };
             if (updated != voice)
                 rebound++;
             result.Add(updated);
