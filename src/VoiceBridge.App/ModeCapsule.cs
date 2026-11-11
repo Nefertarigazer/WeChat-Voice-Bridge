@@ -27,17 +27,22 @@ public sealed class ModeCapsule : Border
     public static readonly RoutedEvent SettingsRequestedEvent = EventManager.RegisterRoutedEvent(
         nameof(SettingsRequested), RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(ModeCapsule));
 
-    private static readonly Palette Off = new("#F3F6F5", "#E3E9E6", "#8A938F", "#5E6B65", "#D5DBD8");
-    private static readonly Palette PrivacyOn = new("#EFEFFC", "#D9D8F5", "#5653CF", "#4A47BD", "#5E5CE0");
-    private static readonly Palette ReminderOn = new("#FFF3E4", "#F5D9B0", "#D0730A", "#A95A00", "#EE8B12");
+    // Like a row in iOS Settings, each mode keeps its own colored icon tile even when off,
+    // so the pair never reads as two identical grey pills. "On" deepens the tile and tints
+    // the whole capsule; the switch is what says on or off.
+    private static readonly Palette PrivacyOff = new("#F8F9FB", "#E3E6EE", "#9C9AEC", "#3F4744", "#D5DBD8", "#8E95A3");
+    private static readonly Palette PrivacyOn = new("#EFEFFC", "#D9D8F5", "#5E5CE0", "#4A47BD", "#5E5CE0", "#5653CF");
+    private static readonly Palette ReminderOff = new("#FBF9F6", "#ECE5DB", "#F3B96A", "#3F4744", "#D5DBD8", "#A39A8D");
+    private static readonly Palette ReminderOn = new("#FFF3E4", "#F5D9B0", "#EE8B12", "#A95A00", "#EE8B12", "#D0730A");
     private static readonly TimeSpan Motion = TimeSpan.FromMilliseconds(160);
     private const double Travel = 14;
 
-    private readonly SolidColorBrush fill = new(), edge = new(), ink = new(), label = new(), track = new();
+    private readonly SolidColorBrush fill = new(), edge = new(), tileFill = new(), label = new(), track = new(), dots = new();
     private readonly TranslateTransform thumbShift = new();
     private readonly ToggleButton toggle = new();
-    private readonly TextBlock name = new() { FontSize = 13, VerticalAlignment = VerticalAlignment.Center, Margin = new(6, 0, 0, 0) };
-    private readonly Grid icon = new() { Width = 14, Height = 14, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock name = new() { FontSize = 13, VerticalAlignment = VerticalAlignment.Center, Margin = new(7, 0, 0, 0) };
+    private readonly Grid icon = new() { Width = 12, Height = 12, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+    private readonly Border tile = new() { Width = 18, Height = 18, CornerRadius = new(5.5), VerticalAlignment = VerticalAlignment.Center };
     private readonly Button more = new();
 
     public ModeCapsule()
@@ -45,10 +50,12 @@ public sealed class ModeCapsule : Border
         Height = 32;
         CornerRadius = new(16);
         BorderThickness = new(1);
-        Padding = new(10, 0, 3, 0);
+        Padding = new(7, 0, 3, 0);
         Background = fill;
         BorderBrush = edge;
         SnapsToDevicePixels = true;
+        tile.Background = tileFill;
+        tile.Child = icon;
 
         var trackBorder = new Border
         {
@@ -67,7 +74,7 @@ public sealed class ModeCapsule : Border
         layout.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         layout.ColumnDefinitions.Add(new() { Width = new(1, GridUnitType.Star) });
         layout.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
-        layout.Children.Add(icon);
+        layout.Children.Add(tile);
         Grid.SetColumn(name, 1); layout.Children.Add(name);
         Grid.SetColumn(trackBorder, 3); layout.Children.Add(trackBorder);
 
@@ -79,7 +86,7 @@ public sealed class ModeCapsule : Border
         toggle.SetBinding(ToggleButton.IsCheckedProperty, new Binding(nameof(IsOn)) { Source = this, Mode = BindingMode.TwoWay });
 
         more.Template = MoreTemplate();
-        more.Foreground = ink;
+        more.Foreground = dots;
         more.Width = 24; more.Height = 24;
         more.Cursor = Cursors.Hand;
         more.FocusVisualStyle = null;
@@ -112,26 +119,27 @@ public sealed class ModeCapsule : Border
         AutomationProperties.SetName(toggle, privacy ? "隐私模式" : "提醒模式");
         AutomationProperties.SetName(more, privacy ? "隐私模式设置" : "提醒模式设置");
         icon.Children.Clear();
+        // White glyphs on the colored tile, drawn in a 12×12 box.
         if (privacy)
         {
             icon.Children.Add(new Path
             {
-                Data = Geometry.Parse("M 4.6,6.4 V 4.6 A 2.4,2.4 0 0 1 9.4,4.6 V 6.4"), Stroke = ink,
-                StrokeThickness = 1.5, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round
+                Data = Geometry.Parse("M 4,5.5 V 4.1 A 2,2 0 0 1 8,4.1 V 5.5"), Stroke = Brushes.White,
+                StrokeThickness = 1.3, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round
             });
             icon.Children.Add(new Path
             {
-                Data = Geometry.Parse("M 3.4,6.2 H 10.6 A 1.4,1.4 0 0 1 12,7.6 V 11.4 A 1.4,1.4 0 0 1 10.6,12.8 H 3.4 A 1.4,1.4 0 0 1 2,11.4 V 7.6 A 1.4,1.4 0 0 1 3.4,6.2 Z"),
-                Fill = ink
+                Data = Geometry.Parse("M 2.9,5.3 H 9.1 A 1.1,1.1 0 0 1 10.2,6.4 V 9.6 A 1.1,1.1 0 0 1 9.1,10.7 H 2.9 A 1.1,1.1 0 0 1 1.8,9.6 V 6.4 A 1.1,1.1 0 0 1 2.9,5.3 Z"),
+                Fill = Brushes.White
             });
         }
         else
         {
             icon.Children.Add(new Path
             {
-                Data = Geometry.Parse("M 2.2,10.4 H 11.8 L 10.6,8.9 V 6.3 A 3.6,3.6 0 0 0 3.4,6.3 V 8.9 Z " +
-                    "M 5.6,11.4 A 1.4,1.4 0 0 0 8.4,11.4 Z M 6.1,2.6 A 0.9,0.9 0 1 1 7.9,2.6 A 0.9,0.9 0 1 1 6.1,2.6 Z"),
-                Fill = ink
+                Data = Geometry.Parse("M 1.9,8.8 H 10.1 L 9.1,7.5 V 5.3 A 3.1,3.1 0 0 0 2.9,5.3 V 7.5 Z " +
+                    "M 4.8,9.7 A 1.2,1.2 0 0 0 7.2,9.7 Z M 5.25,2.1 A 0.75,0.75 0 1 1 6.75,2.1 A 0.75,0.75 0 1 1 5.25,2.1 Z"),
+                Fill = Brushes.White
             });
         }
         Paint(animate: false);
@@ -140,14 +148,16 @@ public sealed class ModeCapsule : Border
     private void Paint(bool animate)
     {
         var on = IsOn;
-        var colors = !on ? Off : Kind == ModeKind.Privacy ? PrivacyOn : ReminderOn;
+        var privacy = Kind == ModeKind.Privacy;
+        var colors = privacy ? on ? PrivacyOn : PrivacyOff : on ? ReminderOn : ReminderOff;
         var focused = toggle.IsKeyboardFocused;
         var duration = animate && SystemParameters.ClientAreaAnimation && IsLoaded ? Motion : TimeSpan.Zero;
         To(fill, colors.Fill, duration);
         To(edge, focused ? (Color)ColorConverter.ConvertFromString("#0B8F66") : colors.Edge, duration);
-        To(ink, colors.Ink, duration);
+        To(tileFill, colors.Tile, duration);
         To(label, colors.Label, duration);
         To(track, colors.Track, duration);
+        To(dots, colors.Dots, duration);
         name.Foreground = label;
         name.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
         if (duration == TimeSpan.Zero)
@@ -211,10 +221,10 @@ public sealed class ModeCapsule : Border
         return template;
     }
 
-    private sealed record Palette(Color Fill, Color Edge, Color Ink, Color Label, Color Track)
+    private sealed record Palette(Color Fill, Color Edge, Color Tile, Color Label, Color Track, Color Dots)
     {
-        public Palette(string fill, string edge, string ink, string label, string track)
-            : this(Parse(fill), Parse(edge), Parse(ink), Parse(label), Parse(track)) { }
+        public Palette(string fill, string edge, string tile, string label, string track, string dots)
+            : this(Parse(fill), Parse(edge), Parse(tile), Parse(label), Parse(track), Parse(dots)) { }
         private static Color Parse(string value) => (Color)ColorConverter.ConvertFromString(value);
     }
 }
