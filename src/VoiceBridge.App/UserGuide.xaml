@@ -91,7 +91,7 @@
           <Border Background="#F9FCFA" CornerRadius="12" Padding="13" Margin="0,0,8,0"><StackPanel>
             <TextBlock Text="01" Foreground="{StaticResource Accent}" FontSize="18" FontWeight="SemiBold"/>
             <TextBlock Text="连接服务" FontWeight="SemiBold" Margin="0,8,0,5"/>
-            <TextBlock Text="登录电脑微信，在高级设置添加语音 API。" Style="{StaticResource GuideParagraph}"/>
+            <TextBlock Text="登录电脑微信，在「设置」添加语音服务。" Style="{StaticResource GuideParagraph}"/>
           </StackPanel></Border>
           <Border Background="#F9FCFA" CornerRadius="12" Padding="13" Margin="0,0,8,0"><StackPanel>
             <TextBlock Text="02" Foreground="{StaticResource Accent}" FontSize="18" FontWeight="SemiBold"/>
@@ -112,6 +112,7 @@
     <WrapPanel Margin="0,0,0,16">
       <WrapPanel.Resources><Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}"><Setter Property="FontSize" Value="12"/><Setter Property="Padding" Value="12,6"/></Style></WrapPanel.Resources>
       <Button Content="第一次配置" Tag="setup" Click="JumpClick" Margin="0,0,8,6"/>
+      <Button Content="接入语音服务" Tag="vendors" Click="JumpClick" Margin="0,0,8,6"/>
       <Button Content="多人和提示词" Tag="many" Click="JumpClick" Margin="0,0,8,6"/>
       <Button Content="遇到问题" Tag="troubleshooting" Click="JumpClick" Margin="0,0,8,6"/>
       <Button Content="更新日志" Tag="history" Click="JumpClick" Margin="0,0,0,6"/>
