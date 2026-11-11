@@ -4,6 +4,19 @@
 
 ---
 
+## 1.7.0 · 节 11：门禁与打包（2026-11-11）
+
+- **门禁**（在 `dd263df` 上）：应用 Release（`-r win-x64`，因为用户那份开发版锁着 `bin\Release`）0 警告 0 错误；.NET **277/277**；Python 55（42 跳过）；`Verify-Source` PASS；wx-multi **58/58**。
+- **打包**：`Publish.ps1 -OutputDirectory artifacts\win-x64-v1.7.0 -ZipPath …`，再 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.7.0`。worker 依赖与 edge-tts 冒烟检查通过；Clean-payload 两次都是 PASS（1993 文件，没有本机设置、没有真实 Key）。
+- **台账**：
+  - payload ProductVersion `1.7.0+dd263dfdf21e0e153709129a886289f74a2aa6b8`，与 HEAD 一致。
+  - ZIP `artifacts\WeChat-Voice-Bridge-V1.7.0-win-x64.zip` = **92,186,434** 字节 / `2a0940984d95bc72fb05ca4f69ad3fa9e9a422fe75121832db171b8af166029a`。ZIP 共 1996 项，里面的 `WeChatVoiceBridge.exe` 与 `.dll` 和 payload 逐字节相同，没有设置、凭据或数据库文件。
+  - Setup `artifacts\WeChat-Voice-Bridge-V1.7.0-Setup.exe` = **67,123,954** 字节 / `763909e1c9814277112b945a627b042f19fbd31dbc09ed7c9979ca1b7dac5114`。
+- **没做**：没有运行打包出来的程序。单实例会把启动请求转给用户正在用的那份，所以没法在这台机器上另起一份。桌面快捷方式未动。
+- **下一节**：发布前四项自查，然后发一张 Muse 发布单。
+
+---
+
 ## 1.7.0 · 节 10：升版本号，写更新说明（2026-11-11）
 
 - **做了什么**：
