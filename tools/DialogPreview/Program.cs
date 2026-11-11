@@ -76,6 +76,7 @@ var thread = new Thread(() =>
         foreach (var version in versions) Centring(version);
         foreach (var version in versions) ReleaseNotes(owner, version);
         Settings(owner);
+        Guide();
     }
 
     owner.Close();
@@ -86,6 +87,39 @@ thread.Start();
 thread.Join();
 Console.WriteLine(failures == 0 ? "ALL PASS" : $"{failures} FAILED");
 return failures == 0 ? 0 : 1;
+
+// The 使用说明 page at the main window's content width (660 DIP) on the page background.
+void Guide()
+{
+    // No window: a window is capped at the screen's height, and the part beyond it draws badly.
+    var page = new Border
+    {
+        Width = 660 + 68, Padding = new Thickness(34, 24, 34, 24),
+        Background = (Brush)Application.Current.Resources["PageBg"], Child = new UserGuide()
+    };
+    TextOptions.SetTextFormattingMode(page, TextFormattingMode.Display);
+    void Layout()
+    {
+        page.Measure(new Size(page.Width, double.PositiveInfinity));
+        page.Arrange(new Rect(new Size(page.Width, page.DesiredSize.Height)));
+        page.UpdateLayout();
+    }
+    Layout();
+    // The page opens the newest release itself once loaded; there is no Loaded without a window.
+    if (Descendants(page).OfType<Expander>().FirstOrDefault() is { } newest) newest.IsExpanded = true;
+    Layout();
+    var expanders = Descendants(page).OfType<Expander>().ToArray();
+    var more = Descendants(page).OfType<Button>().FirstOrDefault(button => (button.Content as string)?.StartsWith("查看更早") == true);
+    Console.WriteLine($"[guide] {page.ActualHeight:0} DIP tall; {expanders.Length} release rows shown; “{more?.Content}”");
+    var chips = Descendants(page).OfType<ItemsControl>().Where(list => list.Name.EndsWith("Vendors")).Sum(list => list.Items.Count);
+    Check(chips == ProviderCatalog.All.Count, $"[guide] every service in the catalogue has a chip ({chips} of {ProviderCatalog.All.Count})");
+    var bitmap = new RenderTargetBitmap((int)Math.Ceiling(page.ActualWidth * 2), (int)Math.Ceiling(page.ActualHeight * 2), 192, 192, PixelFormats.Pbgra32);
+    bitmap.Render(page);
+    var encoder = new PngBitmapEncoder();
+    encoder.Frames.Add(BitmapFrame.Create(bitmap));
+    using (var stream = File.Create(Path.Combine(output, "guide.png"))) encoder.Save(stream);
+    Console.WriteLine($"saved guide.png ({bitmap.PixelWidth}x{bitmap.PixelHeight})");
+}
 
 // Off screen, WPF pulls the dialog onto the nearest monitor, which hides where it would
 // centre. So this check uses an owner in the middle of the work area, with both windows

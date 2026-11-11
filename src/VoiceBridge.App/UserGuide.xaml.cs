@@ -1,21 +1,48 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using VoiceBridge.Core;
+using VoiceBridge.WeChat;
 
 namespace VoiceBridge.App;
 
+/// <summary>
+/// The 使用说明 page. 快速开始 comes first: a new user lands here until setup is done.
+/// The rest only explains what the screen itself does not.
+/// </summary>
 public partial class UserGuide : UserControl
 {
-    private readonly IReadOnlyList<GuideSection> sections = GuideSections.Create();
+    // Has a free tier or free model, or costs nothing at all (local models are always free).
+    private static readonly HashSet<string> FreeVendors = new(StringComparer.Ordinal) { "edge", "fish", "azure", "gemini" };
+    /// <summary>The changelog lists this many versions; the rest wait behind a button.</summary>
+    private const int RecentReleases = 4;
+    private readonly IReadOnlyList<ReleaseEntry> releases = ReleaseHistory.Through(UpdateProcess.CurrentVersion);
+    private readonly ObservableCollection<ReleaseEntry> shownReleases = new();
 
     public UserGuide()
     {
         InitializeComponent();
-        Sections.ItemsSource = sections;
-        ReleaseList.ItemsSource = ReleaseHistory.Through(UpdateProcess.CurrentVersion);
+        // The version table reads the same bounds the app enforces.
+        var low = WeChatSession.MinSupportedVersion;
+        var high = WeChatSession.MaxSupportedVersion;
+        VerifiedVersion.Text = high.ToString();
+        CoveredVersions.Text = $"{low} 至 {high} 之间的其他版本";
+        RefusedVersions.Text = $"{low} 之前，或 {high} 之后";
+
+        MainstreamVendors.ItemsSource = Vendors(PresetCategory.Mainstream);
+        GenericVendors.ItemsSource = Vendors(PresetCategory.Generic);
+        LocalVendors.ItemsSource = Vendors(PresetCategory.Local);
+        Features.ItemsSource = GuideContent.Features;
+        Questions.ItemsSource = GuideContent.Questions;
+        foreach (var release in releases.Take(RecentReleases)) shownReleases.Add(release);
+        ReleaseList.ItemsSource = shownReleases;
+        var earlier = releases.Count - shownReleases.Count;
+        EarlierReleases.Content = $"查看更早的 {earlier} 个版本";
+        EarlierReleases.Visibility = earlier > 0 ? Visibility.Visible : Visibility.Collapsed;
         Loaded += (_, _) =>
         {
             if (ReleaseList.ItemContainerGenerator.ContainerFromIndex(0) is DependencyObject first &&
@@ -24,40 +51,18 @@ public partial class UserGuide : UserControl
         };
     }
 
-    private void JumpClick(object sender, RoutedEventArgs e)
+    /// <summary>Adds the older versions below the ones shown; the open row stays open.</summary>
+    private void EarlierClick(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { Tag: string id })
-            return;
-        if (id == "history")
-        {
-            ScrollToHeading(HistoryHeading);
-            return;
-        }
-        var section = sections.FirstOrDefault(item => item.Id == id);
-        if (section is null)
-            return;
-        UpdateLayout();
-        if (Sections.ItemContainerGenerator.ContainerFromItem(section) is not FrameworkElement container)
-            return;
-        if (FindExpander(container) is { } expander)
-            expander.IsExpanded = true;
-        ScrollToHeading(container);
+        foreach (var release in releases.Skip(shownReleases.Count)) shownReleases.Add(release);
+        EarlierReleases.Visibility = Visibility.Collapsed;
     }
 
-    private void ScrollToHeading(FrameworkElement target)
-    {
-        UpdateLayout();
-        DependencyObject? parent = this;
-        while (parent != null && parent is not ScrollViewer)
-            parent = VisualTreeHelper.GetParent(parent);
-        if (parent is ScrollViewer scroll)
-        {
-            var top = target.TranslatePoint(new Point(), scroll).Y;
-            scroll.ScrollToVerticalOffset(Math.Max(0, scroll.VerticalOffset + top - scroll.Padding.Top - 16));
-        }
-        else
-            target.BringIntoView();
-    }
+    private static GuideVendor[] Vendors(PresetCategory category) => ProviderCatalog.All
+        .Where(preset => preset.Category == category)
+        .Select(preset => new GuideVendor(preset.Label.Replace("（免费）", "").Trim(), preset.Overseas,
+            category == PresetCategory.Local || FreeVendors.Contains(preset.Id)))
+        .ToArray();
 
     private static Expander? FindExpander(DependencyObject parent)
     {
@@ -70,170 +75,27 @@ public partial class UserGuide : UserControl
     }
 }
 
-internal sealed record GuideSection(string Id, string Title, string Summary, bool Expanded,
-    IReadOnlyList<string> Paragraphs);
+internal sealed record GuideVendor(string Label, bool Overseas, bool Free);
+internal sealed record GuideFeature(string Glyph, string Title, string Text);
+internal sealed record GuideQuestion(string Question, string Answer, bool First = false);
 
-internal static class GuideSections
+/// <summary>The short texts of the guide. docs/user-guide.md says the same; keep them together.</summary>
+internal static class GuideContent
 {
-    public static IReadOnlyList<GuideSection> Create() => new[]
+    public static IReadOnlyList<GuideFeature> Features { get; } = new GuideFeature[]
     {
-        new GuideSection("setup", "01 · 第一次使用，从这里开始", "先准备微信、一个语音服务和一个音色。", true, new[]
-        {
-            "准备一台 Windows x64 电脑、已经登录的电脑微信，以及能播放声音的扬声器或耳机。接收消息的人使用这个软件；对方继续用手机微信正常打字即可。电脑需要保持开机，微信需要保持登录。",
-            "双击 EXE 安装包，按中文向导完成安装，然后打开桌面的「微信语音桥」。使用 ZIP 的话，要先完整解压，再运行里面的 WeChatVoiceBridge.exe；保留旁边的 worker、runtime 和其他文件。",
-            "尚未完成首次配置时，软件会优先打开这份说明。已经配置过的用户升级后，通常回到首页。查看说明或进入首页都不会自动开启监听；真正开始读取消息需要你点「开始」。",
-            "你需要先完成三个配置：在「设置」连接自己的微信账号；在「设置 → 语音服务」添加语音服务；在「音效」添加音色，再到首页把联系人与音色绑定。下面各节可逐步照着做。",
-            "第一次建议只选一位联系人，用一句很短的新消息完成试音。确认能正常听到，再添加更多联系人或切换服务，更容易判断问题发生在哪一步。"
-        }),
-        new GuideSection("wechat", "02 · 连接自己的微信账号", "确认数据目录、版本和账号，不需要改动对方手机。", false, new[]
-        {
-            "先打开电脑微信并登录自己的账号。到「设置」确认微信数据目录；软件能发现目录时会自动填写。没有找到时，点「浏览」选择微信保存数据的文件夹，不要选择安装程序所在的目录。",
-            "不确定目录时，可以打开电脑微信的设置，查看文件管理或存储位置，再回软件选择相应文件夹。电脑上存在多个账号目录时，核对账号选择；只有一个账号时，软件可能省略这一行。",
-            "读取联系人或开始监听时，软件会核对当前账号和受支持的微信版本。若提示版本不支持或账号无法确认，请先停止并查看提示，不要反复点开始。当前支持电脑微信 4.1.11 至 4.2.0.13；范围外的版本会弹窗说明，不会硬读数据。",
-            "这里只处理你明确添加的一对一联系人。请先取得相关人的同意；添加多人仍然需要逐个选择，不等于监听所有人，也不支持群聊。",
-            "切换微信账号、微信目录或监听联系人之前，先点「结束」。目录或账号在运行中发生变化时，程序会停止处理，避免把其他账号的数据当成本次消息。"
-        }),
-        new GuideSection("service", "03 · 配置语音服务和 API Key", "API Key 是服务商发给你的访问凭据，音色不是 API Key。", false, new[]
-        {
-            "在「设置 → 语音服务」点「＋ 添加 API 服务」。第一页按三组列出：「通用协议」用来接入没有专属入口的厂商或自建网关；「主流厂商」是一一对应的专属入口，地址、模型和常用音色都预先填好；「自建模型」接入你在自己电脑上运行的模型服务。选好后点「下一步」，只需填写这一家需要的内容，每家都附有「去哪里获取 Key」和官方文档的链接。名字旁边带地球图标、写着「需海外网络」的厂商，在中国大陆需要海外网络环境才能注册账号、获取 Key 和合成语音；网络断开时，这一家的音色会读不出来。",
-            "API Key 通常在服务商网站的开发者控制台创建。复制时请避开前后空格和换行，不要把音色 ID 填进 API Key，也不要把聊天模型的密钥和语音接口参数混为一谈。密钥只在本机用 Windows 当前用户加密保存，不会写进配置文件，请勿分享给其他人。",
-            "可以同时添加并使用多家服务，每一家同一时间只启用一个 Key。给同一家再添加第二个、第三个 Key 时，新 Key 只是存着备用，不会顶替正在用的那个；想换就在那一行点「启用」。不同厂商之间互不影响，各自启用各自的 Key。",
-            "「同一家」是这样认的：主流厂商按厂商算，例如 MiniMax 国内站的默认地址和华北就近地址是同一家；通用协议和自建模型按接口地址算，同一个地址的多个 Key 是同一项服务，地址不同就是不同的服务。所以硅基流动和你电脑上的 Kokoro 虽然都用 OpenAI 兼容协议，也会分开管理，音色不会串用。",
-            "模型：在服务里勾选允许切换的模型（可多选）。首页每位联系人可以分别选用其中一个，下一条消息开始生效，正在播放的不受影响。勾选多个不会重复合成；每次请求都会明确告诉服务用哪个模型，免费模型失败也不会自动改用付费模型。豆包的「模型」是资源 ID，也能这样切换。",
-            "Fish 联系人卡片还会显示「合成模式」：均衡、音质优先或低延迟。这是 Fish 的音质与延迟取舍参数，实际差异由模型、文本和网络决定，不保证低延迟模式一定明显更快。每个人都能分别设置，下一条开始合成时生效。其他服务不会显示这个 Fish 专属选项。",
-            "地址规则：远程服务必须使用 HTTPS；只有本机的 127.0.0.1 或 localhost 可以用 HTTP。地址里不要带密钥或查询参数，软件也不会跟随服务器的跳转，以免把 Key 发到别的地方。",
-            "更换 Key 请到「设置 → 语音服务」，在那一行的「⋮」里选「编辑」，留空保留原有 Key。保存后先试听一次：出现 401 或 403 时检查密钥、权限和所属站点；402 或「余额不足」需要去服务商账户确认；429 表示限流，稍等再试。应用不会替你充值。"
-        }),
-        new GuideSection("voices", "04 · 音效与音色配置", "音色挂在厂商上，同一家的任何一个 Key 都能用。", false, new[]
-        {
-            "打开「音效」，点「＋ 添加音色」。第一页选音色属于哪项服务，第二页填音色名称（自己起，方便辨认）和这家的音色 ID。有常用音色的厂商会多一个「常用音色」下拉，选一个就自动填好；也可以直接粘贴在控制台复制的 ID，包括你自己克隆的音色。",
-            "音色属于厂商，不属于某一个 Key：同一家里任何一个启用中的 Key 都能合成它，切换或删除其中一个 Key，已经选好的音色照常可用。只有这一家的 Key 全部删除，音色才会变成灰色斜体、提示「音色已失效」；补回这家的服务就会恢复。",
-            "固定模型：有些音色只能用某一个模型合成。阿里云百炼复刻或设计出来的音色只能用创建它的模型；豆包 2.0 音色要配 seed-tts-2.0，复刻音色配 seed-icl；硅基流动的系统音色本身就写成「模型:音色名」；OpenAI 的 marin、cedar 等只配 gpt-4o-mini-tts。给这类音色选上「固定模型」后，它总是用那个模型，首页也不再为它显示模型切换。从常用音色里选到只适用一个模型的音色时，会自动帮你固定；已知不匹配时，编辑框下方会给出提示。",
-            "把一个服务的音色 ID 填到另一家服务，通常会失败。本地模型的音色形态也不同：GPT-SoVITS 用参考录音（见第 07 节），fish-speech 用保存过的参考音色 ID。",
-            "音色库负责保存和选择音色配置，克隆本人的声音通常在服务商网站或本地模型项目中完成。请事先取得声音本人的明确授权，范围包括录音、克隆、所选云服务处理及实际使用场景。",
-            "以 Fish 为例，可以先准备约 30–60 秒单人清晰录音，在它的音色管理页面创建并保持为私有音色，待可用后复制 Voice ID 到这里。不要把私人录音发布到公共音色库。服务商当前是否允许创建私有音色，以你账户实际权限为准。",
-            "删除软件里的音色只会删除本机这项配置，不会自动删除服务商保存的录音或云端音色。若要撤销云端资料，请在对应服务商的控制台操作。"
-        }),
-        new GuideSection("vendors", "05 · 主流厂商逐家说明", "每家去哪拿 Key、要填什么、音色在哪里找。", false, new[]
-        {
-            "Fish Audio（需海外网络）：在 Fish Audio 网站的「API Keys」页面创建 Key。可选模型有 S2.1 Pro 免费版（s2.1-pro-free，有公平使用限额、不保证延迟）、S2.1 Pro 付费版（官方推荐）、S2 Pro 和 Drama 3。音色填 32 位的 Voice ID。s1 模型将于 2026-12-31 退役，因此不再提供。",
-            "OpenAI（需海外网络）：在 platform.openai.com 的 API keys 页面创建。模型有 gpt-4o-mini-tts（可以在音色的「语气指令」里写想要的语气）、tts-1、tts-1-hd。官方推荐的 marin、cedar 音色只配 gpt-4o-mini-tts。注意：OpenAI 已宣布这些语音模型将于 2027-01-06 停用，官方替代只提供实时语音接口，本软件暂不支持；到期前可以正常使用。",
-            "ElevenLabs（需海外网络）：在 ElevenLabs 设置里的 API Keys 创建。默认模型 Multilingual v2（中文稳定），另有 Eleven v3、Flash v2.5（低延迟）、Eleven v4。音色在声音库或「My Voices」里复制 Voice ID，自己克隆的声音也一样。有数据驻留要求的可以选美国或欧盟地址。",
-            "Azure 语音服务：在 Azure 门户创建「语音服务」资源，到「密钥和终结点」复制密钥，并选择资源所在的区域，两者必须一致。音色名称形如 zh-CN-XiaoxiaoNeural，可在常用音色里选，完整列表见微软文档。免费 F0 层每月含 50 万字符的神经网络语音。",
-            "Google Gemini（需海外网络）：在 Google AI Studio 创建 API Key。模型为 Gemini 3.8 Flash TTS 或 Flash-Lite TTS（gemini-2.5 的预览版语音模型已于 2026-11-17 停用）。音色是 Kore、Puck 这样的名字，同样能读中文；音色的「语气描述」可以写「温柔一点、放慢」。是否免费以 Google 当前政策为准。",
-            "火山引擎 · 豆包语音：在火山引擎控制台开通豆包语音，在新版控制台创建 API Key。「资源 ID」决定模型代际和计费：seed-tts-2.0 配 2.0 音色，seed-tts-1.0 配 1.0 音色，seed-icl-2.0 / seed-icl-1.0 用于声音复刻；音色和资源 ID 必须是同一代。音色 ID（speaker）在控制台的音色列表里复制，形如 zh_female_xxx_bigtts，复刻音色以 S_ 开头。旧版控制台用户在「高级」里填 App ID，Key 的位置填 Access Token。",
-            "阿里云百炼：在百炼控制台创建 API Key（北京与新加坡地域的 Key 不通用）。同一个 Key 可以用 CosyVoice（cosyvoice-v3-flash、v3-plus、v3.5、v2）和千问 3 TTS（qwen3-tts-flash，每次最多 600 字）。系统音色如 longanyang（CosyVoice）、Cherry（千问）；复刻或设计出来的音色只能用创建它的模型，记得固定模型。CosyVoice 若提示地址不对，把接口地址换成业务空间域名 https://<业务空间ID>.cn-beijing.maas.aliyuncs.com。百炼先返回一个临时下载地址，软件只会从阿里云自己的域名下载音频。",
-            "MiniMax：国内站和国际站分开入口，Key 不通用。国内站在 platform.minimax.cn 的「接口密钥」创建，华北用户可以选「华北就近」地址；国际站在 platform.minimax.io。模型有 speech-2.8-hd（音质优先）、speech-2.8-turbo（速度优先）等。音色 ID 如 male-qn-qingse，复刻或设计的音色同样填 voice_id。若提示「该模型不支持这个音色」，请换模型或在音色里固定模型。",
-            "硅基流动 SiliconFlow：在 cloud.siliconflow.cn 的「API 密钥」创建（国际站选国际站地址）。模型有 CosyVoice2-0.5B 和 Fish Speech 1.5。系统音色写成「模型:音色名」，例如 FunAudioLLM/CosyVoice2-0.5B:alex，从常用音色里选会自动固定模型。自己上传的音色是 speech: 开头的地址，需要先实名认证，而且只能配上传时选的模型。",
-            "阶跃星辰：在 platform.stepfun.com 的「接口密钥」创建。模型有 step-tts-mini、step-tts-2、StepAudio 2.5 TTS、StepAudio 3 TTS；用 StepAudio 模型时，括号里的文字会被当作语气指令、不会读出来。音色如 cixingnansheng（磁性男声）。",
-            "智谱 GLM-TTS：在 open.bigmodel.cn 的 API Keys 创建。模型 glm-tts，音色如 tongtong（彤彤，默认）、xiaochen、chuichui 等，以官方页面为准。智谱只返回 WAV，软件已固定使用 WAV。",
-            "微软 Edge 朗读（免费）：不需要 Key，添加后就能用。音色和 Azure 同名，例如 zh-CN-XiaoxiaoNeural、东北话 zh-CN-liaoning-XiaobeiNeural、粤语 zh-HK-HiuMaanNeural。它借助开源库 edge-tts 调用 Edge 浏览器的「大声朗读」，不是微软正式开放的接口，可能限流或突然失效；第一次合成要多等几秒加载组件，之后就快了。朗读的文字会发给微软。",
-            "暂时没有专属入口的：腾讯云、讯飞、百度、Google Cloud TTS、Amazon Polly、小米 MiMo 等使用签名鉴权或特殊协议，目前没有专属入口。如果它们（或你用的网关）提供 OpenAI 兼容的 /v1/audio/speech，可以用「通用协议」接入；否则可以试试「自定义 HTTP 接口」。"
-        }),
-        new GuideSection("generic", "06 · 通用协议：接入没有专属入口的厂商", "OpenAI 兼容接口覆盖大多数网关；再不行就用自定义 HTTP 模板。", false, new[]
-        {
-            "OpenAI 兼容接口：很多云服务、网关和本地项目都提供 /v1/audio/speech，例如 LiteLLM 网关、LocalAI、用 vLLM-Omni 部署的 IndexTTS。接口地址可以填完整地址；只填域名时会补成 /v1/audio/speech，以 /v1 结尾时会补成 /audio/speech。Key 按服务要求填写，本机服务可以留空。模型名和音色名必须是这项服务认识的值，不能照抄另一家的。",
-            "通用协议和自建模型的服务要自己起名字。同一个地址的多个 Key 算同一项服务，可以用「启用」在它们之间切换；音色也要自己起名字，挂在这项服务下面。",
-            "自定义 HTTP 接口：适合只提供普通 HTTP 接口的小众厂商。依次填写：接收 POST 的地址；请求头（每行一个「名称: 值」，Key 写成 {{key}}）；请求体模板（用 {{text}} {{voice}} {{model}} {{speed}} 占位，软件会正确处理文字里的引号和换行）；最后告诉软件音频怎么返回——直接返回 MP3 / WAV，或者返回 JSON，并说明音频在哪个字段（如 data.audio、result[0].audio）以及编码（base64、十六进制或下载地址）。",
-            "举个例子：某服务要求 POST {\"text\": \"…\", \"speaker\": \"…\"}，返回 {\"data\": {\"audio\": \"<base64>\"}}。请求头填 Authorization: Bearer {{key}}；请求体填 {\"text\": \"{{text}}\", \"speaker\": \"{{voice}}\"}；返回方式选「返回 JSON」，字段填 data.audio，编码选 base64。添加音色时，音色 ID 就是要填进 {{voice}} 的值。",
-            "安全约定：{{key}} 只能写在请求头里，不能写进请求体或地址；Key 留空时，含 {{key}} 的请求头不会发送。远程地址必须是 HTTPS。返回的必须是完整的 MP3 或 WAV，否则这一条会被跳过。"
-        }),
-        new GuideSection("local", "07 · 自建模型：在自己电脑上跑", "先自己启动模型服务，软件只负责调用。", false, new[]
-        {
-            "本地模型需要你先安装并启动它的接口服务，软件只负责调用，不会替你下载模型或启动服务。普通 HTTP 只允许 127.0.0.1 或 localhost；服务放在局域网另一台电脑上时，需要它提供 HTTPS。",
-            "GPT-SoVITS：运行官方的 api_v2.py，默认地址 http://127.0.0.1:9880/tts。音色用「参考音频」：参考录音路径（运行服务那台电脑上的路径）、参考原文（可选）、参考语言和朗读语言。软件只发送路径和原文，不上传录音。",
-            "fish-speech / OpenAudio：运行 tools/api_server.py，默认地址 http://127.0.0.1:8080/v1/tts；启动时加了 --api-key 才需要填 Key。先用服务的 /v1/references/add 保存参考音频，再把它的 reference_id 填进音色。模型由服务启动时加载的权重决定，软件不切换模型。",
-            "Kokoro-FastAPI：默认地址 http://127.0.0.1:8880/v1/audio/speech，模型 kokoro，中文音色如 zf_xiaoxiao、zm_yunxi。体积小、CPU 也能跑，但中文质量一般，很短的句子可能读得不自然。",
-            "LocalAI：默认地址 http://127.0.0.1:8080/v1/audio/speech，模型和音色按你在 LocalAI 里安装的后端填写，也可以填它保存的 localai://voice-profiles/… 音色地址。",
-            "CosyVoice、IndexTTS、F5-TTS 等：官方自带的多是网页界面或专用接口。建议用提供 OpenAI 兼容 /v1/audio/speech 的封装或网关运行它们（例如用 vLLM-Omni 部署 IndexTTS 2.5），再按第 06 节的「OpenAI 兼容接口」接入。",
-            "本地合成占用电脑的 CPU、显卡和内存，第一句的等待时间取决于电脑性能和模型大小。安装时要从 GitHub 或 Hugging Face 下载代码和模型，在中国大陆可能需要海外网络；不少项目也在 ModelScope（魔搭）提供国内镜像。"
-        }),
-        new GuideSection("contacts", "08 · 找到并添加联系人", "核对微信号，最近使用和搜索记录都可以自行清除。", false, new[]
-        {
-            "在首页的联系人区域输入昵称、备注或微信号进行搜索。结果出来后，核对名字和第二行的微信号；没有设置微信号时，可能显示账号内部标识。名字相同的人不能只凭昵称判断，请确认是你要听到的那位。",
-            "选定后，为这个人选择音色库里的音色。需要更多人时，点联系人区域的＋增加一栏，再搜索并选择下一位。目前一次监听同一个微信账号，最多添加 8 位一对一联系人。",
-            "同一个人不需要重复添加。准备开始前，把每个人的名字、音色和开头话都检查一遍；音色呈灰色斜体、提示已失效时，先补上该厂商的 API 或换一个可用音色再开始。",
-            "最近添加、选择或监听过的联系人会显示在历史中，方便下次直接选回。联系人历史最多保留 12 条，最近搜索词最多 8 条。历史可以单条删除，也可以全部清空；清除的是本软件的最近记录，不会删除微信联系人或聊天，也不会清除你为这个人保存的开头话偏好。",
-            "头像在能够安全、可靠取得时才显示。你主动搜索或添加联系人后，程序可从微信的官方头像地址读取小头像；已有的头像优先使用本机缓存。从不支持头像的旧版本升级时，之前已选的联系人会在启动、联系人索引就绪后自动按账号与会话标识补回头像地址并显示，不需要重新搜索或重新添加。看不到头像或显示名字占位图，并不表示选择失败；微信号和账号标识才用于确认身份。请用这些信息核对，不要仅凭头像判断。",
-            "确认微信账号后，软件自动在后台建立联系人索引，加密保存在当前 Windows 用户的本地应用目录中，长期保留；普通清理缓存不会删除它。索引按微信数据目录和账号隔离，只保存搜索需要的联系人信息，不含聊天正文或数据库密钥。联系人数据库变化时更新索引；首次建立、更新或损坏重建期间，搜索仍可能稍慢。开始或结束监听会停止独立的联系人索引后台任务，监听期间不额外扫描联系人；以后搜索或重开软件时仍会校验并更新。缓存搜索结果用于选择联系人，开始监听时仍需核对真实微信账号和会话。"
-        }),
-        new GuideSection("many", "09 · 多人朗读和提示词", "每个人用自己的音色，提示词帮助你分清是谁发的。", false, new[]
-        {
-            "每位联系人可以选择不同音色，也可以使用不同服务。多人同时发来消息时，程序会共用一个有界播放队列，依次合成和播放，不会同时叠着播放几个人的声音。跨联系人非常接近的消息按程序实际读取、接收的次序排队，不等同于精确的手机发送时间。",
-            "首页的「提示词」可选「无提示词」、「“备注名”说+消息」、「消息+“备注名”留言」、已保存的自定义提示词和「自定义」。菜单会填写实际微信备注名。「+消息」用于说明先后顺序，不会把加号和这两个字念出来；已保存的自定义提示词也这样写，句尾的显示成「消息+提示词」。菜单最下面带绿色加号的「自定义」是新建入口，不是一条提示词。",
-            "没有设置过的新联系人，单人时默认不加提示词，多人时默认在句首加备注名和「说」。这是默认规则，不是一个需要你选择的菜单项。你手动设置过的偏好会按账号与联系人记住，移除后再添加也会恢复。",
-            "点「自定义」时下拉框会保持打开前选中的那一项，不会变成「自定义」三个字；它只是新建入口。弹出的输入框每次都是空白。输入文字并选择「句首」或「句尾」，然后点「添加并使用」，新内容会立刻成为当前提示词并被选中；点「取消」或右上角叉，则仍保持打开前选中的提示词（无提示词、昵称说+消息、消息+昵称留言或已有的自定义提示词）。已添加的内容下次可以直接选择，相同内容和位置不会重复保存，最多记住最近 12 条。",
-            "提示词可以在监听中修改，下一条开始合成时生效。它也属于合成文字，使用云服务时会一并发送给对应服务。",
-            "如果几个人聊得很快，待播数量会增长。可以点「跳过当前」停止这一条、继续下一条，或「清空队列」丢弃还没播放的消息。清空队列不会删除微信聊天，也不会结束后续新消息监听；彻底停止请点「结束」。"
-        }),
-        new GuideSection("attention", "10 · 隐私模式和提醒模式", "每个人单独设置：只报信不读内容，没回复就再提醒你。", false, new[]
-        {
-            "开关在哪里：两个人及以上时，每张联系人卡片里有「隐私」「提醒」两个胶囊；只有一位联系人时，它们是状态卡下面的两张宽卡。点开关打开或关闭，点右边的 ⋮ 打开设置。每个人单独设置，新添加的联系人两个模式默认都关。",
-            "隐私模式：开着时不读消息内容，只报信。播报方式三选一：只报来消息（“微信来消息了”）、播报名字（“某某给你发消息了”）、自定义暗语（随便写，比如“天王盖地虎”就代表来消息了）。几条消息排着队时合成一句，比如“微信来了 3 条消息”。朗读记录里也只显示是谁发来的，试听时也只读这句。",
-            "提醒模式：对方的消息你还没回时，按设定的时间再提醒你。时间从最近一条消息算起，默认每 3 分钟一次、最多 20 分钟，两个时间都能调（最短 1 分钟，最长 3 小时）。对方又发来新消息，就从这条重新算。一轮走完你还没回，就不再提醒，但没回的条数会继续累加；他再发消息时，从新消息重新开始一轮。",
-            "怎样算回复了：你在电脑或手机上给这个人发了任何东西（文字、语音、表情、打电话都算），或者点了卡片上的「✓ 已读」。开始监听后「试听」会隐藏；开着提醒、又有没回的消息时，那个位置显示「✓ 已读」，头像右上角的红色数字是没回的条数。结束监听时条数清零，因为结束后看不到你有没有回。",
-            "持续提醒：在提醒设置里打开后，不用再设时间。最近一条消息过 1 分钟后开始，「响提醒音 → 说提醒词 → 停 5 秒」一直循环，直到你回复或点「已读」。适合绝对不能错过的人，声音会比较密，请按需开启。",
-            "提醒音和提醒词：提醒音可选 Windows 自带的闹钟、铃声，也可以不响；菜单最下面带绿色加号的「选择本机音频」用来挑本机的 WAV 或 MP3 文件。旁边的「试听」会播一遍，播放时变成「取消」，点它就停。提醒词有三种：复述消息内容（“来自 3 分钟前的消息，……”，设了提示词会带上提示词）、仅播报条数（“微信在 3 分钟前来了 2 条消息”）、播报联系人与条数（“某某在 3 分钟前给您发了 2 条消息”）。它默认跟着隐私模式走；开着隐私模式时不能选复述消息内容。提醒会排在正在朗读的消息后面，不会打断它。"
-        }),
-        new GuideSection("start-stop", "11 · 开始、结束和新消息范围", "看到「正在监听」后再测试；结束会立刻停止整个链路。", false, new[]
-        {
-            "点「开始」后先显示「正在准备」。这时程序正在检查配置、建立当前消息基线和启动读取资源，尚不代表准备完成。等状态明确变成「正在监听」，再让对方发新的普通文字。",
-            "默认从本次成功建立的基线往后读取，不把开始之前的聊天整段补读。准备阶段收到的消息可能不能确认属于这次监听，请在「正在监听」后重新发一条新消息验收。",
-            "点「结束」会立即停止接收新消息、取消合成、停止当前播放、清空待播队列并释放本次读取资源，不需要等这段声音念完。再次开始是一段新会话，上次没有播完的消息不会自动接着念。",
-            "播放当前段时会提前合成下一段，所有声音仍依次播放。长文优先按句号、问号等分段；没有标点时按长度安全切分，每条最多两万字。分段可能影响语气，服务较慢时仍可能出现停顿；每一段都受语音服务超时设置约束。已经预合成的内容使用合成开始时的设置。",
-            "关闭主窗口会退出并执行停止清理。最小化只隐藏窗口或缩到任务栏，正在监听的会话会继续；需要暂停收听时应先点「结束」。托盘中也可以结束监听或退出程序。",
-            "软件重新打开后始终是未开始。即便联系人、音色和服务已记住，也不会自动恢复微信监听。遇到运行错误时先看提示，处理问题后手动重新开始。"
-        }),
-        new GuideSection("sound", "12 · 试听、音量和耳机", "先确认输出设备，再区分合成失败和播放失败。", false, new[]
-        {
-            "手动试音会使用你选择的服务和音色合成一小段文字。先用一句短话测试；云服务试音同样可能计费，并会把这段文字发送给对应服务。试听上一条微信消息属于你主动发起的一次读取，不会自动开启持续监听。",
-            "音量滑块调整本软件的播放音量。若滑块已经很大却听不到声音，还要检查 Windows 右下角的系统音量、音量混合器是否把本软件静音，以及耳机是否接好。",
-            "选择「Windows 默认输出」时，播放会使用系统当前默认设备。需要固定耳机或扬声器时，在输出设备列表明确选择它；USB 或蓝牙设备断开后，先重新连接并核对输出选择，再测试。音量调整即时生效，输出设备切换从下一段播放生效，不会在句子中间强行换设备。",
-            "已经能听到 Windows 的声音、却听不到本软件时，先看当前状态是否真的进入播放，再看服务是否返回错误。若提示设备不可用，重新选择存在的设备；若提示密钥、限流或额度，就到语音服务配置中处理。",
-            "目前消息按队列顺序播放。消息很多时，你可能晚一点才听到；待播数量和当前播放状态能帮助判断是否只是排队。点结束会停止整个队列，重新开始后不会补播旧队列。"
-        }),
-        new GuideSection("dictionary", "13 · 让词语按你想要的方式读", "词库用于改读法，保存的条目对下一条合成生效。", false, new[]
-        {
-            "打开「词库」，点＋添加一行。「原文」填写消息里会出现的文字，「读作」填写你希望听到的读法，例如把一个常用缩写改成完整称呼。先保存一条，再用短消息试一试。",
-            "「出现方式」决定这条规则在文字单独出现、夹在句子里面或两种情况下都使用。数字和符号尤其要注意范围，以免误改其他词或更长的数字。",
-            "已有条目需要点「编辑」再修改，完成后点「完成」提交。点「编辑」后输入框会自动获得焦点并显示光标，光标停在「读作」文字末尾，方便接着修改；新增的行则聚焦「原文」输入框。正在编辑但还没完成的内容不会立即当作正式规则使用；空白的未完成行可能会被移除。",
-            "监听中可以保存词条，下一条开始合成时使用新规则；正在播放或已经开始合成的这一条不会在中间突然改变。语音服务、API Key、模型、音色和开头话也按下一条开始合成的边界生效。调整后若服务或凭据无效，请按提示修好配置再测试。",
-            "引用回复会先读这条新消息，再读「来自引用」和被引用的文字。修改词库时，分别测试普通消息与引用消息，确认听到的内容符合你的习惯。"
-        }),
-        new GuideSection("cost", "14 · 免费、付费和本地服务", "看清所选模型与服务商账户，软件不会替你充值。", false, new[]
-        {
-            "免费可用的有：Fish 的 S2.1 Pro 免费版（s2.1-pro-free，有公平使用限额）、微软 Edge 朗读（非官方接口，可能失效）、Azure 免费 F0 层（每月 50 万字符）、Gemini 免费层（以 Google 当前政策为准）和本地模型。其他模型与服务可能收费，请以对应账户里的模型、余额、配额和当前账单为准。",
-            "不同语音服务可能按字符、字节、时长或请求量计费。中文文字与英文的计数口径也可能不同，所以不能把某个余额直接换算成固定可以聊几天。先用少量短句，查看服务商后台的真实消耗，再估计自己的用量。",
-            "不会因为免费请求失败而自动切换付费模型，也不会自动充值。若希望某人使用付费音色，请明确配置相应服务和模型，并检查这个人的绑定。多个服务同时启用后，每个人会调用自己音色绑定的那项服务。",
-            "本地模型的合成主要使用你电脑上的 CPU、显卡和内存。它需要事先安装、下载模型并启动服务；本软件负责调用已运行的接口，不会替你自动下载所有模型。电脑性能和模型大小都会影响首句等待时间。"
-        }),
-        new GuideSection("privacy", "15 · 隐私、授权和本地记录", "只给选定服务发送需要朗读的文字，分享程序前保护好自己的配置。", false, new[]
-        {
-            "使用云端音色时，被选中联系人需要朗读的正文、开头话和相应合成参数会发送给该音色所属的语音服务。请在使用前取得相关人和声音本人的同意，并阅读服务商当前的隐私与数据使用条款。",
-            "本软件不向语音服务上传微信数据库，也不自动发送微信消息。只读访问仍不保证符合微信平台规范，也不保证账号不会受到限制。请选择自己有权访问的账号和会话。",
-            "API Key 在 Windows 当前用户安全存储中加密保存。非敏感设置、音色标识、最近联系人、头像缓存和搜索词会留在本机，方便下次使用；可以在界面删除历史、删除音色或凭据。卸载时可明确选择是否清除个人配置。",
-            "消息缓存是本程序创建的临时副本。结束、退出和手动清理会按缓存策略释放本程序拥有的资源；不要手动删除或修改微信原始数据库。电脑意外关机后若有残留，可以在停止状态使用缓存清理入口。",
-            "给朋友分享时，发送官方的 EXE 安装包或完整发布 ZIP，让对方填写自己的微信和服务凭据。不要把自己的本地设置目录、API Key、声音原始录音或微信数据一起发给别人。"
-        }),
-        new GuideSection("troubleshooting", "16 · 遇到问题，按这个顺序检查", "先看首页状态，再确认微信、服务和声音输出。", false, new[]
-        {
-            "没有自动朗读：先确认左下角是「正在监听」，电脑微信在线，并且是所选联系人从对方账号新发来的消息。自己发出的右侧气泡不会当作对方消息；开始前的旧消息也不会自动补读。",
-            "提示联系人或账号不确定：点结束，核对微信账号、数据目录和搜索结果中的微信号，重新选择。换过微信账号或更新微信后，先按提示检查当前版本是否受支持。",
-            "看见「已接收」但没有声音：看后续是否显示正在合成、排队或服务错误。检查这个人的音色所属服务是否启用，密钥是否有效，模型和音色标识是否属于同一个服务。再做一次短句手动试音。",
-            "手动试音也失败：401/403 先检查凭据与权限；402 或余额提示检查账户额度；429 稍候再试；超时检查网络或本地服务是否运行。不要连续快速点击，多次重试可能增加排队或费用。",
-            "显示播放但听不到：检查 Windows 混音器和本软件音量，确认输出设备；拔插 USB 耳机或切换蓝牙后重新选设备。先用 Windows 本地提示音区分设备问题和云端合成问题。",
-            "多人听起来重复：先核对联系人列表中是否重复添加同一人，以及对方是否实际发了两条相同文字。两条内容相同但消息标识不同的消息会分别朗读，这是正常行为；若确实是同一条被重复播放，结束监听并记录本次状态，反馈时隐藏聊天正文和密钥。",
-            "某个按钮点不了：监听过程中，账号、目录和添加联系人需要先结束监听才能修改，界面会显示只读状态或原因提示；「移除」可以直接在监听中使用，该联系人立即不再朗读。语音服务、凭据、音色、开头话和词库可以在监听中更新，下一条开始合成时生效，不必为它们重开整段监听。",
-            "发现错误后，先点结束，保留错误提示和发生步骤。反馈时说明软件版本、微信完整小版本、使用哪个服务、是否多人和在哪一步失败；不要提供 API Key、数据库密钥或完整聊天记录。"
-        }),
-        new GuideSection("updates", "17 · 更新、重装和分享", "软件内更新保留个人配置，首次安装通常只需一个 EXE。", false, new[]
-        {
-            "到「设置 → 软件更新」点「检查更新」。没有新版时会显示已是最新；有新版时能看到版本、说明和大小，左下角也会出现更新入口。",
-            "开始下载后可以查看进度，也可以取消。下载完成会核对大小和 SHA-256，验证通过才提供安装操作；校验失败时现版本仍可继续使用，请检查网络后再试。",
-            "点「重启安装更新」后，程序会先退出再替换程序文件并重新打开。正在监听或播放时，会先要求你确认停止，请等停止和更新结束。个人设置和密钥保留在用户目录中，不需要每次升级重新填写。",
-            "已有配置的用户升级后，仍进入首页，可能显示一次本版更新说明；关闭后本版本不再重复弹出。你随时可以在本页最下面的「更新日志」查看历史改动。首次使用、配置不完整时会优先引导到这份说明。",
-            "给别人安装，推荐发送单个 Setup.exe；安装后从桌面快捷方式打开。使用 ZIP 时，必须完整解压到一个独立文件夹，不能只把其中的主程序 EXE 单独拿出来。",
-            "卸载时留意是否删除本机设置和凭据。选择保留后，重装可能继续沿用此前配置，因此会被识别为已有用户；需要重新从头配置时，再明确清除自己的本机设置。"
-        })
+        new("\uE8BD", "提示词", "读消息之前先报名字，比如“小林说：……”。在联系人卡片上选。"),
+        new("\uE716", "多人朗读", "最多 8 人，各用各的音色；几个人同时来消息时排队，依次读。"),
+        new("\uE72E", "隐私模式", "只说“微信来消息了”或一句暗语，不读内容。在联系人卡片上打开。"),
+        new("\uEA8F", "提醒模式", "消息没回，就按设定的间隔再提醒你；回复了或点「✓ 已读」就停。"),
+        new("\uE70F", "词库", "改某个词的读法，比如把缩写读成全称、把表情读成文字。"),
+    };
+
+    public static IReadOnlyList<GuideQuestion> Questions { get; } = new GuideQuestion[]
+    {
+        new("没有朗读", "先看左下角是不是「正在监听」。软件只读开始以后、所选联系人新发来的消息，你自己发的不读。", First: true),
+        new("提示版本不支持", "电脑微信的版本不在上面的表里。换成表里的版本，再重新打开软件。"),
+        new("合成失败", "401、403：Key 填错了或没有权限。402 或「余额不足」：去服务商那里充值。429：请求太快，稍等再试。带地球图标的厂商要在海外网络下使用。"),
+        new("听不到声音", "检查「音效」里的输出设备和音量，再看看 Windows 的音量和音量合成器有没有把它静音。"),
     };
 }

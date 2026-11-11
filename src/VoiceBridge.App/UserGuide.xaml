@@ -4,45 +4,115 @@
              FontFamily="Microsoft YaHei UI" FontSize="14"
              TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
   <UserControl.Resources>
-    <Style x:Key="GuideParagraph" TargetType="TextBlock">
-      <Setter Property="TextWrapping" Value="Wrap"/>
-      <Setter Property="LineHeight" Value="25"/>
+    <!-- One body size and leading for the whole guide. -->
+    <Style x:Key="GuideText" TargetType="TextBlock">
       <Setter Property="FontSize" Value="13"/>
-      <Setter Property="Foreground" Value="#52615A"/>
-      <Setter Property="Margin" Value="0"/>
+      <Setter Property="LineHeight" Value="22"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Foreground" Value="{DynamicResource Secondary}"/>
     </Style>
-    <DataTemplate x:Key="GuideSectionHeader">
-      <StackPanel>
-        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" Foreground="#244C3C"/>
-        <TextBlock Text="{Binding Summary}" Style="{StaticResource Hint}" LineHeight="20" Margin="0,6,0,0"/>
-      </StackPanel>
+    <Style x:Key="GuideNote" TargetType="TextBlock" BasedOn="{StaticResource GuideText}">
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="LineHeight" Value="19"/>
+    </Style>
+    <Style x:Key="GuideHeading" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Foreground" Value="{DynamicResource Label}"/>
+    </Style>
+    <Style x:Key="GuideSectionTitle" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="18"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource Label}"/>
+      <Setter Property="Margin" Value="2,34,0,12"/>
+    </Style>
+    <!-- White panel with a hairline frame: tables, the feature cards, the questions. -->
+    <Style x:Key="GuidePanel" TargetType="Border">
+      <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource Separator}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="14"/>
+    </Style>
+    <Style x:Key="GuideRule" TargetType="Border">
+      <Setter Property="Height" Value="1"/>
+      <Setter Property="Background" Value="{DynamicResource Separator}"/>
+    </Style>
+    <!-- Small rounded tag. -->
+    <Style x:Key="GuideChip" TargetType="Border">
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="9,3,9,4"/>
+      <Setter Property="Margin" Value="0,0,6,6"/>
+      <Setter Property="Background" Value="{DynamicResource Fill}"/>
+    </Style>
+    <Style x:Key="GuideGlyph" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="TextWrapping" Value="NoWrap"/>
+    </Style>
+
+    <!-- A vendor in the 快速开始 table: name, then a globe (needs an overseas network)
+         and/or 免费 when it applies. -->
+    <DataTemplate x:Key="VendorChip">
+      <Border Style="{StaticResource GuideChip}">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="{Binding Label}" FontSize="12.5" Foreground="{DynamicResource Label}" TextWrapping="NoWrap"
+                     VerticalAlignment="Center"/>
+          <TextBlock x:Name="Free" Text="免费" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Positive}"
+                     Margin="6,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" TextWrapping="NoWrap"/>
+          <TextBlock x:Name="Globe" Text="&#xE774;" Style="{StaticResource GuideGlyph}" FontSize="11"
+                     Foreground="{DynamicResource Caution}" Margin="6,1,0,0" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Free}" Value="True">
+          <Setter TargetName="Free" Property="Visibility" Value="Visible"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Overseas}" Value="True">
+          <Setter TargetName="Globe" Property="Visibility" Value="Visible"/>
+        </DataTrigger>
+      </DataTemplate.Triggers>
     </DataTemplate>
-    <Style x:Key="GuideExpander" TargetType="Expander">
-      <Setter Property="Margin" Value="0,0,0,12"/>
-      <Setter Property="Background" Value="{StaticResource CardBg}"/>
+    <ItemsPanelTemplate x:Key="ChipFlow"><WrapPanel/></ItemsPanelTemplate>
+
+    <!-- A feature: tinted icon tile, name, one or two lines. -->
+    <DataTemplate x:Key="FeatureCard">
+      <Border Style="{StaticResource GuidePanel}" Padding="16,15,16,16" Margin="0,0,10,10">
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Border Width="34" Height="34" CornerRadius="10" Background="{DynamicResource AccentSoft}" VerticalAlignment="Top">
+            <TextBlock Text="{Binding Glyph}" Style="{StaticResource GuideGlyph}" FontSize="16"
+                       Foreground="{DynamicResource Accent}" HorizontalAlignment="Center"/>
+          </Border>
+          <StackPanel Grid.Column="1" Margin="12,0,0,0">
+            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Label}" Margin="0,1,0,0"/>
+            <TextBlock Text="{Binding Text}" Style="{StaticResource GuideNote}" Margin="0,4,0,0"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </DataTemplate>
+
+    <!-- 更新日志: one quiet expandable row per version. -->
+    <Style x:Key="ReleaseExpander" TargetType="Expander">
+      <Setter Property="Margin" Value="0,0,0,8"/>
       <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Expander">
-            <Border Background="{TemplateBinding Background}" BorderBrush="{StaticResource Separator}"
-                    BorderThickness="1" CornerRadius="14">
+            <Border Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource Separator}" BorderThickness="1" CornerRadius="14">
               <StackPanel>
-                <ToggleButton x:Name="HeaderToggle" Content="{TemplateBinding Header}"
-                              ContentTemplate="{TemplateBinding HeaderTemplate}"
+                <ToggleButton Content="{TemplateBinding Header}"
                               IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                              HorizontalContentAlignment="Stretch" Cursor="Hand">
+                              HorizontalContentAlignment="Stretch" Cursor="Hand" FocusVisualStyle="{x:Null}">
                   <ToggleButton.Template>
                     <ControlTemplate TargetType="ToggleButton">
-                      <Border x:Name="HeaderSurface" Background="Transparent" Padding="20,18" CornerRadius="13">
+                      <Border x:Name="Surface" Background="Transparent" Padding="18,14" CornerRadius="13">
                         <Grid>
-                          <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/><ColumnDefinition Width="24"/>
-                          </Grid.ColumnDefinitions>
-                          <ContentPresenter Content="{TemplateBinding Content}"
-                                            ContentTemplate="{TemplateBinding ContentTemplate}"
-                                            VerticalAlignment="Center" Margin="0,0,10,0"/>
+                          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/></Grid.ColumnDefinitions>
+                          <ContentPresenter VerticalAlignment="Center" Margin="0,0,10,0"/>
                           <Path x:Name="Chevron" Grid.Column="1" Data="M 1,1 L 6,6 L 1,11" Width="6" Height="10"
-                                Stroke="{StaticResource Secondary}" StrokeThickness="1.5" Stretch="Uniform"
+                                Stroke="{DynamicResource Tertiary}" StrokeThickness="1.5" Stretch="Uniform"
+                                StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                                 VerticalAlignment="Center" HorizontalAlignment="Center" RenderTransformOrigin="0.5,0.5">
                             <Path.RenderTransform><RotateTransform Angle="0"/></Path.RenderTransform>
                           </Path>
@@ -50,10 +120,10 @@
                       </Border>
                       <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                          <Setter TargetName="HeaderSurface" Property="Background" Value="{StaticResource Fill}"/>
+                          <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Fill}"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                          <Setter TargetName="HeaderSurface" Property="Background" Value="{StaticResource AccentSoft}"/>
+                          <Setter TargetName="Surface" Property="Background" Value="{DynamicResource AccentSoft}"/>
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                           <Setter TargetName="Chevron" Property="RenderTransform">
@@ -64,8 +134,7 @@
                     </ControlTemplate>
                   </ToggleButton.Template>
                 </ToggleButton>
-                <ContentPresenter x:Name="Body" ContentSource="Content" Margin="20,0,20,16"
-                                  Visibility="Collapsed"/>
+                <ContentPresenter x:Name="Body" ContentSource="Content" Margin="18,0,18,14" Visibility="Collapsed"/>
               </StackPanel>
             </Border>
             <ControlTemplate.Triggers>
@@ -78,77 +147,211 @@
       </Setter>
     </Style>
   </UserControl.Resources>
+
   <StackPanel Margin="0,0,0,48">
     <TextBlock Text="使用说明" Style="{StaticResource Title}"/>
-    <TextBlock Text="从第一次配置，到日常使用。按需要展开，随时回来查阅。" Style="{StaticResource Subtitle}" Margin="0,8,0,22"/>
+    <TextBlock Text="三步就能用起来，其余的用到再看。" Style="{StaticResource Subtitle}" Margin="0,8,0,22"/>
 
-    <Border Background="{StaticResource AccentSoft}" BorderBrush="#CEE6D8" BorderThickness="1"
-            CornerRadius="18" Padding="22,20">
+    <!-- ================= 快速开始 ================= -->
+    <Border Style="{StaticResource Card}" Padding="26,24,26,8" CornerRadius="20">
       <StackPanel>
-        <TextBlock Text="快速开始" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/>
-        <TextBlock Text="让文字，变成熟悉的声音" FontSize="21" FontWeight="SemiBold" Margin="0,6,0,18"/>
-        <UniformGrid Columns="3">
-          <Border Background="#F9FCFA" CornerRadius="12" Padding="13" Margin="0,0,8,0"><StackPanel>
-            <TextBlock Text="01" Foreground="{StaticResource Accent}" FontSize="18" FontWeight="SemiBold"/>
-            <TextBlock Text="连接服务" FontWeight="SemiBold" Margin="0,8,0,5"/>
-            <TextBlock Text="登录电脑微信，在「设置」添加语音服务。" Style="{StaticResource GuideParagraph}"/>
-          </StackPanel></Border>
-          <Border Background="#F9FCFA" CornerRadius="12" Padding="13" Margin="0,0,8,0"><StackPanel>
-            <TextBlock Text="02" Foreground="{StaticResource Accent}" FontSize="18" FontWeight="SemiBold"/>
-            <TextBlock Text="添加音色" FontWeight="SemiBold" Margin="0,8,0,5"/>
-            <TextBlock Text="填写音色名称和标识，先试听一句。" Style="{StaticResource GuideParagraph}"/>
-          </StackPanel></Border>
-          <Border Background="#F9FCFA" CornerRadius="12" Padding="13"><StackPanel>
-            <TextBlock Text="03" Foreground="{StaticResource Accent}" FontSize="18" FontWeight="SemiBold"/>
-            <TextBlock Text="选择联系人" FontWeight="SemiBold" Margin="0,8,0,5"/>
-            <TextBlock Text="分配音色与提示词，点击开始监听。" Style="{StaticResource GuideParagraph}"/>
-          </StackPanel></Border>
-        </UniformGrid>
-        <TextBlock Text="等到「正在监听」再发送测试消息。随时点「结束」，即可停止朗读。" FontSize="12" Foreground="#456555" LineHeight="21" Margin="0,15,0,0"/>
+        <Border Background="{DynamicResource AccentSoft}" CornerRadius="9" Padding="10,3,10,4" HorizontalAlignment="Left">
+          <TextBlock Text="快速开始" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}"/>
+        </Border>
+        <TextBlock Text="让文字，变成熟悉的声音" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource Label}" Margin="0,12,0,0"/>
+        <TextBlock Text="第一次使用，照着做完这三步就行。" Style="{StaticResource GuideText}" Margin="0,4,0,24"/>
+
+        <!-- Step 1 -->
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+            <Border Width="32" Height="32" CornerRadius="16" Background="{DynamicResource Accent}" HorizontalAlignment="Left">
+              <TextBlock Text="1" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <Border Grid.Row="1" Width="2" CornerRadius="1" Background="{DynamicResource Separator}" HorizontalAlignment="Left" Margin="15,6,0,6"/>
+          </Grid>
+          <StackPanel Grid.Column="1" Margin="0,5,0,26">
+            <TextBlock Text="打开电脑微信，确认版本" Style="{StaticResource GuideHeading}"/>
+            <TextBlock Style="{StaticResource GuideText}" Margin="0,6,0,0"
+                       Text="登录电脑微信。版本号在微信左下角「≡ → 设置 → 关于微信」里，要在下表的范围内。微信的数据目录软件会自己找到。"/>
+            <Border Style="{StaticResource GuidePanel}" Margin="0,12,0,0">
+              <StackPanel>
+                <Border Background="{DynamicResource Fill}" CornerRadius="13,13,0,0" Padding="16,8">
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="微信版本" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Secondary}"/>
+                    <TextBlock Grid.Column="1" Text="能否使用" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Secondary}"/>
+                  </Grid>
+                </Border>
+                <Grid Margin="16,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <TextBlock x:Name="VerifiedVersion" FontSize="13" Foreground="{DynamicResource Label}" VerticalAlignment="Center"/>
+                  <Border Grid.Column="1" Style="{StaticResource GuideChip}" Margin="0" Background="{DynamicResource AccentSoft}">
+                    <TextBlock Text="支持 · 已实测" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}"/>
+                  </Border>
+                </Grid>
+                <Border Style="{StaticResource GuideRule}" Margin="16,0"/>
+                <Grid Margin="16,10">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <TextBlock x:Name="CoveredVersions" FontSize="13" Foreground="{DynamicResource Label}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                  <Border Grid.Column="1" Style="{StaticResource GuideChip}" Margin="12,0,0,0">
+                    <TextBlock Text="支持" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Label}"/>
+                  </Border>
+                </Grid>
+                <Border Style="{StaticResource GuideRule}" Margin="16,0"/>
+                <Grid Margin="16,10,16,12">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <TextBlock x:Name="RefusedVersions" FontSize="13" Foreground="{DynamicResource Label}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                  <Border Grid.Column="1" Style="{StaticResource GuideChip}" Margin="12,0,0,0">
+                    <TextBlock Text="不支持，打开时会提示" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Danger}"/>
+                  </Border>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
+
+        <!-- Step 2 -->
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+            <Border Width="32" Height="32" CornerRadius="16" Background="{DynamicResource Accent}" HorizontalAlignment="Left">
+              <TextBlock Text="2" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <Border Grid.Row="1" Width="2" CornerRadius="1" Background="{DynamicResource Separator}" HorizontalAlignment="Left" Margin="15,6,0,6"/>
+          </Grid>
+          <StackPanel Grid.Column="1" Margin="0,5,0,26">
+            <TextBlock Text="添加语音服务和音色" Style="{StaticResource GuideHeading}"/>
+            <TextBlock Style="{StaticResource GuideText}" Margin="0,6,0,0"
+                       Text="声音由你选的语音服务合成。在「设置 → 语音服务」添加一家，填入它的 API Key（每家都附有去哪里获取的链接）；再到「音效」添加一个音色，试听一句。"/>
+            <Border Style="{StaticResource GuidePanel}" Margin="0,12,0,0">
+              <StackPanel>
+                <Grid Margin="16,14,10,8">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,2,0,0">
+                    <TextBlock Text="主流厂商" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Label}"/>
+                    <TextBlock Text="填 Key 就能用" Style="{StaticResource GuideNote}" Margin="0,2,0,0"/>
+                  </StackPanel>
+                  <ItemsControl x:Name="MainstreamVendors" Grid.Column="1" ItemTemplate="{StaticResource VendorChip}"
+                                ItemsPanel="{StaticResource ChipFlow}" Focusable="False"/>
+                </Grid>
+                <Border Style="{StaticResource GuideRule}" Margin="16,0"/>
+                <Grid Margin="16,12,10,8">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,2,0,0">
+                    <TextBlock Text="通用协议" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Label}"/>
+                    <TextBlock Text="接其他厂商或网关" Style="{StaticResource GuideNote}" Margin="0,2,0,0"/>
+                  </StackPanel>
+                  <ItemsControl x:Name="GenericVendors" Grid.Column="1" ItemTemplate="{StaticResource VendorChip}"
+                                ItemsPanel="{StaticResource ChipFlow}" Focusable="False"/>
+                </Grid>
+                <Border Style="{StaticResource GuideRule}" Margin="16,0"/>
+                <Grid Margin="16,12,10,8">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <StackPanel Margin="0,2,0,0">
+                    <TextBlock Text="自建模型" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Label}"/>
+                    <TextBlock Text="在自己电脑上运行" Style="{StaticResource GuideNote}" Margin="0,2,0,0"/>
+                  </StackPanel>
+                  <ItemsControl x:Name="LocalVendors" Grid.Column="1" ItemTemplate="{StaticResource VendorChip}"
+                                ItemsPanel="{StaticResource ChipFlow}" Focusable="False"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+            <StackPanel Orientation="Horizontal" Margin="2,10,0,0">
+              <TextBlock Text="&#xE774;" Style="{StaticResource GuideGlyph}" FontSize="11" Foreground="{DynamicResource Caution}" Margin="0,1,6,0"/>
+              <TextBlock Text="在中国大陆需要海外网络" Style="{StaticResource GuideNote}" TextWrapping="NoWrap"/>
+              <TextBlock Text="免费" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Positive}" Margin="18,0,6,0" VerticalAlignment="Center"/>
+              <TextBlock Text="有免费额度，或完全免费" Style="{StaticResource GuideNote}" TextWrapping="NoWrap"/>
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+
+        <!-- Step 3 -->
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Border Width="32" Height="32" CornerRadius="16" Background="{DynamicResource Accent}" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <TextBlock Text="3" FontWeight="SemiBold" Foreground="{DynamicResource WhiteText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <StackPanel Grid.Column="1" Margin="0,5,0,22">
+            <TextBlock Text="添加联系人，开始监听" Style="{StaticResource GuideHeading}"/>
+            <TextBlock Style="{StaticResource GuideText}" Margin="0,6,0,0"
+                       Text="在「首页」点「＋ 添加」，搜索并选中联系人，再给他选一个音色。点「开始」，等左下角变成「正在监听」，让对方发一条消息试试。"/>
+            <Border Background="{DynamicResource Fill}" CornerRadius="12" Padding="14,10,14,11" Margin="0,12,0,0">
+              <StackPanel>
+                <TextBlock Style="{StaticResource GuideNote}" Text="只读开始以后对方新发来的消息，以前的不会补读。"/>
+                <TextBlock Style="{StaticResource GuideNote}" Margin="0,4,0,0" Text="没有声音，或者声音太小：到「音效」选输出设备、调音量。"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
       </StackPanel>
     </Border>
 
-    <TextBlock Text="按需查阅" FontSize="12" Foreground="{StaticResource Secondary}" FontWeight="SemiBold" Margin="2,24,0,10"/>
-    <WrapPanel Margin="0,0,0,16">
-      <WrapPanel.Resources><Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}"><Setter Property="FontSize" Value="12"/><Setter Property="Padding" Value="12,6"/></Style></WrapPanel.Resources>
-      <Button Content="第一次配置" Tag="setup" Click="JumpClick" Margin="0,0,8,6"/>
-      <Button Content="接入语音服务" Tag="vendors" Click="JumpClick" Margin="0,0,8,6"/>
-      <Button Content="多人和提示词" Tag="many" Click="JumpClick" Margin="0,0,8,6"/>
-      <Button Content="遇到问题" Tag="troubleshooting" Click="JumpClick" Margin="0,0,8,6"/>
-      <Button Content="更新日志" Tag="history" Click="JumpClick" Margin="0,0,0,6"/>
-    </WrapPanel>
-
-    <ItemsControl x:Name="Sections">
-      <ItemsControl.ItemTemplate>
-        <DataTemplate>
-          <Expander Style="{StaticResource GuideExpander}" Header="{Binding}"
-                    HeaderTemplate="{StaticResource GuideSectionHeader}" IsExpanded="{Binding Expanded, Mode=OneWay}"
-                    AutomationProperties.Name="{Binding Title}">
-            <ItemsControl ItemsSource="{Binding Paragraphs}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate><Border Background="#F7F9F8" CornerRadius="9" Padding="14,11" Margin="0,0,0,8"><TextBlock Text="{Binding}" Style="{StaticResource GuideParagraph}"/></Border></DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </Expander>
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
+    <!-- ================= 常用功能 ================= -->
+    <TextBlock Text="常用功能" Style="{StaticResource GuideSectionTitle}"/>
+    <ItemsControl x:Name="Features" ItemTemplate="{StaticResource FeatureCard}" Margin="0,0,-10,0" Focusable="False">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><UniformGrid Columns="2"/></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
     </ItemsControl>
 
-    <TextBlock x:Name="HistoryHeading" Text="更新日志" Style="{StaticResource SectionTitle}" Margin="2,22,0,8"/>
-    <TextBlock Text="更新说明会保留在这里。点开版本可查看当时的改动，升级时显示的说明也来自同一份记录。"
-               Style="{StaticResource Subtitle}" Margin="2,0,0,16"/>
-    <ItemsControl x:Name="ReleaseList">
+    <!-- ================= 遇到问题 ================= -->
+    <TextBlock Text="遇到问题" Style="{StaticResource GuideSectionTitle}" Margin="2,24,0,12"/>
+    <Border Style="{StaticResource GuidePanel}">
+      <ItemsControl x:Name="Questions" Focusable="False">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel>
+              <Border x:Name="Rule" Style="{StaticResource GuideRule}" Margin="16,0"/>
+              <StackPanel Margin="16,13,16,14">
+                <TextBlock Text="{Binding Question}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Label}"/>
+                <TextBlock Text="{Binding Answer}" Style="{StaticResource GuideText}" Margin="0,4,0,0"/>
+              </StackPanel>
+            </StackPanel>
+            <DataTemplate.Triggers>
+              <DataTrigger Binding="{Binding First}" Value="True">
+                <Setter TargetName="Rule" Property="Visibility" Value="Collapsed"/>
+              </DataTrigger>
+            </DataTemplate.Triggers>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+
+    <!-- ================= 隐私 ================= -->
+    <Border Background="{DynamicResource Fill}" CornerRadius="14" Padding="18,14,18,15" Margin="0,16,0,0">
+      <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <TextBlock Text="&#xE72E;" Style="{StaticResource GuideGlyph}" FontSize="15" Foreground="{DynamicResource Secondary}"
+                   VerticalAlignment="Top" Margin="0,3,12,0"/>
+        <TextBlock Grid.Column="1" Style="{StaticResource GuideText}"
+                   Text="消息只在这台电脑上读取，软件不收集你的聊天。朗读时，要读的文字会发给你选的语音服务；用自建模型则不出本机。API Key 用你的 Windows 账户加密保存在本机。请只添加同意被朗读的联系人。"/>
+      </Grid>
+    </Border>
+
+    <!-- ================= 更新日志 ================= -->
+    <TextBlock Text="更新日志" Style="{StaticResource GuideSectionTitle}"/>
+    <ItemsControl x:Name="ReleaseList" Focusable="False">
       <ItemsControl.ItemTemplate>
         <DataTemplate>
-          <Expander Style="{StaticResource GuideExpander}" Header="{Binding Heading}"
-                    AutomationProperties.Name="{Binding Heading}">
-            <ItemsControl ItemsSource="{Binding Changes}">
+          <Expander Style="{StaticResource ReleaseExpander}" AutomationProperties.Name="{Binding Heading}">
+            <Expander.Header>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Version, StringFormat=v{0}}" FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource Label}" TextWrapping="NoWrap"/>
+                <TextBlock Text="{Binding Title}" FontSize="13" Foreground="{DynamicResource Secondary}"
+                           Margin="10,0,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Expander.Header>
+            <ItemsControl ItemsSource="{Binding Changes}" Focusable="False">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                  <Grid Margin="0,0,0,10">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="•" Foreground="{StaticResource Accent}"/>
-                    <TextBlock Grid.Column="1" Text="{Binding}" LineHeight="24" TextWrapping="Wrap"/>
+                  <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Ellipse Width="5" Height="5" Fill="{DynamicResource Accent}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="1,9,0,0"/>
+                    <TextBlock Grid.Column="1" Text="{Binding}" Style="{StaticResource GuideText}"/>
                   </Grid>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -157,5 +360,7 @@
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
+    <Button x:Name="EarlierReleases" Style="{StaticResource PlainButton}" HorizontalAlignment="Left"
+            Margin="2,0,0,0" Click="EarlierClick"/>
   </StackPanel>
 </UserControl>
