@@ -10,7 +10,8 @@
 - **存档点**：标签 `v1.5.3`（`67a74f0`）与 `pre-multi-provider`（`d608aca`）已推送；任何时候都能回到动工前。
 - **已完成**：节 1（调研 + 设计文档）；节 2（厂商身份改为服务身份 `ServiceIdentity`、音色固定模型、模型切换推广到所有协议、迁移与测试，.NET 216/216）。
 - **关键约定（节 2 起）**：判断「是不是同一家」一律用 `ServiceIdentity.Of/Same`，**不要再用 `Kind ==`**；读写当前模型一律用 `SpeechModels.Current/Use/Listed`（豆包的模型是资源 ID）。`SpeechProviderKind` 只能在末尾追加。
-- **续跑点**：节 3 厂商目录——新建 `ProviderCatalog`（预设 Id、显示名、分组、协议、默认地址/地域、Key 是否必填、模型列表与说明、音色形态与示例、获取 Key 链接），加一致性测试；新服务的 `Vendor` 由预设决定（主流厂商 = 预设 Id）。
+- **节 3 已完成**：`src/VoiceBridge.Core/ProviderCatalog.cs`（19 个预设：13 主流 + 2 通用 + 4 本地），.NET 227/227。界面还没接上目录（节 5）。
+- **续跑点**：节 4 协议适配器（`src/VoiceBridge.FishAudio/SpeechProviderFactory.cs`）——新增 ElevenLabs、MiniMax、DashScope（CosyVoice HTTP + 千问 TTS，返回音频地址再下载，只允许 `*.aliyuncs.com`）、Gemini（base64 WAV/PCM）、CustomHttp；Fish 的模型校验改用 `ProviderCatalog.FishModelIds`、允许本机 fish-speech（loopback + 可选 Key）。EdgeTts 留到节 6。
 - **约束**：不打包、不上线、不改桌面快捷方式；保留三条红线；任务二（隐私模式 / 提醒模式）等任务一稳定后再做。
 - **环境**：SDK 实际在 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk-tmp\dotnet.exe`（文档里旧写法 `wvb-sdk\sdk\dotnet.exe` 已不存在）。
 

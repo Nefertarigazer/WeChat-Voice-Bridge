@@ -33,6 +33,20 @@
 - **验证**：`Test.ps1` **.NET 216/216 PASS**（209 + 7）+ Python 54 PASS（41 skip 基线）；`Verify-Source` PASS。界面未改动外观，未截图。
 - **下一节**：节 3 厂商目录 `ProviderCatalog`。
 
+### 节 3：厂商目录 ProviderCatalog
+
+- **新增 `src/VoiceBridge.Core/ProviderCatalog.cs`**：参照 Dify 模型插件的厂商描述，每个预设声明分组、协议、地址（首项默认，可带地域选项）、是否允许自填地址、Key 是否必填与叫法、获取 Key / 文档 / 音色列表链接、模型列表（含免费/付费/停用说明、默认勾选）、是否允许自填模型、音色形态（音色 ID / 参考音频）、音色示例（可限定适用模型）、注意事项、音频格式。
+- **19 个预设**：
+  - 主流厂商 13 个：Fish Audio、OpenAI、ElevenLabs、Azure、Google Gemini、火山豆包、阿里云百炼（CosyVoice + 千问 TTS）、MiniMax 国内、MiniMax 国际、硅基流动、阶跃星辰、智谱 GLM-TTS、微软 Edge 朗读（免费）。
+  - 通用协议 2 个：OpenAI 兼容接口、自定义 HTTP 接口。
+  - 本地模型 4 个：GPT-SoVITS、fish-speech / OpenAudio、Kokoro-FastAPI、LocalAI。
+- **据官方文档修正的过时项**（详见 `docs/tts-integration.md` §3.4）：Fish 增加 `s2.1-pro`、`s2-pro`，去掉 2026-12-31 退役的 `s1`；OpenAI 标注 2027-01-06 停用、音色按模型区分（marin/cedar/ballad/verse 只配 gpt-4o-mini-tts）；Gemini 只给 3.8 系列（2.5 预览版 2026-11-17 停用）；豆包的资源 ID 作为可切换的「模型」；MiniMax 国内默认 `api.minimax.cn`、华北就近 `api-bj.minimaxi.com`；阶跃星辰模型 `step-tts-mini / step-tts-2 / stepaudio-2.5-tts / stepaudio-3-tts`；智谱音色 `tongtong` 等、只返回 WAV。
+- **身份规则**：`ProviderPreset.VendorFor`——主流厂商 = 预设 Id（MiniMax 国内两个地址算同一家），通用/本地 = 按地址推导。`ProviderCatalog.For(profile)` 给老配置找回所属预设（Fish 官方→fish、非官方 Fish→fish-speech、OpenAI 官方→openai、其他兼容→通用入口……）。
+- **测试**：新增 `ProviderCatalogTests` 11 例（Id 唯一、三组都有、地址只允许 HTTPS 或本机、无固定地址的允许自填、模型与音色引用一致、需要 Key 的主流厂商都给出获取链接、Fish 模型清单、OpenAI 音色按模型、硅基流动音色带模型前缀、身份分组、老配置找回预设）。
+- **验证**：`Test.ps1` **.NET 227/227 PASS** + Python 54 PASS。
+- **说明**：目录里少数链接和示例（火山控制台入口、豆包示例音色、硅基流动 Key 页面、阶跃星辰/智谱 Key 页面）来自常见入口，未逐一打开核实；示例音色都标了「示例」或以官方页面为准。
+- **下一节**：节 4 协议适配器。
+
 ---
 
 ## 1.5.3 · 2026-11-11（已发布上线）
