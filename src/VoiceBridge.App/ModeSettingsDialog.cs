@@ -65,7 +65,11 @@ internal sealed class ModeSettingsDialog : Window
         done.Click += (_, _) => Close();
         panel.Children.Add(done);
         DialogShell.Apply(this, panel);
-        Closed += (_, _) => playing?.Cancel();
+        Closed += (_, _) =>
+        {
+            playing?.Cancel();
+            DropEmptySecret();
+        };
     }
 
     // ------------------------------------------------------------------ privacy
@@ -126,11 +130,15 @@ internal sealed class ModeSettingsDialog : Window
             card.UpdateAttention(card.Privacy with { Style = style, Secret = secret?.Text ?? card.Privacy.Secret },
                 card.Reminder with { Wording = null });
         PaintChoices();
-        if (style == PrivacyStyle.Secret && secret is not null)
-        {
-            secret.Focus();
-            secret.SelectAll();
-        }
+        // The box is not focused for the user: an input method woken on an empty box can
+        // float a window over 完成, so closing without typing failed until another choice.
+    }
+
+    /// <summary>Picked 自定义暗语 but wrote nothing: it already sounds like 只报来消息, so say so.</summary>
+    private void DropEmptySecret()
+    {
+        if (card.Privacy.Style == PrivacyStyle.Secret && card.Privacy.Secret.Trim().Length == 0)
+            card.UpdateAttention(card.Privacy with { Style = PrivacyStyle.WeChat, Secret = "" }, card.Reminder with { Wording = null });
     }
 
     private void PaintChoices()

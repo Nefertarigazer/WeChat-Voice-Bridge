@@ -16,7 +16,9 @@ public partial class ReleaseNotesDialog : Window
     /// <summary>How long the scrollbar stays after the notes stop moving.</summary>
     private readonly DispatcherTimer barIdle = new() { Interval = TimeSpan.FromMilliseconds(900) };
     private ScrollBar? bar;
+    private ScrollContentPresenter? viewport;
     private bool barShown;
+    private (bool Top, bool Bottom, double Height) edges;
 
     public ReleaseNotesDialog(string version)
     {
@@ -29,6 +31,7 @@ public partial class ReleaseNotesDialog : Window
         MaxHeight = Math.Max(320, SystemParameters.WorkArea.Height - 48);
         Loaded += (_, _) =>
         {
+            viewport = NotesScroller.Template?.FindName("PART_ScrollContentPresenter", NotesScroller) as ScrollContentPresenter;
             bar = NotesScroller.Template?.FindName("PART_VerticalScrollBar", NotesScroller) as ScrollBar;
             if (bar is not null)
             {
@@ -83,8 +86,34 @@ public partial class ReleaseNotesDialog : Window
 
     private void DismissClick(object sender, RoutedEventArgs e) => Close();
 
-    private void UpdateScrollEdges() =>
-        NotesTopFade.Visibility = NotesScroller.VerticalOffset > 0.5 ? Visibility.Visible : Visibility.Collapsed;
+    /// <summary>
+    /// Text fades out toward an edge that has more beyond it: 30 DIP at the bottom, where
+    /// the box ends on half a line, and 24 DIP at the top once scrolled. A mask on the text
+    /// itself, not a white overlay, so it never draws over the scrollbar or the frame.
+    /// </summary>
+    private void UpdateScrollEdges()
+    {
+        if (viewport is null) return;
+        var state = (NotesScroller.VerticalOffset > 0.5, NotesScroller.ScrollableHeight - NotesScroller.VerticalOffset > 0.5,
+            Math.Round(viewport.ActualHeight));
+        if (state == edges) return;
+        edges = state;
+        var (top, bottom, height) = state;
+        if (!top && !bottom || height < 60)
+        {
+            viewport.OpacityMask = null;
+            return;
+        }
+        var stops = new GradientStopCollection();
+        void Stop(double y, double alpha) => stops.Add(new(Color.FromArgb((byte)Math.Round(alpha * 255), 0, 0, 0), y / height));
+        if (top) { Stop(0, 0); Stop(8, 0.35); Stop(16, 0.75); Stop(24, 1); }
+        else Stop(0, 1);
+        if (bottom) { Stop(height - 30, 1); Stop(height - 18, 0.7); Stop(height - 8, 0.3); Stop(height, 0); }
+        else Stop(height, 1);
+        var mask = new LinearGradientBrush(stops) { MappingMode = BrushMappingMode.Absolute, StartPoint = new(0, 0), EndPoint = new(0, height) };
+        mask.Freeze();
+        viewport.OpacityMask = mask;
+    }
 
     /// <summary>
     /// When the notes need scrolling, end the box in the middle of a line: exactly half a

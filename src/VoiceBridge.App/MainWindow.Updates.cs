@@ -37,6 +37,9 @@ public partial class MainWindow
             UpdateStatus.Text = restartNotice;
         else
             Loaded += FirstUpdateCheck;
+        // Paint the row now. Right after an update restart no check runs, and the dot used
+        // to keep its grey placeholder for the whole session instead of reading green.
+        RenderUpdate();
     }
 
     private void FirstUpdateCheck(object sender, RoutedEventArgs e)

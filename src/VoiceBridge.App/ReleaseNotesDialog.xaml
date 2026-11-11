@@ -92,7 +92,9 @@
       <Border Grid.Row="1" Background="White" BorderBrush="#E4E9E5" BorderThickness="1" CornerRadius="12">
         <Grid>
         <!-- The vertical padding sits inside the scrolled content, so the viewport reaches
-             the frame and a cut-off line can end exactly at its bottom edge. -->
+             the frame and a cut-off line ends at its bottom edge. The code-behind fades the
+             text out at an edge that has more beyond it (an opacity mask, so any
+             background shows through). -->
         <ScrollViewer x:Name="NotesScroller" MaxHeight="340" VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled" Style="{StaticResource NotesScrollViewer}"
                       Padding="16,0,22,0" CanContentScroll="False" Focusable="True">
@@ -112,17 +114,6 @@
             <TextBlock Text="完整版本记录可在「使用说明 → 更新日志」查看。" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
           </StackPanel>
         </ScrollViewer>
-        <!-- Text scrolled past the top fades out. The bottom has no fade: there the box
-             ends in the middle of a line, and that half line shows more follows. -->
-        <Border x:Name="NotesTopFade" Height="20" VerticalAlignment="Top" Margin="1,1,12,0"
-                IsHitTestVisible="False" Visibility="Collapsed">
-          <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FFFFFFFF" Offset="0"/>
-              <GradientStop Color="#00FFFFFF" Offset="1"/>
-            </LinearGradientBrush>
-          </Border.Background>
-        </Border>
         </Grid>
       </Border>
       <Button Grid.Row="2" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Center" Margin="0,20,0,0"

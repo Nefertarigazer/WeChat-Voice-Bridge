@@ -18,6 +18,8 @@ using Lambda = System.Linq.Expressions.Expression;
 // Off screen, with the app's own resources: the release notes for each version (default
 // 1.6.0), then the reminder and privacy settings cards of a sample contact. Prints what it
 // measured and saves PNGs at 2x. Preview sounds play at volume 0, so nothing is audible.
+var realClick = args.Length > 0 && args[0] == "--realclick";
+if (realClick) args = args[1..];
 var output = Path.GetFullPath(args.Length > 0 ? args[0] : "dialog-preview");
 var versions = args.Length > 1 ? args[1..] : ["1.6.0"];
 Directory.CreateDirectory(output);
@@ -42,9 +44,39 @@ var thread = new Thread(() =>
     };
     owner.Show();
 
-    foreach (var version in versions) Centring(version);
-    foreach (var version in versions) ReleaseNotes(owner, version);
-    Settings(owner);
+    if (realClick)
+    {
+        // A real mouse click on 完成, which a raised Click event cannot reproduce. The card is
+        // moved so 完成 sits under the pointer where it already is; the pointer never moves,
+        // and nothing is clicked unless this window is the one under it.
+        // As in the app: a real click on a ⋮ button whose Click handler opens the card with ShowDialog.
+        var launcher = new Window
+        {
+            Width = 140, Height = 80, WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, Topmost = true,
+            ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual, Background = Brushes.White
+        };
+        var more = new Button { Content = "⋮", Width = 60, Height = 40 };
+        launcher.Content = more;
+        more.Click += (_, _) => Settings(launcher, ("自定义暗语", "two clicks"));
+        launcher.Show();
+        Pump(300);
+        var spot = PresentationSource.FromVisual(launcher)!.CompositionTarget!.TransformFromDevice.Transform(RealMouse.Position());
+        launcher.Left = spot.X - 70;
+        launcher.Top = spot.Y - 40;
+        Pump(300);
+        if (RealMouse.Over(new System.Windows.Interop.WindowInteropHelper(launcher).Handle))
+        {
+            RealMouse.Down(); Pump(90); RealMouse.Up(); Pump(200);
+        }
+        else Console.WriteLine("[real] launcher: skipped, the pointer is not over it");
+        launcher.Close();
+    }
+    else
+    {
+        foreach (var version in versions) Centring(version);
+        foreach (var version in versions) ReleaseNotes(owner, version);
+        Settings(owner);
+    }
 
     owner.Close();
     app.Shutdown();
@@ -95,12 +127,18 @@ void ReleaseNotes(Window owner, string version)
     Console.WriteLine($"[{version}] box {scroller.ActualHeight:0.##} (max {scroller.MaxHeight:0.##}), " +
         $"content {scroller.ExtentHeight:0.##}, scrollable {scroller.ScrollableHeight:0.##}");
     Save(dialog, Path.Combine(output, tag + "-1-opened.png"));
+    var view = (FrameworkElement)scroller.Template.FindName("PART_ScrollContentPresenter", scroller);
+    // Alpha of the text mask at its first and last stop: 1 = drawn, 0 = faded out.
+    (double First, double Last)? Mask() => view.OpacityMask is LinearGradientBrush { GradientStops: { Count: > 1 } stops }
+        ? (stops[0].Color.A / 255.0, stops[^1].Color.A / 255.0) : null;
     if (scroller.ScrollableHeight <= 0)
     {
         Check(double.IsNaN(scroller.Height), $"[{version}] notes fit: natural height, no cut");
+        Check(Mask() is null, $"[{version}] notes fit: no fade at either edge");
         dialog.Close();
         return;
     }
+    Check(Mask() is (1, 0), $"[{version}] opened: the bottom fades out, the top does not ({Mask()})");
 
     // Where the bottom edge cuts: as a fraction of the line it falls in.
     var cut = scroller.ActualHeight;
@@ -129,14 +167,16 @@ void ReleaseNotes(Window owner, string version)
         Pump(16);
     }
     Check(bar.Opacity > 0.99, $"[{version}] scrollbar fully shown while scrolling frame by frame (opacity {bar.Opacity:0.##})");
+    Check(Mask() is (0, 0), $"[{version}] mid-way: both edges fade ({Mask()})");
     scroller.ScrollToEnd();
     Pump(1500);
+    Check(Mask() is (0, 1), $"[{version}] at the end: only the top fades ({Mask()})");
     Save(dialog, Path.Combine(output, tag + "-4-end.png"));
     dialog.Close();
     Pump(100);
 }
 
-void Settings(Window owner)
+void Settings(Window owner, (string Choice, string Text)? probe = null)
 {
     var assembly = typeof(ReleaseNotesDialog).Assembly;
     var cardType = assembly.GetType("VoiceBridge.App.ContactCard", true)!;
@@ -186,6 +226,99 @@ void Settings(Window owner)
         return window;
     }
 
+    if (probe is { } wanted)
+    {
+        var card2 = (Window)Activator.CreateInstance(dialogType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            null, new object[] { card, ModeKind.Privacy, preview }, null)!;
+        card2.Topmost = true;
+        card2.Owner = owner;
+        card2.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        // Modal, as the app opens it: the probe runs inside ShowDialog's loop.
+        var outcome = "not run";
+        card2.Dispatcher.BeginInvoke(new Action(() => outcome = RunProbe()), DispatcherPriority.ApplicationIdle);
+        try { card2.ShowDialog(); }
+        catch (Exception error) { outcome += $"; ShowDialog threw {error.GetType().Name}: {error.Message}"; }
+        Console.WriteLine(outcome);
+        Pump(200);
+        return;
+
+        string RunProbe()
+        {
+        Pump(400);
+        var mine = new System.Windows.Interop.WindowInteropHelper(card2).Handle;
+        var fromDevice = PresentationSource.FromVisual(card2)!.CompositionTarget!.TransformFromDevice;
+        // Slide the card so the given element's centre is under the (unmoved) pointer.
+        bool Under(FrameworkElement target)
+        {
+            var pointer = fromDevice.Transform(RealMouse.Position());
+            var offset = target.TranslatePoint(new Point(target.ActualWidth / 2, target.ActualHeight / 2), card2);
+            card2.Left = pointer.X - offset.X;
+            card2.Top = pointer.Y - offset.Y;
+            Pump(300);
+            return RealMouse.Over(mine);
+        }
+        var row = Named<Border>(card2, wanted.Choice);
+        if (wanted.Text == "two clicks")
+        {
+            // As a person does it: a real click on the row first (activates the card,
+            // focuses the empty box and the IME), then a real click on 完成.
+            if (!Under(row)) { card2.Close(); return "[real] two clicks: skipped, the pointer is not over the card"; }
+            RealMouse.Down(); Pump(90); RealMouse.Up(); Pump(800);
+            wanted = (wanted.Choice, "");
+            // Then a real click into the empty box, where a person would type, with the input
+            // method switched to Chinese the way a Chinese user's usually is.
+            var field = Descendants(card2).OfType<TextBox>().First();
+            if (Under(field)) { RealMouse.Down(); Pump(90); RealMouse.Up(); }
+            Pump(300);
+            System.Windows.Input.InputMethod.Current.ImeState = System.Windows.Input.InputMethodState.On;
+            System.Windows.Input.InputMethod.Current.ImeConversionMode = System.Windows.Input.ImeConversionModeValues.Native;
+            Pump(600);
+            Console.WriteLine($"[ime] state {System.Windows.Input.InputMethod.Current.ImeState}, mode {System.Windows.Input.InputMethod.Current.ImeConversionMode}");
+            // The app's card is not topmost: an input method window may sit above it.
+            card2.Topmost = false;
+            var finishSpot = Descendants(card2).OfType<Button>().First(button => button.Content as string == "完成");
+            var topLeft = finishSpot.PointToScreen(new Point());
+            var bottomRight = finishSpot.PointToScreen(new Point(finishSpot.ActualWidth, finishSpot.ActualHeight));
+            var box = Descendants(card2).OfType<TextBox>().First();
+            var boxTop = box.PointToScreen(new Point());
+            for (var wait = 0; wait < 6; wait++)
+            {
+                Pump(500);
+                var screen = finishSpot.PointToScreen(new Point(finishSpot.ActualWidth / 2, finishSpot.ActualHeight / 2));
+                Console.WriteLine($"[real] {500 * (wait + 1)} ms after the row click, the window at 完成 is: {RealMouse.Describe(screen)}");
+            }
+            Console.WriteLine($"[real] 完成 spans {topLeft.X:0},{topLeft.Y:0} – {bottomRight.X:0},{bottomRight.Y:0}; the box starts at {boxTop.X:0},{boxTop.Y:0}");
+            foreach (var line in RealMouse.InputMethodWindows()) Console.WriteLine("[ime] " + line);
+        }
+        else
+        {
+            row.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0,
+                System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
+            Pump(300);
+            if (wanted.Text.Length > 0) Descendants(card2).OfType<TextBox>().First().Text = wanted.Text;
+            Pump(500);
+        }
+        var finish = Descendants(card2).OfType<Button>().First(button => button.Content as string == "完成");
+        Under(finish);
+        var shut = false;
+        card2.Closed += (_, _) => shut = true;
+        var focus = System.Windows.Input.Keyboard.FocusedElement?.GetType().Name;
+        string said;
+        if (!RealMouse.Over(mine)) said = $"[real] {wanted.Choice}/“{wanted.Text}”: skipped, the pointer is not over the card";
+        else
+        {
+            // Like a person: the window handles the press (focus moves, layout settles) before the release.
+            RealMouse.Down();
+            Pump(90);
+            RealMouse.Up();
+            Pump(500);
+            said = $"[real modal] {wanted.Choice}/“{wanted.Text}” (focus {focus}): 完成 {(shut ? "closed the card" : "did NOT close the card")}";
+        }
+        if (!shut) card2.Close();
+        return said;
+        }
+    }
+
     Console.WriteLine($"[cards] privacy summary “{Read("PrivacySummary")}”, reminder summary “{Read("ReminderSummary")}”");
     var reminder = Open(ModeKind.Reminder);
     Save(reminder, Path.Combine(output, "settings-1-reminder.png"));
@@ -224,6 +357,31 @@ void Settings(Window owner)
     Named<CheckBox>(privacy, "开启隐私模式").IsChecked = true;
     Pump(200);
     privacy.Close();
+
+    // 自定义暗语 picked but left empty: 完成 must still close the card.
+    var secretCard = Open(ModeKind.Privacy);
+    var secretRow = Named<Border>(secretCard, "自定义暗语");
+    secretRow.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0,
+        System.Windows.Input.MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
+    Pump(400);
+    var focusAfterChoice = System.Windows.Input.Keyboard.FocusedElement?.GetType().Name ?? "nothing";
+    var done = Descendants(secretCard).OfType<Button>().First(button => button.Content as string == "完成");
+    var middle = done.TranslatePoint(new Point(done.ActualWidth / 2, done.ActualHeight / 2), secretCard);
+    var hit = secretCard.InputHitTest(middle) as DependencyObject;
+    var hitsDone = hit is not null && (hit == done || done.IsAncestorOf(hit));
+    Console.WriteLine($"[secret] style {Read("PrivacySummary")}; 完成 enabled {done.IsEnabled}, visible {done.IsVisible}, " +
+        $"hit at its centre: {hit?.GetType().Name ?? "nothing"} (inside 完成: {hitsDone}); focus {System.Windows.Input.Keyboard.FocusedElement?.GetType().Name}");
+    Save(secretCard, Path.Combine(output, "settings-7-secret-empty.png"));
+    var closed = false;
+    secretCard.Closed += (_, _) => closed = true;
+    Click(done);
+    Pump(300);
+    Check(hitsDone, "[secret] nothing covers 完成 when 自定义暗语 is empty");
+    Check(closed, "[secret] 完成 closes the card when 自定义暗语 is empty");
+    if (!closed) secretCard.Close();
+    var style = ((PrivacySettings)cardType.GetProperty("Privacy")!.GetValue(card)!).Style;
+    Check(style == PrivacyStyle.WeChat, $"[secret] an empty 自定义暗语 is kept as 只报来消息 ({style})");
+    Check(focusAfterChoice != "TextBox", $"[secret] picking 自定义暗语 does not focus the box ({focusAfterChoice})");
     Console.WriteLine($"[cards] privacy summary “{Read("PrivacySummary")}”");
     var again = Open(ModeKind.Reminder);
     var choices = Named<ComboBox>(again, "提醒词").Items.Cast<object>().Select(Label).ToArray();
@@ -328,4 +486,86 @@ static void Save(FrameworkElement element, string path)
     using var stream = File.Create(path);
     encoder.Save(stream);
     Console.WriteLine($"saved {Path.GetFileName(path)} ({bitmap.PixelWidth}x{bitmap.PixelHeight})");
+}
+
+/// <summary>A real left click where the pointer already is (it is never moved).</summary>
+internal static class RealMouse
+{
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct Spot { public int X, Y; }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out Spot spot);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(Spot spot);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetAncestor(IntPtr window, uint flags);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+
+    public static Point Position() => GetCursorPos(out var spot) ? new Point(spot.X, spot.Y) : new Point();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr window, out uint pid);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr window, System.Text.StringBuilder name, int size);
+
+    private delegate bool EnumProc(IntPtr window, IntPtr data);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumProc proc, IntPtr data);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr window);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct Box { public int Left, Top, Right, Bottom; }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr window, out Box box);
+
+    /// <summary>Visible top-level windows of input method processes, with their screen rectangles.</summary>
+    public static IEnumerable<string> InputMethodWindows()
+    {
+        var found = new List<string>();
+        EnumWindows((window, _) =>
+        {
+            if (!IsWindowVisible(window)) return true;
+            GetWindowThreadProcessId(window, out var pid);
+            string process;
+            try { process = System.Diagnostics.Process.GetProcessById((int)pid).ProcessName; } catch (ArgumentException) { return true; }
+            if (!System.Text.RegularExpressions.Regex.IsMatch(process, "wetype|ChsIME|TextInputHost|ImeBroker|ctfmon", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                return true;
+            GetWindowRect(window, out var box);
+            var name = new System.Text.StringBuilder(128);
+            GetClassName(window, name, name.Capacity);
+            found.Add($"{process} ({name}) {box.Left},{box.Top} – {box.Right},{box.Bottom}");
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
+    /// <summary>Which top-level window owns a screen point (device pixels), and whose it is.</summary>
+    public static string Describe(Point screen)
+    {
+        var top = GetAncestor(WindowFromPoint(new Spot { X = (int)screen.X, Y = (int)screen.Y }), 2);
+        GetWindowThreadProcessId(top, out var pid);
+        var name = new System.Text.StringBuilder(128);
+        GetClassName(top, name, name.Capacity);
+        string process;
+        try { process = System.Diagnostics.Process.GetProcessById((int)pid).ProcessName; } catch (ArgumentException) { process = "?"; }
+        return $"{process} ({name}){(pid == Environment.ProcessId ? " = this card" : "")}";
+    }
+
+    /// <summary>Whether the top-level window under the pointer is this one.</summary>
+    public static bool Over(IntPtr window) =>
+        GetCursorPos(out var spot) && GetAncestor(WindowFromPoint(spot), 2) == window;
+
+    public static void Down() => mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
+
+    public static void Up() => mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
 }
