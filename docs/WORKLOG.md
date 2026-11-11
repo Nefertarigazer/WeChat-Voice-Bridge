@@ -4,6 +4,23 @@
 
 ---
 
+## 1.6.0 · 2026-11-11（多厂商语音接入，打包待发布）
+
+**用户授权**：「联系 muse 推新版本吧」。
+
+### 版本与内容
+- `Directory.Build.props` → **1.6.0**；`ReleaseHistory` 新增 1.6.0 条目（8 条：三组入口、新增厂商、按厂商/地址区分服务、多模型与固定模型、常用音色、过时选项更新、需海外网络标签、对话框与教程打磨）。顺手更正 1.5.3 条目的一处错字：变成字幕条的是「操作提示」，不是「朗读记录」。
+- 源码 commit `f279d5e`（先提交再打包，产物内嵌 `1.6.0+f279d5e…`）。
+
+### 门禁与产物
+- `Test.ps1` **.NET 254/254 PASS** + Python 54 PASS（41 skip 基线）；`Verify-Source` PASS；wx-multi **58/58 PASS**。
+- `Publish.ps1` → `artifacts\win-x64-v1.6.0\` + ZIP **92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d`**；`worker dependencies ok`、`speech dependencies ok`（edge-tts 7.3.1）、Clean-payload PASS（1993 文件，比 1.5.3 多 260 个，是 `worker\tts-deps`）。
+- `Build-Installer.ps1 -PayloadDirectory` → Setup **67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378`**。
+- 产物核验：EXE `ProductVersion=1.6.0+f279d5eae23de32e385234aab9b1021a1efa6e53`、`FileVersion=1.6.0.0`，Setup `ProductVersion=1.6.0`；ZIP 1996 项，含 `worker/edge_speak.py`、`worker/tts-deps/edge_tts`、`worker/audited_wechat_keys.py`、`runtime/python/python.exe`，无 settings.json / .dpapi / .key / 数据库 / WAL / SHM；1.6.0 > 线上 1.5.3。
+- 坑：OneDrive 目录里刚写完的 ZIP / Setup 偶尔要等几秒才能被下一条命令看见（第一次 `Build-Installer` 报找不到发布目录，稍后重跑正常），不是打包失败。
+
+---
+
 ## 任务一 · 打磨续：Fish 标海外网络、底部「露头」、空记录时清空按钮显示禁止光标（2026-11-11）
 
 **用户反馈**：① Fish Audio 也需要外网；② 默认状态下底部应该是下一项「露个头」（约 1/3 高度），而不是上一项尾巴被藏一点；③ 首页朗读记录的垃圾桶在没有记录时，鼠标指针要变成和监听中点「试听」一样的红色禁止样式。

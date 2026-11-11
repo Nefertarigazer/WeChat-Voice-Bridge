@@ -4,10 +4,11 @@
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 00. 任务一 · 多厂商语音 API 融合（2026-11-11，8 节全部完成，等用户检查）
+## 00. 任务一 · 多厂商语音 API 融合（2026-11-11，已完成；1.6.0 已打包，正在经 Muse 发布）
 
-- **一句话现状**：源码在 v1.5.3 之上新增多厂商接入（未升版本号、未打包、未上线、桌面快捷方式未动）。开发版位置 `src\VoiceBridge.App\bin\Release\net8.0-windows\WeChatVoiceBridge.exe`。线上仍是 1.5.3。
-- **用户检查后的下一步**：若满意 → 升版本号（建议 1.6.0）+ `ReleaseHistory` 写条目 → `Publish.ps1` / `Build-Installer.ps1`（已验证 tts-deps 步骤能跑通，出厂包 1993 文件）→ Muse 发布 → 公网复核；然后开始任务二（隐私模式 / 提醒模式）。
+- **一句话现状**：源码 **1.6.0**（commit `f279d5e`），用户已授权上线。线上仍是 1.5.3，发布单发出后以 WORKLOG「1.6.0」段为准。桌面快捷方式未动（仍指向 1.4.7 r3）。
+- **1.6.0 产物**：ZIP `artifacts\WeChat-Voice-Bridge-V1.6.0-win-x64.zip` = 92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d`；Setup `artifacts\WeChat-Voice-Bridge-V1.6.0-Setup.exe` = 67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378`；payload `artifacts\win-x64-v1.6.0\`（1993 文件）。
+- **续跑点**：Muse 回 `ok` 后做独立公网复核（清单六字段、ZIP/Setup HEAD 长度、完整下载 ZIP 重算 SHA-256），记 WORKLOG/HANDOVER、提交推送，再用 `muse-call -Type message` 回一句确认带 commit 号。之后开始任务二（隐私模式 / 提醒模式）。
 - **准绳文档**：[tts-integration.md](tts-integration.md)（调研结论、设计、8 节实施计划）。逐节进度看 WORKLOG 顶部「任务一」段。开发者说明见 [providers.md](providers.md)。
 - **存档点**：标签 `v1.5.3`（`67a74f0`）与 `pre-multi-provider`（`d608aca`）已推送；任何时候都能回到动工前。
 - **已完成**：节 1（调研 + 设计文档）；节 2（厂商身份改为服务身份 `ServiceIdentity`、音色固定模型、模型切换推广到所有协议、迁移与测试，.NET 216/216）。
