@@ -302,7 +302,10 @@ public sealed class PythonFixtureSource(WatchOptions options, string python, str
         var packet = await ExchangeAsync("query", token, "message", "heartbeat", "warning");
         var kind = packet.GetProperty("type").GetString();
         if (kind == "heartbeat")
+        {
+            AdmitReplies(packet, admit);
             return 0;
+        }
         if (kind == "warning")
         {
             Warning?.Invoke("数据库暂时繁忙，等待重试。");
@@ -330,6 +333,7 @@ public sealed class PythonFixtureSource(WatchOptions options, string python, str
                 return 0;
             keys.Add(message.Key);
         }
+        AdmitReplies(packet, admit);
         using var deadline = Deadline(token, TimeSpan.FromSeconds(3));
         try
         {
@@ -414,6 +418,26 @@ public sealed class PythonFixtureSource(WatchOptions options, string python, str
         catch (Exception error) when (error is JsonException or FormatException or KeyNotFoundException or InvalidOperationException or DecoderFallbackException)
         {
             throw Protocol();
+        }
+    }
+
+    /// <summary>
+    /// The user's newest message per chat, from any device. It carries no body and is
+    /// never acknowledged: the Worker already moved its own cursor past it.
+    /// </summary>
+    private static void AdmitReplies(JsonElement packet, Func<ChatMessage, Admission> admit)
+    {
+        if (!packet.TryGetProperty("replies", out var replies))
+            return;
+        if (replies.ValueKind != JsonValueKind.Array)
+            throw Protocol();
+        foreach (var reply in replies.EnumerateArray())
+        {
+            var conversation = Required(reply, "conversation");
+            var sequence = reply.GetProperty("sequence").GetInt64();
+            if (admit(new($"reply:{conversation}:{sequence}", Required(reply, "account"), conversation,
+                    Direction.Outgoing, false, "", sequence)) == Admission.Closed)
+                return;
         }
     }
 

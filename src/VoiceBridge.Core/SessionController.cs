@@ -18,6 +18,8 @@ public sealed class SessionController : IAsyncDisposable
     // Notifications run under the state gate. Subscribers should post, never wait on a dispatcher.
     public event Action<BridgeStatus>? Changed;
     public event Action<ProcessingEvent>? Processed;
+    /// <summary>The user replied in a watched chat, from any device. Never spoken.</summary>
+    public event Action<ReplySignal>? Replied;
 
     public bool Start(Target target, bool consent, int capacity, bool preview,
         Func<IMessageSource> sourceFactory, ISpeech speech, IPlayer player,
@@ -186,6 +188,12 @@ public sealed class SessionController : IAsyncDisposable
                 return Admission.Closed;
             if (message.AccountId != session.Targets[0].AccountId)
                 throw new BridgeException("检测到账号变化，监听已停止。", true);
+            if (message.Direction == Direction.Outgoing)
+            {
+                if (session.Conversations.Contains(message.ConversationId))
+                    Replied?.Invoke(new(message.ConversationId, message.Sequence));
+                return Admission.Ignored;
+            }
             if (!session.Conversations.Contains(message.ConversationId) ||
                 session.AdmitFilter is { } admit && !admit(message) ||
                 message.Direction != Direction.Incoming || !message.IsText || string.IsNullOrWhiteSpace(message.Text))

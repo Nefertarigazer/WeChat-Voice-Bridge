@@ -127,6 +127,43 @@ class EncryptedAdapterTests(unittest.TestCase):
                     writer.close()
                 store.close()
 
+    def test_reports_the_users_newest_reply_without_reading_its_body(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            account, peer = "test-account", "test-peer"
+            writers, store, table = self.build(root, account, peer)
+            try:
+                writer = writers[0]
+                # A reply from before Start is part of the baseline, not a new reply.
+                writer.execute(f'INSERT INTO "{table}" VALUES(1, 500, 1, 2, ?)', (b"old",))
+                writer.commit()
+                store.open_conversations([peer])
+                self.assertEqual(([], []), (store.query()[0], store.take_replies()))
+                writer.executemany(f'INSERT INTO "{table}" VALUES(?, ?, ?, ?, ?)', [
+                    (2, 1000, 1, 1, "在吗".encode()),
+                    (3, 2000, REPLY_TYPE, 2, b"<msg/>"),   # the user's quoted reply
+                    (4, 3000, 10000, 2, b"tip"),           # a system notice under the user's id
+                    (5, 3500, 10002, 1, b"recall"),
+                ])
+                writer.commit()
+                messages, _ = store.query()
+                self.assertEqual(["在吗"], [message["text"] for message in messages])
+                self.assertEqual([dict(account=account, conversation=peer, sequence=2000)],
+                                 store.take_replies())
+                self.assertEqual([], store.take_replies())
+                store.ack([message["key"] for message in messages])
+                writer.execute(f'INSERT INTO "{table}" VALUES(6, 4000, 50, 2, ?)', (b"call",))
+                writer.commit()
+                self.assertEqual([], store.query()[0])
+                self.assertEqual([dict(account=account, conversation=peer, sequence=4000)],
+                                 store.take_replies())
+                self.assertEqual([], store.query()[0])
+                self.assertEqual([], store.take_replies())
+            finally:
+                for writer in writers:
+                    writer.close()
+                store.close()
+
     def test_decompresses_long_zstd_messages(self):
         compressed = adapter.zstandard.ZstdCompressor().compress(LONG_TEXT.encode("utf-8"))
         self.assertLess(len(compressed), len(LONG_TEXT.encode("utf-8")))

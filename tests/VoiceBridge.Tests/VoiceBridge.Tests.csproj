@@ -10,7 +10,7 @@
     <ProjectReference Include="../../src/VoiceBridge.Audio/VoiceBridge.Audio.csproj" />
     <Using Include="Xunit" />
     <Content Include="../../worker/*.py" Link="worker/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="hang_worker.py;bad_worker.py;fault_worker.py;readings_worker.py" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="hang_worker.py;bad_worker.py;fault_worker.py;readings_worker.py;replies_worker.py" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="assets/tone.mp3" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

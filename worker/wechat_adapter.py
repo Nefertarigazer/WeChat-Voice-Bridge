@@ -37,6 +37,8 @@ IMAGE_TYPE = 3
 TEXT_ROWS = ("msg.local_type = 1 OR msg.local_type = 3 OR msg.local_type = 47 "
              "OR ((msg.local_type & 4294967295) = 49 "
              "AND ((msg.local_type >> 32) & 65535) = 57)")
+# System notices (tips, recalls) may carry either side's sender id.
+SYSTEM_TYPES = "10000, 10002"
 
 APPMSG_BLOCK = re.compile(r"<appmsg\b[^>]*>(.*?)</appmsg>", re.S)
 TITLE_TAG = re.compile(r"<title>(.*?)</title>", re.S)
@@ -787,6 +789,8 @@ class WeChatStore:
         self.table = None
         self.baseline = {}
         self.outstanding = None
+        self.reply_cursor = {}
+        self.replies = {}
         if peer is not None:
             self.open_conversation(peer)
 
@@ -831,6 +835,9 @@ class WeChatStore:
         self.table = tables[self.peer]
         self.baseline = baseline
         self.outstanding = None
+        # The user's own messages since Start, tracked apart from the incoming cursor.
+        self.reply_cursor = dict(baseline)
+        self.replies = {}
         return self.baseline
 
     def search_contacts(self, keyword, limit=60):
@@ -935,6 +942,7 @@ class WeChatStore:
                     """, (bound, peer, BATCH_PER_SHARD)).fetchall()
                     if records:
                         streams.append((peer, name, records))
+                    self.note_replies(conn, table, peer, binding)
         # Merge stream heads and only advance consumed prefixes. In particular, a
         # sort_seq decrease cannot cause a lower local_id to disappear at a page
         # boundary. Future commits cannot be given a guaranteed global wall-clock
@@ -965,6 +973,32 @@ class WeChatStore:
         if rows:
             self.outstanding = (cursor, [row["key"] for row in rows])
         return rows, (time.perf_counter_ns() - started) / 1e6
+
+    def note_replies(self, conn, table, peer, binding):
+        """Remember the newest message the user sent in this chat, from any device.
+
+        Only metadata is read: no body. Rows from the peer and system notices
+        (type 10000 / 10002, which either side may carry) do not count as a reply.
+        sort_seq is a millisecond timestamp shared by both directions, so the
+        parent compares it with the incoming messages it is still waiting on.
+        """
+        newest_id, newest_sequence = conn.execute(f"""
+            SELECT MAX(msg.local_id), MAX(msg.sort_seq) FROM "{table}" AS msg
+            WHERE msg.local_id > ? AND msg.real_sender_id <> 0
+              AND (msg.local_type & 4294967295) NOT IN ({SYSTEM_TYPES})
+              AND msg.real_sender_id NOT IN (SELECT rowid FROM Name2Id WHERE user_name = ?)
+        """, (self.reply_cursor.get(binding, 0), peer)).fetchone()
+        if newest_id is None:
+            return
+        self.reply_cursor[binding] = newest_id
+        self.replies[peer] = max(self.replies.get(peer, 0), newest_sequence or 0)
+
+    def take_replies(self):
+        """Hand over and forget the replies found since the previous call."""
+        replies = [dict(account=self.account, conversation=peer, sequence=sequence)
+                   for peer, sequence in sorted(self.replies.items())]
+        self.replies = {}
+        return replies
 
     def ack(self, keys):
         if self.outstanding is None or keys != self.outstanding[1]:

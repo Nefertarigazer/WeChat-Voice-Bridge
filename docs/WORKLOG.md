@@ -4,6 +4,21 @@
 
 ---
 
+## 任务二 · 节 2：worker 报告「你回复了」（2026-11-11）
+
+- **做了什么**：
+  - `worker/wechat_adapter.py`：`WeChatStore` 新增与来信游标分开的回复游标 `reply_cursor`（开始监听时与基线相同，所以开始前的回复不算）。`query()` 在同一个快照连接里，为每个联系人查「游标之后、发送者不是对方、发送者不为 0、类型不是 10000/10002」的最大 `local_id` 与 `sort_seq`，只读元数据不读正文；`take_replies()` 交出每个联系人的最新回复时间戳。回复不需要确认，游标立刻前进。
+  - `worker/main.py`：`query` 的回应（`message` 或 `heartbeat`）在有回复时多带一个 `replies` 字段；没有回复时报文与原来完全一样（测试替身与旧报文不受影响）。
+  - `PythonFixtureSource.QueryAsync`：读 `replies`，每条转成一条 `Direction.Outgoing` 的空消息交给 `admit`，**不进确认列表**。
+  - `SessionController`：新增 `Replied` 事件（`ReplySignal(ConversationId, Sequence)`）；`Admit` 收到本会话联系人的 Outgoing 时触发它并返回 Ignored，不朗读、不入队；会话结束后返回 Closed。
+- **顺带修了一个不稳定的老测试**：`LifecycleTests.QueueOverflowAndClearAreVisibleAndSkipCancelsCurrent` 假设第 3 条一定被丢弃，但播放时的预取会在线程池上把第 2 条从队列里取走，谁先谁后看运气；在原始代码上单独跑也是 5 次失败 5 次。改为先等预取真正发生（第 2 条开始合成），再验证第 3 条入队、第 4 条被丢弃、重复的第 4 条判为重复。
+- **改动文件**：`worker/wechat_adapter.py`、`worker/main.py`、`src/VoiceBridge.Core/Contracts.cs`、`src/VoiceBridge.Core/SessionController.cs`、`src/VoiceBridge.WeChat/PythonFixtureSource.cs`、`tests/python/test_live_adapter.py`（新测试：开始前的回复不算、引用回复算、系统消息不算、对方撤回不算、通话算、游标前进后不重复）、`tests/VoiceBridge.Tests/ReplyTests.cs` + `replies_worker.py`（真实进程 IPC：回复随心跳与消息到达、不被确认、不朗读；别的聊天与停止后的回复被忽略）、`tests/VoiceBridge.Tests/LifecycleTests.cs`、`VoiceBridge.Tests.csproj`。
+- **验证**：`Test.ps1` .NET **256/256**、Python 55（42 跳过，与基线同）；需要 SQLCipher 的适配器测试用构建输出里的 Python 单独跑：`test_live_adapter` **33/33**、`test_multi_contact` **11/11**；wx-multi **58/58**；`Verify-Source` PASS。
+- **坑**：用 `Copy-Item` 把源文件复原后，文件时间比已编译的 DLL 旧，MSBuild 会当成没改而不重新编译；复原后要先把文件时间改成现在。
+- **下一节**：节 3，Core 的提醒逻辑（按人记待回复、时间表、持续提醒、合并隐私播报、往队列插提醒）与每位联系人的隐私 / 提醒设置。
+
+---
+
 ## 任务二 · 节 1：只读探针——自己发出的消息在电脑端数据库里的样子（2026-11-11）
 
 - **用户定稿**（`docs/privacy-reminder.md` §1「补充四」）：监听时「试听」隐藏，开提醒且有没回的消息时该位置显示「✓ 已读」；胶囊隐私 = 靛蓝、提醒 = 橙色；更多按钮改竖排 ⋮；计时按最近一条消息算，一轮走完不清零、继续累加，再来消息时从新消息重新起一轮；读内容时全部重读；开隐私时提醒词没有「读内容」。用户说「达成共识就直接干」，从本节起进入实现。

@@ -10,7 +10,9 @@
 - **1.6.0 产物**：ZIP `artifacts\WeChat-Voice-Bridge-V1.6.0-win-x64.zip` = 92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d`；Setup `artifacts\WeChat-Voice-Bridge-V1.6.0-Setup.exe` = 67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378`；payload `artifacts\win-x64-v1.6.0\`（1993 文件）。
 - **发布闭环已完成**：文档提交 `7dfa96c` 已推送，Muse 已回确认（`codex_20261111_113411_4a62b1`，`ok`，无进一步动作）。
 - **任务二（隐私模式 / 提醒模式）**：准绳是 [privacy-reminder.md](privacy-reminder.md)，**尚未动代码**。用户已否决首页磁贴，改为**每位联系人各自设置**：多人卡片用方案 A（药丸挪到名字右侧、两个对称胶囊、琥珀色「✓ 已读」），单人用方案 B（模式宽卡放在状态卡下面，单人变多人要有丝滑动画）。需求见该文 §1「补充二」「补充三」，设计见 §8 与「第三版修订」。用户已定稿（§1「补充四」）并授权直接实现。节 1 只读探针完成（`tools/probes/outgoing_probe.py`，结论见该文 §7）。
-- **续跑点**：节 2——`worker/wechat_adapter.py` 的 `WeChatStore.query()` 在同一快照里为每个联系人查「回复游标之后、发送者不是对方、类型不是 10000/10002」的最大 `sort_seq`，随 `message` 包带回 `replies`；测试放 `tests/python/test_live_adapter.py`（已有 `Name2Id(peer, "self")` 夹具）。之后按 `privacy-reminder.md` §6 的节次继续。
+- **进度**：节 1 探针、节 2「worker 报告你回复了」已完成（`SessionController.Replied` 事件可用，WORKLOG 有细节）。
+- **续跑点**：节 3——Core 新增提醒逻辑（新文件，按人记待回复；时间表从最近一条算、一轮走完不清零；持续提醒「提醒音 → 提醒词 → 停 5 秒」；隐私播报合并），`ContactProfile` 加每人的隐私 / 提醒设置，`SessionController` 加往同一队列插提醒的入口和提醒音。之后节 4 隐私播报接入、节 5 起界面（多人卡片方案 A、单人方案 B + 动画）。
+- **跑适配器测试**：`Test.ps1` 会跳过需要 SQLCipher 的 42 个 Python 测试；改了 `wechat_adapter.py` 时，用 `src\VoiceBridge.App\bin\Release\net8.0-windows\runtime\python\python.exe -B -m unittest discover -s tests\python -p "test_live_adapter.py"`（以及 `test_multi_contact.py`）单独跑。
 - **工具坑**：本机 PowerShell 工具对长等待偶尔提前返回 exit -1 且无输出，后台进程仍会跑完。等 Muse 回执时不要重发，看 `muse-bridge\outbox\<req_id>.reply.json`。
 - **准绳文档**：[tts-integration.md](tts-integration.md)（调研结论、设计、8 节实施计划）。逐节进度看 WORKLOG 顶部「任务一」段。开发者说明见 [providers.md](providers.md)。
 - **存档点**：标签 `v1.5.3`（`67a74f0`）与 `pre-multi-provider`（`d608aca`）已推送；任何时候都能回到动工前。

@@ -33,6 +33,8 @@ public sealed record AudioData(byte[] Bytes, bool IsWave = false, PcmFeed? Pcm =
     public const int PcmSampleRate = 24000;
 }
 public sealed record BridgeStatus(BridgeState State, int Pending, string Activity, string? Error);
+/// <summary>The user sent something in a watched chat; <paramref name="Sequence"/> is its shared timestamp.</summary>
+public sealed record ReplySignal(string ConversationId, long Sequence);
 public sealed record ProcessingEvent(string Stage, string? Preview = null, double? Milliseconds = null,
     double? QueryMilliseconds = null, string? ConversationId = null);
 

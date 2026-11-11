@@ -93,10 +93,14 @@ def main():
                         raise
                     send("warning", session, generation, code="busy")
                     continue
+                # The user's own replies need no acknowledgment: each is the newest per chat.
+                take_replies = getattr(store, "take_replies", None)
+                replies = take_replies() if take_replies else []
+                extra = {"replies": replies} if replies else {}
                 if messages:
-                    send("message", session, generation, messages=messages, queryMs=elapsed)
+                    send("message", session, generation, messages=messages, queryMs=elapsed, **extra)
                 else:
-                    send("heartbeat", session, generation)
+                    send("heartbeat", session, generation, **extra)
             elif kind == "ack":
                 store.ack(packet["keys"])
                 send("ack", session, generation)

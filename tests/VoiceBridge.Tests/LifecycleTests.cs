@@ -123,13 +123,23 @@ public sealed class LifecycleTests
         var player = new ProbePlayer(block: true);
         var trace = new ConcurrentQueue<ProcessingEvent>();
         controller.Processed += trace.Enqueue;
-        controller.Start(DemoTarget, true, 1, false, () => source, new ProbeSpeech(), player);
+        // The look-ahead takes the next message off the queue while the current one plays.
+        // Wait for it, so the single queue slot is decided by this test and not by the thread pool.
+        var lookAhead = ProbeSource.NewSignal();
+        var speech = new ProbeSpeech((text, _) =>
+        {
+            if (text == "second") lookAhead.TrySetResult();
+            return Task.FromResult(new AudioData([]));
+        });
+        controller.Start(DemoTarget, true, 1, false, () => source, speech, player);
         source.Ready.SetResult();
-        source.Send(Message("1"));
+        source.Send(Message("1", "first"));
         await player.Playing.Task.WaitAsync(Limit);
-        Assert.Equal(Admission.Accepted, source.LateDelivery!(Message("2")));
-        Assert.Equal(Admission.Dropped, source.LateDelivery(Message("3")));
-        Assert.Equal(Admission.Duplicate, source.LateDelivery(Message("3")));
+        Assert.Equal(Admission.Accepted, source.LateDelivery!(Message("2", "second")));
+        await lookAhead.Task.WaitAsync(Limit);
+        Assert.Equal(Admission.Accepted, source.LateDelivery(Message("3", "third")));
+        Assert.Equal(Admission.Dropped, source.LateDelivery(Message("4", "fourth")));
+        Assert.Equal(Admission.Duplicate, source.LateDelivery(Message("4", "fourth")));
         controller.ClearQueue();
         controller.SkipCurrent();
         Assert.Equal(0, controller.Status.Pending);
