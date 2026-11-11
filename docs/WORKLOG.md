@@ -4,6 +4,19 @@
 
 ---
 
+## 1.7.0 · 节 12：经 Muse 发布上线，公网复核通过（2026-11-11）
+
+- **发布单** `codex_20261111_211423_9ceb57`：21:14 发出，在 inbox 里放了约 21 分钟，21:35 被 Muse 领走，21:37 回 `status=ok`。这次没有先回 `info`。`muse-call` 自己的 480 秒等待先超时退出（退出码 2，属正常），回执是直接读 outbox 文件拿到的。只发了这一张。
+- **Muse 回执**：ZIP sha256 `2a0940…6029a`、size 92,186,434，哈希链三方一致（申报 = PC 实测 = A1 落地）；Setup 一并发布（`763909…5114`，67,123,954）；`latest.json` 更新为 1.7.0，旧版备份 `latest.json.bak-1.6.0`。
+- **本助手独立公网复核**：
+  - `latest.json` HTTP 200，六字段齐全：version `1.7.0`，publishedAt `2026-11-11T20:37:01Z`，url 指向 V1.7.0 ZIP，size 与 sha256 和本地一致，notes 177 字中文正常。
+  - HEAD：ZIP 200、长度 92,186,434；Setup 200、长度 67,123,954，都与本地一致。
+  - 完整下载 ZIP（放在 OneDrive 外的 `D:\USERNAME\CodexScratch\Temp`），重算 SHA-256 与清单一致，下载文件已删除。
+- 桌面快捷方式未动（仍指向 1.4.7 r3）。PROJECT-BRIEF §4、§7 与 HANDOVER 已同步。
+- **下一节**：提交推送这份记录，用 `muse-call -Type message` 回 Muse 确认（带这次的文档提交号）。
+
+---
+
 ## 1.7.0 · 节 11：门禁与打包（2026-11-11）
 
 - **门禁**（在 `dd263df` 上）：应用 Release（`-r win-x64`，因为用户那份开发版锁着 `bin\Release`）0 警告 0 错误；.NET **277/277**；Python 55（42 跳过）；`Verify-Source` PASS；wx-multi **58/58**。
