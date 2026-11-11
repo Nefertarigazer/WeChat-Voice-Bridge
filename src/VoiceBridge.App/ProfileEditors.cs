@@ -21,6 +21,12 @@ internal abstract class ProfileEditor : Window
     protected readonly TextBlock Error = new() { Margin = new(0, 12, 0, 0) };
     private readonly Button save, back;
     private readonly ScrollViewer scroll;
+    // The card surface is #FFFEFB (DialogShell); the edges melt the content into it.
+    private readonly Border topEdge = Edge(VerticalAlignment.Top, 28,
+        (0, 0xFF), (0.55, 0x8C), (1, 0x00));
+    private readonly Border bottomEdge = Edge(VerticalAlignment.Bottom, 64,
+        (0, 0x00), (0.35, 0x5C), (0.7, 0xC8), (1, 0xFF));
+    private bool showTop, showBottom;
     private StackPanel? target;
     private bool choosing;
     protected ProfileEditor(string title, bool isNew)
@@ -35,9 +41,16 @@ internal abstract class ProfileEditor : Window
         grid.RowDefinitions.Add(new() { Height = GridLength.Auto });
         grid.Children.Add(new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeights.SemiBold, Margin = new(0,0,0,8) });
         var pages = new Grid(); pages.Children.Add(Choice); pages.Children.Add(Fields);
-        scroll = new ScrollViewer { Content = pages, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+        // No scroll bar: the wheel, touchpad and keyboard still scroll, and the edges
+        // dissolve into the card wherever there is more to see (see UpdateEdges).
+        scroll = new ScrollViewer { Content = pages, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, MaxHeight = Math.Max(120, MaxHeight - 250) };
-        Grid.SetRow(scroll, 1); grid.Children.Add(scroll);
+        var viewport = new Grid();
+        viewport.Children.Add(scroll);
+        viewport.Children.Add(topEdge);
+        viewport.Children.Add(bottomEdge);
+        scroll.ScrollChanged += (_, _) => UpdateEdges();
+        Grid.SetRow(viewport, 1); grid.Children.Add(viewport);
         var footer = new StackPanel(); Grid.SetRow(footer, 2);
         Error.Foreground = (Brush)FindResource("Danger"); Error.TextWrapping = TextWrapping.Wrap;
         footer.Children.Add(Error);
@@ -52,6 +65,35 @@ internal abstract class ProfileEditor : Window
         footer.Children.Add(buttons); grid.Children.Add(footer); DialogShell.Apply(this, grid);
         ShowPage(isNew); if (!isNew) back.Visibility = Visibility.Collapsed;
     }
+    private static Border Edge(VerticalAlignment side, double height, params (double Offset, byte Alpha)[] stops)
+    {
+        var brush = new LinearGradientBrush { StartPoint = new(0, 0), EndPoint = new(0, 1) };
+        foreach (var (offset, alpha) in stops)
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(alpha, 0xFF, 0xFE, 0xFB), offset));
+        brush.Freeze();
+        return new Border { Height = height, VerticalAlignment = side, Background = brush, IsHitTestVisible = false, Opacity = 0 };
+    }
+
+    /// <summary>
+    /// The only cue that a page goes on: content that is cut off fades out into the
+    /// card at that edge. The bottom edge shows while anything lies below, the top
+    /// edge once the page has left its top, so a fully visible page has neither.
+    /// </summary>
+    private void UpdateEdges()
+    {
+        var more = scroll.ScrollableHeight - scroll.VerticalOffset > 0.5;
+        var scrolled = scroll.VerticalOffset > 0.5;
+        if (more != showBottom) { showBottom = more; FadeEdge(bottomEdge, more); }
+        if (scrolled != showTop) { showTop = scrolled; FadeEdge(topEdge, scrolled); }
+    }
+
+    private static void FadeEdge(UIElement edge, bool show)
+    {
+        if (!SystemParameters.ClientAreaAnimation) { edge.BeginAnimation(OpacityProperty, null); edge.Opacity = show ? 1 : 0; return; }
+        edge.BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(show ? 1 : 0,
+            TimeSpan.FromMilliseconds(show ? 180 : 140)));
+    }
+
     /// <summary>Same as pressing the primary button: next page, or save on the last one.</summary>
     protected void Advance()
     {
@@ -107,8 +149,23 @@ internal abstract class ProfileEditor : Window
     {
         var panel = new StackPanel(); target = panel; build(); target = null;
         if (panel.Children.Count > 0)
-            Fields.Children.Add(new Expander { Header = "高级", Content = panel, Margin = new(0,18,0,0) });
+            Fields.Children.Add(Disclosure.Create("高级", panel, scroll));
     }
+
+    /// <summary>A soft amber pill with a globe: this vendor needs an overseas network from mainland China.</summary>
+    protected const string OverseasBadge = """
+        <Border Background="#FDF1DD" BorderBrush="#F2DDB6" BorderThickness="1" CornerRadius="7" Padding="6,1,8,2"
+                Margin="8,0,0,0" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal">
+            <Path Data="M0.5,6 A5.5,5.5 0 1 1 11.5,6 A5.5,5.5 0 1 1 0.5,6 Z M0.9,4 H11.1 M0.9,8 H11.1 M6,0.5 C3.3,2.7 3.3,9.3 6,11.5 M6,0.5 C8.7,2.7 8.7,9.3 6,11.5"
+                  Stroke="#A8701C" StrokeThickness="1" Width="11" Height="11" Stretch="Uniform" VerticalAlignment="Center"/>
+            <TextBlock Text="需海外网络" FontSize="11" Foreground="#9A681D" Margin="4,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+        """;
+
+    protected static UIElement Markup(string xaml) => (UIElement)XamlReader.Parse(
+        xaml.Replace("<Border ", "<Border xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" ", StringComparison.Ordinal));
     protected abstract void BuildDetails();
     protected abstract void Save();
     protected static void Detach(UIElement control)
@@ -127,11 +184,19 @@ internal sealed record PresetChoice(ProviderPreset Preset)
 {
     public string Label => Preset.Label;
     public string Summary => Preset.Summary;
+    public Visibility OverseasVisibility => Preset.Overseas ? Visibility.Visible : Visibility.Collapsed;
     public string Group => Preset.Category switch
     {
+        PresetCategory.Generic => "通用协议",
         PresetCategory.Mainstream => "主流厂商",
-        PresetCategory.Generic => "通用协议 · 小众厂商或自建网关",
-        _ => "本地模型 · 在自己电脑上运行"
+        _ => "自建模型"
+    };
+    /// <summary>Groups appear in this order: generic protocols, mainstream vendors, self-hosted models.</summary>
+    public int GroupOrder => Preset.Category switch
+    {
+        PresetCategory.Generic => 0,
+        PresetCategory.Mainstream => 1,
+        _ => 2
     };
     // Screen readers and UI automation read the entry by this name.
     public override string ToString() => Label;
@@ -154,12 +219,17 @@ internal sealed class ProviderEditor : ProfileEditor
     {
         this.original = original;
         Result = original ?? new() { Id = Guid.NewGuid().ToString("N") };
-        var view = new ListCollectionView(ProviderCatalog.All.Select(item => new PresetChoice(item)).ToList());
+        // Groups follow their first item, so order the entries by group (a stable sort
+        // keeps the catalog order inside each group).
+        var view = new ListCollectionView(ProviderCatalog.All.Select(item => new PresetChoice(item))
+            .OrderBy(item => item.GroupOrder).ToList());
         view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(PresetChoice.Group)));
+        var badge = OverseasBadge.Replace("<Border ", "<Border Visibility=\"{Binding OverseasVisibility}\" ", StringComparison.Ordinal);
         presets = new ListBox
         {
             ItemsSource = view,
-            ItemTemplate = MarkupTemplate("<StackPanel Margin=\"2,1\"><TextBlock Text=\"{Binding Label}\" FontWeight=\"SemiBold\"/>" +
+            ItemTemplate = MarkupTemplate("<StackPanel Margin=\"2,1\"><StackPanel Orientation=\"Horizontal\">" +
+                "<TextBlock Text=\"{Binding Label}\" FontWeight=\"SemiBold\" VerticalAlignment=\"Center\"/>" + badge + "</StackPanel>" +
                 "<TextBlock Text=\"{Binding Summary}\" FontSize=\"12\" Foreground=\"#6E7673\" TextWrapping=\"Wrap\" Margin=\"0,2,0,0\"/></StackPanel>"),
             SelectedIndex = 0
         };
@@ -188,10 +258,19 @@ internal sealed class ProviderEditor : ProfileEditor
         if (built != null) secret.Password = "";
         built = preset; Detach(secret); Fields.Children.Clear(); modelBoxes.Clear();
         var same = original != null;
-        var header = new TextBlock { Text = preset.Label, FontSize = 16, FontWeight = FontWeights.SemiBold, Margin = new(0,4,0,0) };
+        var header = new StackPanel { Orientation = Orientation.Horizontal, Margin = new(0,4,0,0) };
+        header.Children.Add(new TextBlock { Text = preset.Label, FontSize = 16, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+        if (preset.Overseas) header.Children.Add(Markup(OverseasBadge));
         Fields.Children.Add(header);
         if (preset.Summary.Length > 0)
             Fields.Children.Add(new TextBlock { Text = preset.Summary, Style = (Style)FindResource("Footnote"), TextWrapping = TextWrapping.Wrap, Margin = new(0,2,0,0) });
+        if (preset.Overseas)
+            Fields.Children.Add(new TextBlock
+            {
+                Text = "在中国大陆，注册账号、获取 Key 和合成语音都需要海外网络环境；网络断开时这一家的音色会读不出来。",
+                FontSize = 12, Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0x68, 0x1D)), TextWrapping = TextWrapping.Wrap,
+                Margin = new(0,6,0,0)
+            });
 
         name = new TextBox { Text = same ? Result.Name : "", MaxLength = 64 };
         if (preset.NameRequired) { Field("服务名称（自己起，方便辨认）", name); }

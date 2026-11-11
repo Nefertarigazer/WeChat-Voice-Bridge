@@ -43,6 +43,29 @@ internal static class SmoothScroll
     private static readonly Dictionary<ScrollViewer, Motion> Motions = new();
     private static readonly MouseWheelEventHandler Handler = OnWheel;
 
+    /// <summary>Glides a viewer to an offset with the same easing as the wheel.</summary>
+    public static void To(ScrollViewer viewer, double offset)
+    {
+        var target = Math.Clamp(offset, 0, viewer.ScrollableHeight);
+        if (Math.Abs(target - viewer.VerticalOffset) < 0.5)
+            return;
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            viewer.ScrollToVerticalOffset(target);
+            return;
+        }
+        if (!Motions.TryGetValue(viewer, out var motion))
+            Motions[viewer] = motion = new Motion();
+        motion.From = viewer.VerticalOffset;
+        motion.To = target;
+        motion.Started = Stopwatch.GetTimestamp();
+        if (!motion.Running)
+        {
+            motion.Running = true;
+            CompositionTarget.Rendering += OnFrame;
+        }
+    }
+
     public static void Install() =>
         EventManager.RegisterClassHandler(typeof(ScrollViewer), UIElement.PreviewMouseWheelEvent,
             new MouseWheelEventHandler(Handler), true);

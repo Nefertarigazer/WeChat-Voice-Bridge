@@ -445,6 +445,35 @@ static int MenuClick(string pidText, string itemName)
     return 0;
 }
 
+// Toggles the dialog's "高级设置" section open and shut, sampling the dialog height
+// every frame so the easing curve (and any jump or wobble) shows up as numbers.
+static void SampleDisclosure(AutomationElement dialog, IntPtr handle, string prefix)
+{
+    var toggle = ByNameContains(dialog, "高级设置", ControlType.Button)
+        ?? dialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "高级设置"));
+    if (toggle is null || !toggle.TryGetCurrentPattern(TogglePattern.Pattern, out var raw))
+    {
+        Console.WriteLine("note: 高级设置 toggle not found");
+        return;
+    }
+    var pattern = (TogglePattern)raw;
+    foreach (var phase in new[] { "open", "close" })
+    {
+        var samples = new List<string>();
+        var clock = Stopwatch.StartNew();
+        pattern.Toggle();
+        while (clock.ElapsedMilliseconds < 520)
+        {
+            Native.Bounds(handle, out _, out var top, out _, out var bottom);
+            samples.Add($"{clock.ElapsedMilliseconds}:{top}/{bottom - top}");
+            Thread.Sleep(15);
+        }
+        Console.WriteLine($"{phase}: " + string.Join(" ", samples));
+        Thread.Sleep(300);
+        Capture(handle, $"{prefix}-{phase}.png");
+    }
+}
+
 static int DialogShots(string pidText, string prefix, string navId, string buttonName, string[] items)
 {
     var pid = int.TryParse(pidText, out var parsed) && parsed > 0
@@ -505,6 +534,8 @@ static int DialogShots(string pidText, string prefix, string navId, string butto
         if (next is not null) (next.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();
         Thread.Sleep(900);
         Capture(handle, $"{prefix}-{step}.png");
+        if (Environment.GetEnvironmentVariable("WVB_SAMPLE_DISCLOSURE") == "1")
+            SampleDisclosure(dialog, handle, $"{prefix}-{step}");
         // Back to the first page for the next item.
         var back = ByNameContains(dialog, "上一步", ControlType.Button);
         if (back is not null) (back.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();

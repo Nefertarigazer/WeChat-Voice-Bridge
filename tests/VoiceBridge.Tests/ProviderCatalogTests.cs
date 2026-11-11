@@ -71,6 +71,17 @@ public sealed class ProviderCatalogTests
     }
 
     [Fact]
+    public void OnlyVendorsUnreachableFromMainlandChinaCarryTheOverseasBadge()
+    {
+        // OpenAI and Gemini list mainland China as unsupported; ElevenLabs is commonly
+        // unreachable from it. Domestic vendors and local engines never need it.
+        Assert.Equal(new[] { "elevenlabs", "gemini", "openai" },
+            ProviderCatalog.All.Where(item => item.Overseas).Select(item => item.Id).OrderBy(id => id));
+        Assert.All(ProviderCatalog.All.Where(item => item.Category != PresetCategory.Mainstream),
+            item => Assert.False(item.Overseas));
+    }
+
+    [Fact]
     public void FishOffersItsCurrentModelsAndTheFreeOneComesFirst()
     {
         var fish = ProviderCatalog.Find("fish")!;

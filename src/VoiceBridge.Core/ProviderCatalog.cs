@@ -69,6 +69,11 @@ public sealed record ProviderPreset
     public string AudioFormat { get; init; } = "mp3";
     /// <summary>Generic and local services carry the user's own name; mainstream ones may keep the vendor name.</summary>
     public bool NameRequired => Category != PresetCategory.Mainstream;
+    /// <summary>
+    /// From mainland China the vendor's site, sign-up or API is not reachable without
+    /// an overseas network. Shown as a badge so nobody signs up only to hit a wall.
+    /// </summary>
+    public bool Overseas { get; init; }
 
     public string DefaultEndpoint => Endpoints.Length > 0 ? Endpoints[0].Url : "";
     public string DefaultModel => Models.Length > 0 ? Models[0].Id : "";
@@ -125,7 +130,7 @@ public static class ProviderCatalog
         new()
         {
             Id = "openai", Label = "OpenAI", Category = PresetCategory.Mainstream, Kind = SpeechProviderKind.OpenAiCompatible,
-            Summary = "gpt-4o-mini-tts，可用文字指令控制语气",
+            Summary = "gpt-4o-mini-tts，可用文字指令控制语气", Overseas = true,
             Endpoints = [new("https://api.openai.com/v1/audio/speech", "官方接口")],
             KeyUrl = "https://platform.openai.com/settings/organization/api-keys",
             DocsUrl = "https://developers.openai.com/api/docs/guides/text-to-speech",
@@ -153,7 +158,7 @@ public static class ProviderCatalog
         new()
         {
             Id = "elevenlabs", Label = "ElevenLabs", Category = PresetCategory.Mainstream, Kind = SpeechProviderKind.ElevenLabs,
-            Summary = "多语种表现力强，声音库丰富",
+            Summary = "多语种表现力强，声音库丰富", Overseas = true,
             Endpoints =
             [
                 new("https://api.elevenlabs.io", "全球"), new("https://api.us.elevenlabs.io", "美国"),
@@ -202,7 +207,7 @@ public static class ProviderCatalog
         new()
         {
             Id = "gemini", Label = "Google Gemini", Category = PresetCategory.Mainstream, Kind = SpeechProviderKind.Gemini,
-            Summary = "可用文字描述语气，有免费层",
+            Summary = "可用文字描述语气，有免费层", Overseas = true,
             Endpoints = [new("https://generativelanguage.googleapis.com", "官方接口")],
             KeyUrl = "https://aistudio.google.com/apikey",
             DocsUrl = "https://aistudio.google.com/docs/speech-generation",

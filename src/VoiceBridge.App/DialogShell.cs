@@ -14,6 +14,22 @@ namespace VoiceBridge.App;
 /// <remarks>Only the rounded card is opaque; the window around it is transparent, so no tinted frame shows.</remarks>
 internal static class DialogShell
 {
+    private static readonly System.Collections.Generic.HashSet<Window> Held = new();
+
+    /// <summary>
+    /// While a section animates open or shut, the dialog keeps its top edge and only
+    /// grows or shrinks at the bottom (still kept on screen). Re-centring on every
+    /// frame of a resize is what makes a growing window wobble.
+    /// </summary>
+    public static void Hold(Window? window, bool hold)
+    {
+        if (window is null) return;
+        if (hold) { Held.Add(window); return; }
+        // Release only after the last size change of the motion has been laid out,
+        // so it is not answered with a re-centring jump.
+        window.Dispatcher.BeginInvoke(new Action(() => Held.Remove(window)), DispatcherPriority.Background);
+    }
+
     public static void Apply(Window window, UIElement body)
     {
         window.Content = null;
@@ -82,6 +98,11 @@ internal static class DialogShell
                 var transform = HwndSource.FromHwnd(handle)?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
                 var pixels = screen.WorkingArea;
                 var area = Rect.Transform(new Rect(pixels.X, pixels.Y, pixels.Width, pixels.Height), transform);
+                if (Held.Contains(window))
+                {
+                    KeepOnScreen(window);
+                    return;
+                }
                 var center = new Point(area.Left + area.Width / 2, area.Top + area.Height / 2);
                 if (window.Owner is { IsVisible: true } owner)
                     center = transform.Transform(owner.PointToScreen(new Point(owner.ActualWidth / 2, owner.ActualHeight / 2)));
@@ -92,7 +113,27 @@ internal static class DialogShell
             }), DispatcherPriority.Loaded);
         }
         window.Loaded += (_, _) => QueuePosition();
-        window.SizeChanged += (_, _) => QueuePosition();
+        window.SizeChanged += (_, _) =>
+        {
+            // While a section animates, clamp in the same frame: a queued (Loaded
+            // priority) move waits behind the animation's render frames and then
+            // lands as one jump at the end.
+            if (Held.Contains(window)) KeepOnScreen(window);
+            else QueuePosition();
+        };
+        window.Closed += (_, _) => Held.Remove(window);
+    }
+
+    private static void KeepOnScreen(Window window)
+    {
+        if (!window.IsLoaded) return;
+        var handle = new WindowInteropHelper(window).Handle;
+        var screen = System.Windows.Forms.Screen.FromHandle(handle);
+        var transform = HwndSource.FromHwnd(handle)?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+        var pixels = screen.WorkingArea;
+        var area = Rect.Transform(new Rect(pixels.X, pixels.Y, pixels.Width, pixels.Height), transform);
+        var top = Math.Clamp(window.Top, area.Top + 16, Math.Max(area.Top + 16, area.Bottom - window.ActualHeight - 16));
+        if (Math.Abs(top - window.Top) > 0.1) window.Top = top;
     }
 
     private static SolidColorBrush Brush(string color) => new((Color)ColorConverter.ConvertFromString(color));

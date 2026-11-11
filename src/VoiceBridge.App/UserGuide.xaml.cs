@@ -95,10 +95,10 @@ internal static class GuideSections
         }),
         new GuideSection("service", "03 · 配置语音服务和 API Key", "API Key 是服务商发给你的访问凭据，音色不是 API Key。", false, new[]
         {
-            "在「设置 → 语音服务」点「＋ 添加 API 服务」。第一页按三组列出：「主流厂商」是一一对应的专属入口，地址、模型和常用音色都预先填好；「通用协议」用来接入没有专属入口的厂商或自建网关；「本地模型」接入你在自己电脑上运行的模型服务。选好后点「下一步」，只需填写这一家需要的内容，每家都附有「去哪里获取 Key」和官方文档的链接。",
+            "在「设置 → 语音服务」点「＋ 添加 API 服务」。第一页按三组列出：「通用协议」用来接入没有专属入口的厂商或自建网关；「主流厂商」是一一对应的专属入口，地址、模型和常用音色都预先填好；「自建模型」接入你在自己电脑上运行的模型服务。选好后点「下一步」，只需填写这一家需要的内容，每家都附有「去哪里获取 Key」和官方文档的链接。名字旁边带地球图标、写着「需海外网络」的厂商，在中国大陆需要海外网络环境才能注册账号、获取 Key 和合成语音；网络断开时，这一家的音色会读不出来。",
             "API Key 通常在服务商网站的开发者控制台创建。复制时请避开前后空格和换行，不要把音色 ID 填进 API Key，也不要把聊天模型的密钥和语音接口参数混为一谈。密钥只在本机用 Windows 当前用户加密保存，不会写进配置文件，请勿分享给其他人。",
             "可以同时添加并使用多家服务，每一家同一时间只启用一个 Key。给同一家再添加第二个、第三个 Key 时，新 Key 只是存着备用，不会顶替正在用的那个；想换就在那一行点「启用」。不同厂商之间互不影响，各自启用各自的 Key。",
-            "「同一家」是这样认的：主流厂商按厂商算，例如 MiniMax 国内站的默认地址和华北就近地址是同一家；通用协议和本地模型按接口地址算，同一个地址的多个 Key 是同一项服务，地址不同就是不同的服务。所以硅基流动和你电脑上的 Kokoro 虽然都用 OpenAI 兼容协议，也会分开管理，音色不会串用。",
+            "「同一家」是这样认的：主流厂商按厂商算，例如 MiniMax 国内站的默认地址和华北就近地址是同一家；通用协议和自建模型按接口地址算，同一个地址的多个 Key 是同一项服务，地址不同就是不同的服务。所以硅基流动和你电脑上的 Kokoro 虽然都用 OpenAI 兼容协议，也会分开管理，音色不会串用。",
             "模型：在服务里勾选允许切换的模型（可多选）。首页每位联系人可以分别选用其中一个，下一条消息开始生效，正在播放的不受影响。勾选多个不会重复合成；每次请求都会明确告诉服务用哪个模型，免费模型失败也不会自动改用付费模型。豆包的「模型」是资源 ID，也能这样切换。",
             "Fish 联系人卡片还会显示「合成模式」：均衡、音质优先或低延迟。这是 Fish 的音质与延迟取舍参数，实际差异由模型、文本和网络决定，不保证低延迟模式一定明显更快。每个人都能分别设置，下一条开始合成时生效。其他服务不会显示这个 Fish 专属选项。",
             "地址规则：远程服务必须使用 HTTPS；只有本机的 127.0.0.1 或 localhost 可以用 HTTP。地址里不要带密钥或查询参数，软件也不会跟随服务器的跳转，以免把 Key 发到别的地方。",
@@ -117,10 +117,10 @@ internal static class GuideSections
         new GuideSection("vendors", "05 · 主流厂商逐家说明", "每家去哪拿 Key、要填什么、音色在哪里找。", false, new[]
         {
             "Fish Audio：在 Fish Audio 网站的「API Keys」页面创建 Key。可选模型有 S2.1 Pro 免费版（s2.1-pro-free，有公平使用限额、不保证延迟）、S2.1 Pro 付费版（官方推荐）、S2 Pro 和 Drama 3。音色填 32 位的 Voice ID。s1 模型将于 2026-12-31 退役，因此不再提供。",
-            "OpenAI：在 platform.openai.com 的 API keys 页面创建。模型有 gpt-4o-mini-tts（可以在音色的「语气指令」里写想要的语气）、tts-1、tts-1-hd。官方推荐的 marin、cedar 音色只配 gpt-4o-mini-tts。注意：OpenAI 已宣布这些语音模型将于 2027-01-06 停用，官方替代只提供实时语音接口，本软件暂不支持；到期前可以正常使用。",
-            "ElevenLabs：在 ElevenLabs 设置里的 API Keys 创建。默认模型 Multilingual v2（中文稳定），另有 Eleven v3、Flash v2.5（低延迟）、Eleven v4。音色在声音库或「My Voices」里复制 Voice ID，自己克隆的声音也一样。有数据驻留要求的可以选美国或欧盟地址。",
+            "OpenAI（需海外网络）：在 platform.openai.com 的 API keys 页面创建。模型有 gpt-4o-mini-tts（可以在音色的「语气指令」里写想要的语气）、tts-1、tts-1-hd。官方推荐的 marin、cedar 音色只配 gpt-4o-mini-tts。注意：OpenAI 已宣布这些语音模型将于 2027-01-06 停用，官方替代只提供实时语音接口，本软件暂不支持；到期前可以正常使用。",
+            "ElevenLabs（需海外网络）：在 ElevenLabs 设置里的 API Keys 创建。默认模型 Multilingual v2（中文稳定），另有 Eleven v3、Flash v2.5（低延迟）、Eleven v4。音色在声音库或「My Voices」里复制 Voice ID，自己克隆的声音也一样。有数据驻留要求的可以选美国或欧盟地址。",
             "Azure 语音服务：在 Azure 门户创建「语音服务」资源，到「密钥和终结点」复制密钥，并选择资源所在的区域，两者必须一致。音色名称形如 zh-CN-XiaoxiaoNeural，可在常用音色里选，完整列表见微软文档。免费 F0 层每月含 50 万字符的神经网络语音。",
-            "Google Gemini：在 Google AI Studio 创建 API Key。模型为 Gemini 3.8 Flash TTS 或 Flash-Lite TTS（gemini-2.5 的预览版语音模型已于 2026-11-17 停用）。音色是 Kore、Puck 这样的名字，同样能读中文；音色的「语气描述」可以写「温柔一点、放慢」。是否免费以 Google 当前政策为准。",
+            "Google Gemini（需海外网络）：在 Google AI Studio 创建 API Key。模型为 Gemini 3.8 Flash TTS 或 Flash-Lite TTS（gemini-2.5 的预览版语音模型已于 2026-11-17 停用）。音色是 Kore、Puck 这样的名字，同样能读中文；音色的「语气描述」可以写「温柔一点、放慢」。是否免费以 Google 当前政策为准。",
             "火山引擎 · 豆包语音：在火山引擎控制台开通豆包语音，在新版控制台创建 API Key。「资源 ID」决定模型代际和计费：seed-tts-2.0 配 2.0 音色，seed-tts-1.0 配 1.0 音色，seed-icl-2.0 / seed-icl-1.0 用于声音复刻；音色和资源 ID 必须是同一代。音色 ID（speaker）在控制台的音色列表里复制，形如 zh_female_xxx_bigtts，复刻音色以 S_ 开头。旧版控制台用户在「高级」里填 App ID，Key 的位置填 Access Token。",
             "阿里云百炼：在百炼控制台创建 API Key（北京与新加坡地域的 Key 不通用）。同一个 Key 可以用 CosyVoice（cosyvoice-v3-flash、v3-plus、v3.5、v2）和千问 3 TTS（qwen3-tts-flash，每次最多 600 字）。系统音色如 longanyang（CosyVoice）、Cherry（千问）；复刻或设计出来的音色只能用创建它的模型，记得固定模型。CosyVoice 若提示地址不对，把接口地址换成业务空间域名 https://<业务空间ID>.cn-beijing.maas.aliyuncs.com。百炼先返回一个临时下载地址，软件只会从阿里云自己的域名下载音频。",
             "MiniMax：国内站和国际站分开入口，Key 不通用。国内站在 platform.minimax.cn 的「接口密钥」创建，华北用户可以选「华北就近」地址；国际站在 platform.minimax.io。模型有 speech-2.8-hd（音质优先）、speech-2.8-turbo（速度优先）等。音色 ID 如 male-qn-qingse，复刻或设计的音色同样填 voice_id。若提示「该模型不支持这个音色」，请换模型或在音色里固定模型。",
@@ -133,12 +133,12 @@ internal static class GuideSections
         new GuideSection("generic", "06 · 通用协议：接入没有专属入口的厂商", "OpenAI 兼容接口覆盖大多数网关；再不行就用自定义 HTTP 模板。", false, new[]
         {
             "OpenAI 兼容接口：很多云服务、网关和本地项目都提供 /v1/audio/speech，例如 LiteLLM 网关、LocalAI、用 vLLM-Omni 部署的 IndexTTS。接口地址可以填完整地址；只填域名时会补成 /v1/audio/speech，以 /v1 结尾时会补成 /audio/speech。Key 按服务要求填写，本机服务可以留空。模型名和音色名必须是这项服务认识的值，不能照抄另一家的。",
-            "通用协议和本地模型的服务要自己起名字。同一个地址的多个 Key 算同一项服务，可以用「启用」在它们之间切换；音色也要自己起名字，挂在这项服务下面。",
+            "通用协议和自建模型的服务要自己起名字。同一个地址的多个 Key 算同一项服务，可以用「启用」在它们之间切换；音色也要自己起名字，挂在这项服务下面。",
             "自定义 HTTP 接口：适合只提供普通 HTTP 接口的小众厂商。依次填写：接收 POST 的地址；请求头（每行一个「名称: 值」，Key 写成 {{key}}）；请求体模板（用 {{text}} {{voice}} {{model}} {{speed}} 占位，软件会正确处理文字里的引号和换行）；最后告诉软件音频怎么返回——直接返回 MP3 / WAV，或者返回 JSON，并说明音频在哪个字段（如 data.audio、result[0].audio）以及编码（base64、十六进制或下载地址）。",
             "举个例子：某服务要求 POST {\"text\": \"…\", \"speaker\": \"…\"}，返回 {\"data\": {\"audio\": \"<base64>\"}}。请求头填 Authorization: Bearer {{key}}；请求体填 {\"text\": \"{{text}}\", \"speaker\": \"{{voice}}\"}；返回方式选「返回 JSON」，字段填 data.audio，编码选 base64。添加音色时，音色 ID 就是要填进 {{voice}} 的值。",
             "安全约定：{{key}} 只能写在请求头里，不能写进请求体或地址；Key 留空时，含 {{key}} 的请求头不会发送。远程地址必须是 HTTPS。返回的必须是完整的 MP3 或 WAV，否则这一条会被跳过。"
         }),
-        new GuideSection("local", "07 · 本地模型：在自己电脑上跑", "先自己启动模型服务，软件只负责调用。", false, new[]
+        new GuideSection("local", "07 · 自建模型：在自己电脑上跑", "先自己启动模型服务，软件只负责调用。", false, new[]
         {
             "本地模型需要你先安装并启动它的接口服务，软件只负责调用，不会替你下载模型或启动服务。普通 HTTP 只允许 127.0.0.1 或 localhost；服务放在局域网另一台电脑上时，需要它提供 HTTPS。",
             "GPT-SoVITS：运行官方的 api_v2.py，默认地址 http://127.0.0.1:9880/tts。音色用「参考音频」：参考录音路径（运行服务那台电脑上的路径）、参考原文（可选）、参考语言和朗读语言。软件只发送路径和原文，不上传录音。",
@@ -146,7 +146,7 @@ internal static class GuideSections
             "Kokoro-FastAPI：默认地址 http://127.0.0.1:8880/v1/audio/speech，模型 kokoro，中文音色如 zf_xiaoxiao、zm_yunxi。体积小、CPU 也能跑，但中文质量一般，很短的句子可能读得不自然。",
             "LocalAI：默认地址 http://127.0.0.1:8080/v1/audio/speech，模型和音色按你在 LocalAI 里安装的后端填写，也可以填它保存的 localai://voice-profiles/… 音色地址。",
             "CosyVoice、IndexTTS、F5-TTS 等：官方自带的多是网页界面或专用接口。建议用提供 OpenAI 兼容 /v1/audio/speech 的封装或网关运行它们（例如用 vLLM-Omni 部署 IndexTTS 2.5），再按第 06 节的「OpenAI 兼容接口」接入。",
-            "本地合成占用电脑的 CPU、显卡和内存，第一句的等待时间取决于电脑性能和模型大小。"
+            "本地合成占用电脑的 CPU、显卡和内存，第一句的等待时间取决于电脑性能和模型大小。安装时要从 GitHub 或 Hugging Face 下载代码和模型，在中国大陆可能需要海外网络；不少项目也在 ModelScope（魔搭）提供国内镜像。"
         }),
         new GuideSection("contacts", "08 · 找到并添加联系人", "核对微信号，最近使用和搜索记录都可以自行清除。", false, new[]
         {
