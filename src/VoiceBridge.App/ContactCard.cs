@@ -286,13 +286,13 @@ internal sealed class ContactCard : INotifyPropertyChanged
     public bool ShowRead => listening && ReminderOn && unanswered > 0;
     public bool ShowBadge => ShowRead;
     public string Badge => unanswered > 99 ? "99+" : unanswered.ToString();
-    public string PrivacySummary => !PrivacyOn ? "未开启，照常朗读内容" : Privacy.Style switch
+    public string PrivacySummary => !PrivacyOn ? "未开启" : Privacy.Style switch
     {
         PrivacyStyle.Name => $"播报“{Name}给你发消息了”",
         PrivacyStyle.Secret when Privacy.Secret.Trim().Length > 0 => $"暗语“{Privacy.Secret.Trim()}”",
         _ => "播报“微信来消息了”"
     };
-    public string ReminderSummary => !ReminderOn ? "未开启，没回也不再提醒" : ShowRead ? $"{unanswered} 条没回" :
+    public string ReminderSummary => !ReminderOn ? "未开启" : ShowRead ? $"{unanswered} 条没回" :
         Reminder.Continuous ? "持续提醒，直到回复" : $"每 {Reminder.Interval} 分钟，最多 {Minutes(Reminder.Duration)}";
 
     public void UpdateAttention(PrivacySettings privacy, ReminderSettings reminder)

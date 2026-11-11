@@ -9,7 +9,9 @@
 - **一句话现状**：源码与线上同为 **1.6.0**（源码 commit `f279d5e`，payload `1.6.0+f279d5e…`）。Muse 发布单 `codex_20261111_111550_686f2b` 先 `info` 后 `ok`（`publishedAt=2026-11-11T10:19:18Z`，哈希链三方一致，旧清单备份 `latest.json.bak-1.5.3`）。本助手已独立公网复核：清单 200、六字段齐全、notes 321 字中文正常；ZIP / Setup HEAD 200，长度 92,137,109 / 67,090,008；完整下载 ZIP 重算 SHA-256 与清单一致。桌面快捷方式未动（仍指向 1.4.7 r3）。
 - **1.6.0 产物**：ZIP `artifacts\WeChat-Voice-Bridge-V1.6.0-win-x64.zip` = 92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d`；Setup `artifacts\WeChat-Voice-Bridge-V1.6.0-Setup.exe` = 67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378`；payload `artifacts\win-x64-v1.6.0\`（1993 文件）。
 - **发布闭环已完成**：文档提交 `7dfa96c` 已推送，Muse 已回确认（`codex_20261111_113411_4a62b1`，`ok`，无进一步动作）。
-- **任务二（隐私模式 / 提醒模式）：代码完成，等用户实测**。未升版本号、未打包、未上线。准绳是 [privacy-reminder.md](privacy-reminder.md)（定稿需求 §1「补充三」「补充四」，界面 §8「第三版修订」），逐节记录在 WORKLOG「任务二 · 节 1–8」。
+- **任务二（隐私模式 / 提醒模式）：代码完成，正在做用户要求的第二轮打磨，做完后升 1.7.0 并经 Muse 发布**（用户原话：「都修好测好后联系 muse 上传吧」）。准绳是 [privacy-reminder.md](privacy-reminder.md)（定稿需求 §1「补充三」「补充四」，界面 §8「第三版修订」），逐节记录在 WORKLOG「任务二 · 节 1–9」。
+  - **续跑点**：节 9a（设置卡片精简、提醒词书面语、试听可取消、「选择本机音频」动作项）已完成。节 9b 是更新说明：滚动条只在滚动时出现，需要滚动时底部正好露出半行。然后升 1.7.0 → 打包 → 一张 Muse 发布单 → 公网复核 → 记录。
+  - **用户正在运行开发版**（`bin\Release\net8.0-windows`，文件被锁）。不要结束它。应用改用 `-r win-x64` 编译；`Test.ps1` 第一步会编不过，用同样步骤、应用加 `-r win-x64` 代替。打包 `Publish.ps1` 本来就带 `-r win-x64`，不受影响。实机巡检做不了（单实例，第二份会直接唤醒用户那份）。
   - worker：`wechat_adapter.py` 的回复游标与 `take_replies()`，`main.py` 在 `message` / `heartbeat` 里带 `replies`。
   - Core：`Attention.cs`（设置与播报句）、`ReplyTracker.cs`（待回复与计时），以及 `SessionController` 的 `Replied` / `Received` / `Finished` / `Merge` / `Announce`。
   - App：`MainWindow.Attention.cs`（接线、定时器、提醒音）、`ModeCapsule.cs`（多人胶囊）、`ModeCard.cs`（单人宽卡）、`MainWindow.Morph.cs`（单人 ↔ 多人变形）、`ModeSettingsDialog.cs`（设置卡片）、使用说明第 10 节。

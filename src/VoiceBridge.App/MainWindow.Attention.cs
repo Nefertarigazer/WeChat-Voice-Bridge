@@ -93,8 +93,8 @@ public partial class MainWindow
         Render();
     }
 
-    /// <summary>Plays a reminder sound once, on the device chosen for reading.</summary>
-    private async System.Threading.Tasks.Task PreviewSoundAsync(string sound)
+    /// <summary>Plays a reminder sound once, on the device chosen for reading, until cancelled.</summary>
+    private async System.Threading.Tasks.Task PreviewSoundAsync(string sound, CancellationToken token)
     {
         if (Cue(sound) is not { } audio)
         {
@@ -107,8 +107,10 @@ public partial class MainWindow
             var settings = ReadSettings();
             var player = new VoiceBridge.Audio.WindowsPlayer(settings.Device, (float)settings.Volume);
             player.Validate();
-            await player.PlayAsync(audio, start => { start(); return true; }, CancellationToken.None);
+            // The player stops its output when the token is cancelled (试听 → 取消).
+            await player.PlayAsync(audio, start => { start(); return true; }, token);
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception)
         {
             notice = "提醒音播放失败，请检查播放设备。";
