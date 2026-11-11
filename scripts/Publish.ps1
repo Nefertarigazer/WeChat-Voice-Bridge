@@ -93,6 +93,44 @@ print("worker dependencies ok")
 & (Join-Path $python 'python.exe') -I -B $dependencyCheck $workerDeps
 if ($LASTEXITCODE -ne 0) { throw 'The worker dependencies failed their smoke check.' }
 
+# The free Edge voices reuse edge-tts (LGPLv3, unmodified, kept as a separate
+# package so it can be replaced) and its aiohttp stack. They live apart from the
+# WeChat worker's deps: worker\edge_speak.py is the only code that imports them.
+$ttsWheels = @(
+    @('edge_tts-7.3.1-py3-none-any.whl', 'https://files.pythonhosted.org/packages/35/86/3b97d755992777d5a9ca0e45a8ec96cc9858b2d6dd8f65f3f688d60e8709/edge_tts-7.3.1-py3-none-any.whl', '2A3C79D6235A7A736D681233823CE5492E829B43EB47BEAE49AA181237A8F9A4'),
+    @('aiohttp-3.14.5-cp312-cp312-win_amd64.whl', 'https://files.pythonhosted.org/packages/ae/ce/1f08114679d49655b30a6e0a29858375c94b82c1de1a0bd0a20c2fee8b02/aiohttp-3.14.5-cp312-cp312-win_amd64.whl', '2CC38A4F2B516BEF1714E690DF87A0E043FAF1A7693C82D860091684453D5111'),
+    @('aiohappyeyeballs-2.7.1-py3-none-any.whl', 'https://files.pythonhosted.org/packages/71/43/1947f06babed6b3f1d7f38b0c767f52df66bfb2bc10b468c4a7de9eceff2/aiohappyeyeballs-2.7.1-py3-none-any.whl', '9243213661E29250EB41368E5DAA826FC017156C3B8A11440826B2E3ED376472'),
+    @('aiosignal-1.4.0-py3-none-any.whl', 'https://files.pythonhosted.org/packages/fb/76/641ae371508676492379f16e2fa48f4e2c11741bd63c48be4b12a6b09cba/aiosignal-1.4.0-py3-none-any.whl', '053243F8B92B990551949E63930A839FF0CF0B0EBBE0597B0F3FB19E1A0FE82E'),
+    @('async_timeout-5.0.1-py3-none-any.whl', 'https://files.pythonhosted.org/packages/fe/ba/e2081de779ca30d473f21f5b30e0e737c438205440784c7dfc81efc2b029/async_timeout-5.0.1-py3-none-any.whl', '39E3809566FF85354557EC2398B55E096C8364BACAC9405A7A1FA429E77FE76C'),
+    @('attrs-26.1.0-py3-none-any.whl', 'https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl', 'C647AA4A12DFBAD9333CA4E71FE62DDC36F4E63B2D260A37A8B83D2F043AC309'),
+    @('certifi-2026.10.23-py3-none-any.whl', 'https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl', 'E9B54DE76E530BB6CF0CCD036787103ACB58FD42BA930EA8BF948DDBAA2F61D1'),
+    @('frozenlist-1.8.0-cp312-cp312-win_amd64.whl', 'https://files.pythonhosted.org/packages/b8/af/38e51a553dd66eb064cdf193841f16f077585d4d28394c2fa6235cb41765/frozenlist-1.8.0-cp312-cp312-win_amd64.whl', '34187385B08F866104F0C0617404C8EB08165AB1272E884ABC89C112E9C00746'),
+    @('idna-3.20-py3-none-any.whl', 'https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl', 'AB7AE7122974553370F0BDB919E1A960B2CD1BC1EF0276416D896DB81C14582C'),
+    @('multidict-7.2.1-cp312-cp312-win_amd64.whl', 'https://files.pythonhosted.org/packages/68/d5/64108a33c21bde81454b5a400d16baa1378a7d01599de64b131c3e3e3114/multidict-7.2.1-cp312-cp312-win_amd64.whl', '781CA5DFC2F1D58E47F52216A0C1C7E1BA91CE8AA235459E20DE2D402AF77FB3'),
+    @('propcache-0.5.4-cp312-cp312-win_amd64.whl', 'https://files.pythonhosted.org/packages/58/7b/6e8ef26f6d510a7916064fec68d55fcbfbdf7eb01e377480d66a122152d8/propcache-0.5.4-cp312-cp312-win_amd64.whl', '98914DE2C4D7F0F9F4A8C6EA4BF05841F4175796941E3EF7D47EB718F22311FB'),
+    @('tabulate-0.10.0-py3-none-any.whl', 'https://files.pythonhosted.org/packages/99/55/db07de81b5c630da5cbf5c7df646580ca26dfaefa593667fc6f2fe016d2e/tabulate-0.10.0-py3-none-any.whl', 'F0B0622E567335C8FABAAA659F1B33BCB6DDFE2E496071B743AA113F8774F2D3'),
+    @('typing_extensions-4.16.0-py3-none-any.whl', 'https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl', '481CAA481374E813C1B176ADA14E97F1F67A4539CE9CFEB3F350D78D6370C2E8'),
+    @('yarl-1.25.1-cp312-cp312-win_amd64.whl', 'https://files.pythonhosted.org/packages/bb/cc/51a7b4abf4ac593b8e7eb3794b28e5a35ae26eed8bc04787628d215af82f/yarl-1.25.1-cp312-cp312-win_amd64.whl', '7D575B54CB3863EF9BC290EA4B009999D55DC237326131E4853CF33E888FEE03')
+)
+$ttsDeps = Join-Path $output 'worker\tts-deps'
+New-Item -ItemType Directory -Force $ttsDeps | Out-Null
+foreach ($entry in $ttsWheels) {
+    $wheel = Get-VerifiedWheel -Name $entry[0] -Url $entry[1] -Hash $entry[2]
+    & (Join-Path $python 'python.exe') -I -B -m zipfile -e $wheel $ttsDeps
+    if ($LASTEXITCODE -ne 0) { throw "Wheel extraction failed: $wheel" }
+}
+$ttsCheck = Join-Path $toolsRoot 'verify-tts-deps.py'
+Set-Content -LiteralPath $ttsCheck -Encoding UTF8 -Value @'
+import sys
+sys.path.insert(0, sys.argv[1])
+import edge_tts
+from edge_tts import Communicate, exceptions
+assert edge_tts.__version__ == "7.3.1", edge_tts.__version__
+print("speech dependencies ok")
+'@
+& (Join-Path $python 'python.exe') -I -B $ttsCheck $ttsDeps
+if ($LASTEXITCODE -ne 0) { throw 'The edge-tts dependencies failed their smoke check.' }
+
 # A shipped build must never carry this machine's settings.json, DPAPI store or
 # a live API key. Fail the publish before any ZIP is written.
 . (Join-Path $PSScriptRoot 'Assert-CleanPayload.ps1')

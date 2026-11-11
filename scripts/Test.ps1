@@ -2,7 +2,9 @@ param(
     [string]$Dotnet = 'dotnet',
     [string]$Python,
     [switch]$Benchmark,
-    [switch]$AudioDevice
+    [switch]$AudioDevice,
+    # Real calls to free online services (Edge read-aloud). Needs WVB_TTS_DEPS.
+    [switch]$Network
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -22,6 +24,7 @@ $env:WVB_BENCHMARK_PATH = Join-Path $artifacts 'benchmark.json'
 $filter = @()
 if (!$Benchmark) { $filter += 'Category!=Benchmark' }
 if (!$AudioDevice) { $filter += 'Category!=AudioDevice' }
+if (!$Network) { $filter += 'Category!=Network' }
 $argsForTest = @()
 if ($filter.Count -gt 0) { $argsForTest = @('--filter', ($filter -join '&')) }
 

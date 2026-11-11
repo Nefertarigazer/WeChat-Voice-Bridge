@@ -63,6 +63,22 @@
 - **验证**：`Test.ps1` **.NET 250/250 PASS** + Python 54 PASS。
 - **下一节**：节 5 Edge 朗读（随包附带 edge-tts，宿主子进程调用，实测一次）。
 
+### 节 5：微软 Edge 免费朗读（复用 edge-tts）
+
+- **为什么复用**：Edge 朗读服务要算一个会变的校验令牌（2026 年 10 月就有一波 403），这正是用户说的「别造轮子」——交给 edge-tts（约 1.25 万星，LGPLv3，2026-10-13 发 7.3.1）的维护者跟进，我们只升版本。
+- **依赖解析**：用本机 pip 按 `--platform win_amd64 --python-version 3.12` 解析出 14 个轮子（edge-tts 7.3.1、aiohttp 3.14.5 及其依赖，合计约 1.2 MB 压缩、解压约 3.7 MB），逐个从 PyPI JSON 取下载地址与 SHA-256 并与本地文件核对一致。
+- **实测发现**：单次启动进程每条要 5 秒，其中 **4.2 秒是导入**（`-X importtime`：aiohttp.connector 与 edge_tts 在导入时各自创建 TLS 上下文，Windows 上加载系统证书很慢），与字节码无关（预编译后不变）。所以改成**常驻子进程**。
+- **`worker/edge_speak.py`**（新）：常驻、逐行 JSON 协议；启动先回 `{"ready": true}`（缺 edge-tts 回 `dependency`）；请求 `{text, voice, speed}`，回 `{"ok": true, "audio": base64}` 或 `{"ok": false, "code": request|no-audio|too-large|network}`；音色名、长度、语速在 Python 侧再校验一次；stdout 只走协议，stderr 只写短代码，不写消息正文；`-I` 隔离，只把同目录的 `tts-deps` 加入路径。
+- **`src/VoiceBridge.WeChat/EdgeSpeechHost.cs`**（新）：一个进程服务整个会话，`SemaphoreSlim` 保证一次一条；Job Object 绑定随应用结束；请求被取消或超时就杀掉进程（防止下一条读到上一条的回复），下次自动重启；启动等待 `ready` 最多 30 秒；`Warm()` 后台预热。错误码映射成中文提示。
+- **接线**：`MainWindow.Library.cs` 的 `speechFactory` 改为 `new(edge: …EdgeHost.SpeakAsync…)`；启动时和保存服务后，如有 Edge 服务就 `WarmEdgeIfUsed()`；窗口关闭时释放。
+- **打包**：`scripts/Publish.ps1` 新增 14 个锁定 URL + SHA-256 的轮子，解到 `worker\tts-deps`（与微信 worker 的 `worker\deps` 分开），并做导入与版本冒烟检查（`edge_tts.__version__ == 7.3.1`）。edge-tts 以未修改的独立包形式随附，`edge_tts-7.3.1.dist-info/licenses` 里带 LGPL 许可证文本。轮子已预置到 `artifacts\build-tools`。
+- **测试**：新增 `EdgeSpeechHostTests` 4 例——假助手的一问一答与失败后仍同步、取消后重启不读旧回复、缺组件时 `Available=false`（这三例走 `WVB_PYTHON`，不联网）；以及 **`Category=Network` 的真实联网测试**（随包脚本 + 真 edge-tts 合成两句中文，第二句复用同一进程）。`Test.ps1` 新增 `-Network` 开关，默认不跑联网测试。
+- **验证**：
+  - `Test.ps1` **.NET 253/253 PASS** + Python 54 PASS。
+  - 真实联网：`dotnet test --filter Category=Network`（`WVB_TTS_DEPS` 指向解压目录）**通过，6 秒**（含约 4 秒启动）；此前手工直跑脚本得到 15,408 字节 MP3（`FF F3` 帧头，MPEG-2 Layer III），`zh-CN-XiaoxiaoNeural`。
+- **开发版前提（新增）**：`bin\Release\net8.0-windows\worker\tts-deps` 已放好依赖；清理过 bin 后需重新放（可从 `artifacts\build-tools` 的轮子解压）。
+- **下一节**：节 6 界面（添加服务分组目录、按预设生成字段、模型多选、音色示例与固定模型）。
+
 ---
 
 ## 1.5.3 · 2026-11-11（已发布上线）

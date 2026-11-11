@@ -12,7 +12,9 @@
 - **关键约定（节 2 起）**：判断「是不是同一家」一律用 `ServiceIdentity.Of/Same`，**不要再用 `Kind ==`**；读写当前模型一律用 `SpeechModels.Current/Use/Listed`（豆包的模型是资源 ID）。`SpeechProviderKind` 只能在末尾追加。
 - **节 3 已完成**：`src/VoiceBridge.Core/ProviderCatalog.cs`（19 个预设：13 主流 + 2 通用 + 4 本地），.NET 227/227。界面还没接上目录（节 5）。
 - **节 4 已完成**：工厂支持 ElevenLabs / MiniMax / 阿里百炼 / Gemini / 自定义 HTTP，Fish 扩到 4 个模型并允许本机 fish-speech，.NET 250/250。
-- **续跑点**：节 5 Edge 朗读——`Publish.ps1` 增加锁定哈希的 edge-tts 7.3.1 及依赖轮子（解到 `worker\tts-deps`，与微信 worker 的 `deps` 分开），新增 `worker/edge_speak.py`（stdin 收 JSON、stdout 吐 MP3，`-I` 隔离），App 端把 `SpeechProviderFactory(edge: …)` 接到子进程；开发目录也要放一份依赖；用真实网络合成一句中文验证。之后节 6 界面。
+- **节 5 已完成**：Edge 免费朗读复用 edge-tts 7.3.1（常驻子进程 `worker/edge_speak.py` + `EdgeSpeechHost`），`Publish.ps1` 锁定 14 个轮子到 `worker\tts-deps`；真实联网测试通过。.NET 253/253。
+- **开发版前提**：`bin\Release\net8.0-windows\` 下除了 `runtime\`、`worker\deps\`，现在还需要 `worker\tts-deps\`（已放好）。
+- **续跑点**：节 6 界面——`ProfileEditors.cs` 的 `ProviderEditor` 第一页改成按 `ProviderCatalog` 分三组的列表（主流 / 通用 / 本地），第二页字段按预设生成（地址或地域下拉、Key 是否必填、模型勾选 + 自填、获取 Key 链接、注意事项）；`VoiceEditor` 按预设给音色示例下拉（可手填）、参考音频形态、可选「固定模型」；新服务写入 `Preset` 与 `Vendor`（`preset.VendorFor`）。
 - **约束**：不打包、不上线、不改桌面快捷方式；保留三条红线；任务二（隐私模式 / 提醒模式）等任务一稳定后再做。
 - **环境**：SDK 实际在 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk-tmp\dotnet.exe`（文档里旧写法 `wvb-sdk\sdk\dotnet.exe` 已不存在）。
 

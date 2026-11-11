@@ -16,7 +16,10 @@ namespace VoiceBridge.App;
 
 public partial class MainWindow
 {
-    private readonly SpeechProviderFactory speechFactory = new();
+    // The free Edge voices run through the bundled edge-tts helper (one child process).
+    private static readonly EdgeSpeechHost EdgeHost = new();
+    private readonly SpeechProviderFactory speechFactory = new(edge: (request, token) =>
+        EdgeHost.SpeakAsync(request.Text, request.Voice, request.Speed, token));
     private readonly AvatarCache avatars = new();
     private readonly ContactSearchCache contactIndexCache = new();
     private readonly CancellationTokenSource avatarStop = new();
@@ -112,13 +115,21 @@ public partial class MainWindow
         if (!setupCompleted) NavHelp.IsChecked = true;
         PublishRouting();
         RefreshHistory();
+        WarmEdgeIfUsed();
         Closed += (_, _) =>
         {
             avatarStop.Cancel();
             avatars.Dispose();
             avatarStop.Dispose();
             speechFactory.Dispose();
+            EdgeHost.Dispose();
         };
+    }
+
+    /// <summary>Loading edge-tts takes seconds; do it early when an Edge service is configured.</summary>
+    private void WarmEdgeIfUsed()
+    {
+        if (providers.Any(item => item.Kind == SpeechProviderKind.EdgeTts)) EdgeHost.Warm();
     }
 
     private void LoadContactCards()
@@ -606,6 +617,7 @@ public partial class MainWindow
                 }
             }
             RefreshLibrary(); SaveNow();
+            WarmEdgeIfUsed();
             notice = "已保存。";
         }
         catch (Exception) { notice = "保存服务凭据失败，请检查本机配置目录权限。"; }
