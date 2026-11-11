@@ -66,4 +66,68 @@ internal static class AudioSignature
         }
         return cursor == bytes.Length && format && data && alignment > 0 && dataLength % alignment == 0;
     }
+
+    /// <summary>
+    /// Wrap headerless 16-bit little-endian PCM (what Gemini and several local
+    /// servers return) in a RIFF header so the player can open it.
+    /// </summary>
+    public static byte[] WaveFromPcm16(ReadOnlySpan<byte> pcm, int sampleRate, int channels = 1)
+    {
+        if (sampleRate is < 8000 or > 192000 || channels is < 1 or > 8)
+            throw new ArgumentOutOfRangeException(nameof(sampleRate));
+        var alignment = channels * 2;
+        var length = pcm.Length - pcm.Length % alignment;
+        var bytes = new byte[44 + length];
+        "RIFF"u8.CopyTo(bytes);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(4), 36 + length);
+        "WAVEfmt "u8.CopyTo(bytes.AsSpan(8));
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(16), 16);
+        BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(20), 1);
+        BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(22), (short)channels);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(24), sampleRate);
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(28), sampleRate * alignment);
+        BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(32), (short)alignment);
+        BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(34), 16);
+        "data"u8.CopyTo(bytes.AsSpan(36));
+        BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(40), length);
+        pcm[..length].CopyTo(bytes.AsSpan(44));
+        return bytes;
+    }
+
+    /// <summary>
+    /// Streaming servers often write a WAV header before they know the length and
+    /// leave the size fields at 0 or 0xFFFFFFFF. Only that placeholder case is
+    /// repaired; a header that promises more data than arrived stays refused.
+    /// </summary>
+    public static byte[]? RepairStreamedWave(byte[] bytes)
+    {
+        if (bytes.Length < 44 || !bytes.AsSpan().StartsWith("RIFF"u8) || !bytes.AsSpan(8, 4).SequenceEqual("WAVE"u8))
+            return null;
+        var riff = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(4));
+        var cursor = 12;
+        int channels = 0, rate = 0, bits = 0;
+        while (cursor + 8 <= bytes.Length)
+        {
+            var id = bytes.AsSpan(cursor, 4);
+            var count = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(cursor + 4));
+            if (id.SequenceEqual("fmt "u8))
+            {
+                if (count < 16 || cursor + 8 + 16 > bytes.Length) return null;
+                if (BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(cursor + 8)) != 1) return null;
+                channels = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(cursor + 10));
+                rate = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(cursor + 12));
+                bits = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(cursor + 22));
+            }
+            else if (id.SequenceEqual("data"u8))
+            {
+                var placeholder = count is 0 or uint.MaxValue || riff is 0 or uint.MaxValue;
+                if (!placeholder || bits != 16 || channels is < 1 or > 8 || rate is < 8000 or > 192000) return null;
+                var pcm = bytes.AsSpan(cursor + 8);
+                return pcm.Length == 0 ? null : WaveFromPcm16(pcm, rate, channels);
+            }
+            if (count > (uint)(bytes.Length - cursor - 8)) return null;
+            cursor += 8 + (int)count + (int)(count & 1);
+        }
+        return null;
+    }
 }

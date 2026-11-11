@@ -47,6 +47,22 @@
 - **说明**：目录里少数链接和示例（火山控制台入口、豆包示例音色、硅基流动 Key 页面、阶跃星辰/智谱 Key 页面）来自常见入口，未逐一打开核实；示例音色都标了「示例」或以官方页面为准。
 - **下一节**：节 4 协议适配器。
 
+### 节 4：新协议适配器 + Fish 扩模型 / 放开本机 fish-speech
+
+- **`src/VoiceBridge.FishAudio/SpeechProviderFactory.cs`**（重写，公共接口不变）：
+  - **ElevenLabs**：`POST {base}/v1/text-to-speech/{voice_id}?output_format=mp3_44100_128`，`xi-api-key` 头，`model_id`；语速≠1 时发 `voice_settings.speed`（夹在 0.7–1.2）。
+  - **MiniMax**：`model / text / stream=false / voice_setting / audio_setting(mp3, 32k) / output_format=hex`；HTTP 200 里看 `base_resp.status_code`，1004/2049（密钥）、1008/2053/2056（余额）、1002/1039（限流）、2054/2042/2043/2069（音色/模型）分别给出中文说明，不回显服务端原文。
+  - **阿里云百炼**：模型以 `cosyvoice` 开头走 `/api/v1/services/audio/tts/SpeechSynthesizer`（mp3、24 kHz、`rate`、可选 `instruction`），否则走千问 `/api/v1/services/aigc/multimodal-generation/generation`；返回的 `output.audio.url` 再下载：**只允许 `*.aliyuncs.com`、http 自动升 https、下载时不带任何认证头**；错误码 InvalidApiKey/Arrearage/Throttling 有中文说明。
+  - **Gemini**：`/v1beta/models/{model}:generateContent`，`x-goog-api-key`，`responseModalities=["AUDIO"]` + `prebuiltVoiceConfig.voiceName`，音色描述放 `speech_metadata.style`；返回 base64，RIFF 直接用，裸 PCM 按 mimeType 里的采样率（缺省 24 kHz）包成 WAV。
+  - **自定义 HTTP**（`CustomTemplates`）：请求头逐行 `名称: 值`，`{{key}}` 只允许出现在请求头（写在请求体或地址里直接拒绝）；Key 留空时含 `{{key}}` 的头整行不发；请求体占位符 `{{text}} {{voice}} {{model}} {{speed}}` 按 JSON 字符串转义（保留中文），JSON 类型的请求体填好后会再解析一次；返回可选「直接音频」或「JSON 字段（点路径，支持 `[0]`）+ base64/hex/url」；禁止自定义 Host/Content-Length 等头。
+  - **Edge 朗读**：工厂新增可选的 `edge` 委托（`EdgeSpeechRequest`），节 5 由宿主接上 edge-tts；未接上时提示「缺少 Edge 朗读组件」。
+  - **Fish**：模型校验改用 `ProviderCatalog.FishModelIds`（s2.1-pro-free / s2.1-pro / s2-pro / drama-3），勾选列表外的模型照旧拒绝；**本机 loopback 地址允许（fish-speech）**，此时 Key 可选、不发 model 头、`FishModels` 返回空；非本机的非官方地址仍拒绝（Fish 密钥只发官方）。重试只针对免费模型，任何付费 Fish 模型都不自动重试。
+  - 通用：`ResolveEndpoint` 对 ElevenLabs/Gemini/百炼只保留来源（路径由模型/音色决定），地址里出现 `{{` 一律拒绝；`RequiresCredential` 对 GPT-SoVITS/Edge/自定义 HTTP 为可选；协议显示名改为「Azure 语音服务」「火山引擎 · 豆包语音」「GPT-SoVITS」。
+- **`AudioSignature.cs`**：新增 `WaveFromPcm16`（裸 PCM 包 WAV）与 `RepairStreamedWave`（只修大小字段是 0 / 0xFFFFFFFF 的流式占位头；声明长度大于实际的截断文件仍拒绝）。
+- **测试**：新增 `VendorAdapterTests` 23 例（ElevenLabs 路径与头、MiniMax 十六进制解码与 3 种错误、百炼 CosyVoice 下载不带 Key、千问 WAV、百炼外域链接拒绝下载、Gemini PCM 包 WAV 与无音频说明、本机 fish-speech 无 Key 无 model 头、Fish 非官方远程地址拒绝、Fish 新模型与勾选约束、付费 Fish 不重试、自定义模板转义与 Key 只在头里、空 Key 不发认证头、5 种不安全/不完整模板被拒、流式 WAV 修复、目录里每个协议工厂都认识）。原有 `ProviderTests` 全部照过。
+- **验证**：`Test.ps1` **.NET 250/250 PASS** + Python 54 PASS。
+- **下一节**：节 5 Edge 朗读（随包附带 edge-tts，宿主子进程调用，实测一次）。
+
 ---
 
 ## 1.5.3 · 2026-11-11（已发布上线）

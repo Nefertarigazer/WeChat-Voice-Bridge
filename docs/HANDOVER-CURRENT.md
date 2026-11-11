@@ -11,7 +11,8 @@
 - **已完成**：节 1（调研 + 设计文档）；节 2（厂商身份改为服务身份 `ServiceIdentity`、音色固定模型、模型切换推广到所有协议、迁移与测试，.NET 216/216）。
 - **关键约定（节 2 起）**：判断「是不是同一家」一律用 `ServiceIdentity.Of/Same`，**不要再用 `Kind ==`**；读写当前模型一律用 `SpeechModels.Current/Use/Listed`（豆包的模型是资源 ID）。`SpeechProviderKind` 只能在末尾追加。
 - **节 3 已完成**：`src/VoiceBridge.Core/ProviderCatalog.cs`（19 个预设：13 主流 + 2 通用 + 4 本地），.NET 227/227。界面还没接上目录（节 5）。
-- **续跑点**：节 4 协议适配器（`src/VoiceBridge.FishAudio/SpeechProviderFactory.cs`）——新增 ElevenLabs、MiniMax、DashScope（CosyVoice HTTP + 千问 TTS，返回音频地址再下载，只允许 `*.aliyuncs.com`）、Gemini（base64 WAV/PCM）、CustomHttp；Fish 的模型校验改用 `ProviderCatalog.FishModelIds`、允许本机 fish-speech（loopback + 可选 Key）。EdgeTts 留到节 6。
+- **节 4 已完成**：工厂支持 ElevenLabs / MiniMax / 阿里百炼 / Gemini / 自定义 HTTP，Fish 扩到 4 个模型并允许本机 fish-speech，.NET 250/250。
+- **续跑点**：节 5 Edge 朗读——`Publish.ps1` 增加锁定哈希的 edge-tts 7.3.1 及依赖轮子（解到 `worker\tts-deps`，与微信 worker 的 `deps` 分开），新增 `worker/edge_speak.py`（stdin 收 JSON、stdout 吐 MP3，`-I` 隔离），App 端把 `SpeechProviderFactory(edge: …)` 接到子进程；开发目录也要放一份依赖；用真实网络合成一句中文验证。之后节 6 界面。
 - **约束**：不打包、不上线、不改桌面快捷方式；保留三条红线；任务二（隐私模式 / 提醒模式）等任务一稳定后再做。
 - **环境**：SDK 实际在 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk-tmp\dotnet.exe`（文档里旧写法 `wvb-sdk\sdk\dotnet.exe` 已不存在）。
 
