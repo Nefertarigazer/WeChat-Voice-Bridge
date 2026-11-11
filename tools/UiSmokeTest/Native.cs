@@ -89,6 +89,22 @@ internal static class Native
         return found;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CursorInfo { public int Size, Flags; public IntPtr Cursor; public int X, Y; }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorInfo(ref CursorInfo info);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr LoadCursor(IntPtr instance, IntPtr name);
+
+    /// <summary>Whether the cursor on screen right now is the given system cursor (e.g. 32648 = IDC_NO).</summary>
+    public static bool CursorIs(int systemCursor)
+    {
+        var info = new CursorInfo { Size = Marshal.SizeOf<CursorInfo>() };
+        return GetCursorInfo(ref info) && info.Cursor == LoadCursor(IntPtr.Zero, new IntPtr(systemCursor));
+    }
+
     /// <summary>PW_RENDERFULLCONTENT: also captures WPF and layered (transparent) windows.</summary>
     public static void Print(IntPtr hWnd, IntPtr hdc) => PrintWindow(hWnd, hdc, 2);
 

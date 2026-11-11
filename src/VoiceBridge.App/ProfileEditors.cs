@@ -24,8 +24,16 @@ internal abstract class ProfileEditor : Window
     // The card surface is #FFFEFB (DialogShell); the edges melt the content into it.
     private readonly Border topEdge = Edge(VerticalAlignment.Top, 28,
         (0, 0xFF), (0.55, 0x8C), (1, 0x00));
-    private readonly Border bottomEdge = Edge(VerticalAlignment.Bottom, 64,
-        (0, 0x00), (0.35, 0x5C), (0.7, 0xC8), (1, 0xFF));
+    // Light at the top so a peeking row stays readable, solid only at the very edge.
+    private readonly Border bottomEdge = Edge(VerticalAlignment.Bottom, DefaultFade,
+        (0, 0x00), (0.5, 0x48), (1, 0xE6));
+    private const double DefaultFade = 32;
+    /// <summary>
+    /// How much of the next row shows at the bottom edge: its head (a list entry's
+    /// name, a card's top half), never its tail.
+    /// </summary>
+    private const double PeekShare = 0.48;
+    private readonly double viewportLimit;
     private bool showTop, showBottom;
     private StackPanel? target;
     private bool choosing;
@@ -43,8 +51,9 @@ internal abstract class ProfileEditor : Window
         var pages = new Grid(); pages.Children.Add(Choice); pages.Children.Add(Fields);
         // No scroll bar: the wheel, touchpad and keyboard still scroll, and the edges
         // dissolve into the card wherever there is more to see (see UpdateEdges).
+        viewportLimit = Math.Max(120, MaxHeight - 250);
         scroll = new ScrollViewer { Content = pages, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, MaxHeight = Math.Max(120, MaxHeight - 250) };
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, MaxHeight = viewportLimit };
         var viewport = new Grid();
         viewport.Children.Add(scroll);
         viewport.Children.Add(topEdge);
@@ -109,6 +118,69 @@ internal abstract class ProfileEditor : Window
         back.Visibility = first ? Visibility.Collapsed : Visibility.Visible;
         // Each page starts at its top; the other page's scroll position means nothing here.
         scroll.ScrollToTop();
+        scroll.MaxHeight = viewportLimit;
+        bottomEdge.Height = DefaultFade;
+        var page = first ? Choice : Fields;
+        if (IsLoaded) Dispatcher.BeginInvoke(new Action(() => PeekNextRow(page)), System.Windows.Threading.DispatcherPriority.Loaded);
+        else
+        {
+            void Once(object? sender, RoutedEventArgs e) { Loaded -= Once; PeekNextRow(page); }
+            Loaded += Once;
+        }
+    }
+
+    /// <summary>
+    /// When a page is taller than the dialog, end the visible area a little way into
+    /// a row, so the head of the next entry peeks out from under the edge. A row that
+    /// starts below the edge reads as "there is more"; one whose tail is missing only
+    /// reads as "cut off". Only rows of a real size count (entries, fields, cards), so
+    /// a label or a one-line hint is never what peeks out.
+    /// </summary>
+    private void PeekNextRow(FrameworkElement page)
+    {
+        if (page.Visibility != Visibility.Visible || scroll.Content is not FrameworkElement content) return;
+        scroll.UpdateLayout();
+        if (content.ActualHeight <= viewportLimit + 0.5) return;
+        double cut = 0, peek = 0;
+        foreach (var row in Rows(page))
+        {
+            if (!row.IsVisible || row.ActualHeight < 28) continue;
+            var top = row.TransformToAncestor(content).Transform(new Point()).Y;
+            var at = top + row.ActualHeight * PeekShare;
+            if (at <= viewportLimit && at > cut) { cut = at; peek = at - top; }
+        }
+        // Never shrink the dialog much just to land on a row boundary.
+        if (cut < viewportLimit * 0.6) return;
+        scroll.MaxHeight = cut;
+        // The fade only softens the lower part of the peek, so the head stays legible.
+        bottomEdge.Height = Math.Max(12, peek * 0.6);
+    }
+
+    private static IEnumerable<FrameworkElement> Rows(DependencyObject node)
+    {
+        if (node is ListBoxItem item) { yield return item; yield break; }
+        if (node is ItemsControl list and not ComboBox)
+        {
+            foreach (var entry in Descendants<ListBoxItem>(list)) yield return entry;
+            yield break;
+        }
+        if (node is Panel panel)
+        {
+            foreach (UIElement child in panel.Children)
+                foreach (var row in Rows(child)) yield return row;
+            yield break;
+        }
+        if (node is FrameworkElement leaf) yield return leaf;
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject node) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+        {
+            var child = VisualTreeHelper.GetChild(node, i);
+            if (child is T match) { yield return match; continue; }
+            foreach (var deeper in Descendants<T>(child)) yield return deeper;
+        }
     }
     protected TextBox Text(string label, string value, int maximum = 512)
     {

@@ -165,10 +165,24 @@ public partial class MainWindow
 
     private void RestrictedQueryCursor(object sender, QueryCursorEventArgs e)
     {
-        if (RestrictedAt(e.GetPosition(this)) is null)
+        var position = e.GetPosition(this);
+        if (RestrictedAt(position) is null && !OverIdleClear(position))
             return;
         e.Cursor = Cursors.No;
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// The clear-records button is disabled while there is nothing to clear. A disabled
+    /// control never asks for a cursor itself, so the window answers for it with the
+    /// same "not allowed" cursor the restricted controls show during listening.
+    /// </summary>
+    private bool OverIdleClear(Point position)
+    {
+        if (ClearButton.IsEnabled || !ClearButton.IsVisible)
+            return false;
+        var local = TranslatePoint(position, ClearButton);
+        return local.X >= 0 && local.Y >= 0 && local.X < ClearButton.ActualWidth && local.Y < ClearButton.ActualHeight;
     }
 
     private void NavigationChanged(object sender, RoutedEventArgs e)

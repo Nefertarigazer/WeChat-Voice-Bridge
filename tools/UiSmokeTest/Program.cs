@@ -48,6 +48,12 @@ if (args.Length > 0 && string.Equals(args[0], "dialog", StringComparison.Ordinal
     return DialogShots(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "dialog",
         args.Length > 3 ? args[3] : "NavAdvanced", args.Length > 4 ? args[4] : "添加 API 服务", args.Skip(5).ToArray());
 
+// cursor <pid> <button name> [navId]: hovers a (possibly disabled) button and reports
+// whether Windows is showing the "not allowed" cursor over it.
+if (args.Length > 0 && string.Equals(args[0], "cursor", StringComparison.Ordinal))
+    return CursorCheck(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "清空朗读记录",
+        args.Length > 3 ? args[3] : "NavHome");
+
 var pid = args.Length > 0 && int.TryParse(args[0], out var parsed) ? parsed : 0;
 if (pid == 0)
 {
@@ -472,6 +478,33 @@ static void SampleDisclosure(AutomationElement dialog, IntPtr handle, string pre
         Thread.Sleep(300);
         Capture(handle, $"{prefix}-{phase}.png");
     }
+}
+
+static int CursorCheck(string pidText, string buttonName, string navId)
+{
+    var pid = int.TryParse(pidText, out var parsed) && parsed > 0
+        ? parsed
+        : Process.GetProcessesByName("WeChatVoiceBridge").FirstOrDefault()?.Id ?? 0;
+    if (pid == 0) { Console.WriteLine("FATAL: WeChatVoiceBridge is not running"); return 4; }
+    var process = Process.GetProcessById(pid);
+    for (var i = 0; i < 20 && process.MainWindowHandle == IntPtr.Zero; i++) { Thread.Sleep(500); process.Refresh(); }
+    Native.Show(process.MainWindowHandle);
+    Thread.Sleep(700);
+    var root = AutomationElement.FromHandle(process.MainWindowHandle);
+    var nav = WaitFor(() => ByAutomationId(root, navId));
+    if (nav is not null) { (nav.GetCurrentPattern(SelectionItemPattern.Pattern) as SelectionItemPattern)!.Select(); Thread.Sleep(1500); }
+    var target = WaitFor(() => ByNameContains(root, buttonName, ControlType.Button));
+    if (target is null) { Console.WriteLine($"FATAL: button [{buttonName}] not found"); return 4; }
+    var rect = target.Current.BoundingRectangle;
+    Native.Hover((int)(rect.X + rect.Width / 2), (int)(rect.Y + rect.Height / 2));
+    Thread.Sleep(400);
+    var no = Native.CursorIs(32648);
+    Console.WriteLine($"[{target.Current.Name}] enabled={target.Current.IsEnabled} cursor={(no ? "NO (not allowed)" : "other")}");
+    // Park the pointer away from the button and confirm the cursor goes back.
+    Native.Hover((int)rect.X - 120, (int)rect.Y + 160);
+    Thread.Sleep(400);
+    Console.WriteLine($"away from it: cursor={(Native.CursorIs(32648) ? "NO" : "other")}");
+    return no ? 0 : 7;
 }
 
 static int DialogShots(string pidText, string prefix, string navId, string buttonName, string[] items)

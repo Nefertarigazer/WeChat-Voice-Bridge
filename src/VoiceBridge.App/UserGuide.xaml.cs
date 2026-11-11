@@ -116,7 +116,7 @@ internal static class GuideSections
         }),
         new GuideSection("vendors", "05 · 主流厂商逐家说明", "每家去哪拿 Key、要填什么、音色在哪里找。", false, new[]
         {
-            "Fish Audio：在 Fish Audio 网站的「API Keys」页面创建 Key。可选模型有 S2.1 Pro 免费版（s2.1-pro-free，有公平使用限额、不保证延迟）、S2.1 Pro 付费版（官方推荐）、S2 Pro 和 Drama 3。音色填 32 位的 Voice ID。s1 模型将于 2026-12-31 退役，因此不再提供。",
+            "Fish Audio（需海外网络）：在 Fish Audio 网站的「API Keys」页面创建 Key。可选模型有 S2.1 Pro 免费版（s2.1-pro-free，有公平使用限额、不保证延迟）、S2.1 Pro 付费版（官方推荐）、S2 Pro 和 Drama 3。音色填 32 位的 Voice ID。s1 模型将于 2026-12-31 退役，因此不再提供。",
             "OpenAI（需海外网络）：在 platform.openai.com 的 API keys 页面创建。模型有 gpt-4o-mini-tts（可以在音色的「语气指令」里写想要的语气）、tts-1、tts-1-hd。官方推荐的 marin、cedar 音色只配 gpt-4o-mini-tts。注意：OpenAI 已宣布这些语音模型将于 2027-01-06 停用，官方替代只提供实时语音接口，本软件暂不支持；到期前可以正常使用。",
             "ElevenLabs（需海外网络）：在 ElevenLabs 设置里的 API Keys 创建。默认模型 Multilingual v2（中文稳定），另有 Eleven v3、Flash v2.5（低延迟）、Eleven v4。音色在声音库或「My Voices」里复制 Voice ID，自己克隆的声音也一样。有数据驻留要求的可以选美国或欧盟地址。",
             "Azure 语音服务：在 Azure 门户创建「语音服务」资源，到「密钥和终结点」复制密钥，并选择资源所在的区域，两者必须一致。音色名称形如 zh-CN-XiaoxiaoNeural，可在常用音色里选，完整列表见微软文档。免费 F0 层每月含 50 万字符的神经网络语音。",

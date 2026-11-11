@@ -112,7 +112,7 @@ public static class ProviderCatalog
         new()
         {
             Id = "fish", Label = "Fish Audio", Category = PresetCategory.Mainstream, Kind = SpeechProviderKind.Fish,
-            Summary = "声音克隆效果好，有免费模型",
+            Summary = "声音克隆效果好，有免费模型", Overseas = true,
             Endpoints = [new(ServiceIdentity.FishOfficialEndpoint, "官方接口")],
             KeyUrl = "https://fish.audio/app/api-keys/",
             DocsUrl = "https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech",

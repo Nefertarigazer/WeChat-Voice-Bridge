@@ -110,9 +110,10 @@
                 <Setter TargetName="Surface" Property="Background" Value="#F2D5CB"/>
                 <Setter TargetName="Surface" Property="BorderBrush" Value="#DCAB98"/>
               </Trigger>
+              <!-- Disabled: dimmed; the window shows the "not allowed" cursor over it
+                   (MainWindow.Interaction.OverIdleClear). -->
               <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Opacity" Value="0.45"/>
-                <Setter Property="Cursor" Value="Arrow"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
