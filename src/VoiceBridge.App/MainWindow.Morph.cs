@@ -18,8 +18,10 @@ namespace VoiceBridge.App;
 /// </summary>
 public partial class MainWindow
 {
-    private static readonly Duration MorphTime = new(TimeSpan.FromMilliseconds(340));
-    private static readonly IEasingFunction MorphEase = new QuinticEase { EasingMode = EasingMode.EaseOut };
+    private static readonly Duration MorphTime = new(TimeSpan.FromMilliseconds(360));
+    // Cubic rather than quintic: a quintic ease-out spends the whole move in the first
+    // frames, so the mode cards folding into the capsules was over before the eye saw it.
+    private static readonly IEasingFunction MorphEase = new CubicEase { EasingMode = EasingMode.EaseOut };
     private const double ShadowRoom = 24;
 
     private sealed record Shot(FrameworkElement Picture, Rect Bounds);
@@ -70,7 +72,7 @@ public partial class MainWindow
             foreach (var card in contactCards)
                 if (ContainerOf(card) is { } container && Snap(container) is { } shot)
                     before.Cards[card] = shot;
-        foreach (var follower in new FrameworkElement[] { RecordsHeader, RecordsCard })
+        foreach (var follower in new FrameworkElement[] { ContactsHeader, RecordsHeader, RecordsCard })
             if (follower.IsVisible) before.Followers[follower] = follower.TranslatePoint(new Point(), MorphLayer);
         return before;
     }
@@ -87,37 +89,39 @@ public partial class MainWindow
             if (target is null)
             {
                 // Removed: it simply leaves, a little smaller.
-                Fade(shot.Picture, 1, 0, 0.55);
+                Fade(shot.Picture, 1, 0, 0.5);
                 Scale(shot.Picture, shot.Bounds, 1, 0.96);
                 continue;
             }
+            // The card that stays is shown in its new shape at once and glides from where it
+            // stood; its old picture only melts away quickly, so nothing reads twice.
             var bounds = BoundsOf(target);
             Glide(shot.Picture, bounds.TopLeft - shot.Bounds.TopLeft, 0.0, 0.6);
-            Fade(shot.Picture, 1, 0, 0.55);
-            Arrive(target, shot.Bounds.TopLeft - bounds.TopLeft, 0.12);
+            Fade(shot.Picture, 1, 0, 0.28);
+            Arrive(target, shot.Bounds.TopLeft - bounds.TopLeft, 0, fade: false);
         }
 
         if (growing)
         {
-            // The wide mode cards fold into the remaining card's capsule row.
+            // The wide mode cards shrink onto the remaining card's capsules and melt into them.
             if (before.Modes is { } modes && contactCards.FirstOrDefault(card => before.Cards.ContainsKey(card)) is { } kept &&
                 CapsuleRowOf(kept) is { } row)
             {
                 var scale = row.Width / modes.Bounds.Width;
-                Glide(modes.Picture, row.TopLeft - modes.Bounds.TopLeft, 0, 1);
+                Glide(modes.Picture, row.TopLeft - modes.Bounds.TopLeft, 0, 0.9);
                 Scale(modes.Picture, modes.Bounds, 1, scale);
-                Fade(modes.Picture, 1, 0, 0.7);
+                Fade(modes.Picture, 1, 0, 0.8);
             }
             foreach (var card in contactCards.Where(card => !before.Cards.ContainsKey(card)))
                 if (ContainerOf(card) is { } added)
-                    Arrive(added, new Vector(28, 0), 0.25);
+                    Arrive(added, new Vector(28, 0), 0.2);
         }
         else if (before.CapsuleRow is { } row)
         {
             // The remaining capsules unfold into the two wide mode cards.
             var bounds = BoundsOf(SingleModes);
             var scale = row.Width / Math.Max(1, bounds.Width);
-            Arrive(SingleModes, row.TopLeft - bounds.TopLeft, 0.05, scale);
+            Arrive(SingleModes, row.TopLeft - bounds.TopLeft, 0, scale);
         }
 
         foreach (var (follower, was) in before.Followers)
@@ -232,7 +236,7 @@ public partial class MainWindow
     private void ClearMorph()
     {
         MorphLayer.Children.Clear();
-        var elements = new List<FrameworkElement> { SingleModes, SingleContactSurface, RecordsHeader, RecordsCard };
+        var elements = new List<FrameworkElement> { SingleModes, SingleContactSurface, ContactsHeader, RecordsHeader, RecordsCard };
         elements.AddRange(contactCards.Select(ContainerOf).OfType<FrameworkElement>());
         foreach (var element in elements)
         {

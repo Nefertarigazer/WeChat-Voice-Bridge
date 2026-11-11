@@ -84,11 +84,36 @@ public partial class MainWindow
             OpenModeSettings(card, mode.Kind);
     }
 
-    /// <summary>The settings card for one mode of one contact (节 7).</summary>
+    /// <summary>The settings card for one mode of one contact. Changes apply as they are made.</summary>
     private void OpenModeSettings(ContactCard card, ModeKind kind)
     {
-        _ = card;
-        _ = kind;
+        if (closing) return;
+        new ModeSettingsDialog(card, kind, PreviewSoundAsync) { Owner = this }.ShowDialog();
+        SaveNow();
+        Render();
+    }
+
+    /// <summary>Plays a reminder sound once, on the device chosen for reading.</summary>
+    private async System.Threading.Tasks.Task PreviewSoundAsync(string sound)
+    {
+        if (Cue(sound) is not { } audio)
+        {
+            notice = string.IsNullOrWhiteSpace(sound) ? "现在设的是不响提醒音。" : "这个提醒音无法播放，请换一个。";
+            Render();
+            return;
+        }
+        try
+        {
+            var settings = ReadSettings();
+            var player = new VoiceBridge.Audio.WindowsPlayer(settings.Device, (float)settings.Volume);
+            player.Validate();
+            await player.PlayAsync(audio, start => { start(); return true; }, CancellationToken.None);
+        }
+        catch (Exception)
+        {
+            notice = "提醒音播放失败，请检查播放设备。";
+            Render();
+        }
     }
 
     /// <summary>Unanswered messages of a contact, while reminder mode is on for them.</summary>

@@ -14,11 +14,13 @@
 - **节 4 已完成**：应用接线在 `MainWindow.Attention.cs`（`ReplyTracker`、1 秒定时器、`Announce`、提醒音 `ReminderSounds`），隐私播报在 `RoutedSpeech.Resolve`、试听、朗读记录。界面上还没有开关，所以用户看不到变化。
 - **节 5 已完成**：多人卡片方案 A（`ModeCapsule.cs`、`ContactCard` 新属性、`BadgedAvatar`、`ContactReadAction`），截图 `artifacts/screenshots/task2-multi-a-print.png`、`task2-capsules-2.png`。⋮ 的设置卡片还没做（`OpenModeSettings` 是空的）。
 - **节 6 已完成（代码）**：单人方案 B（`ModeCard.cs`、`SingleModes`）+ 单人 ↔ 多人变形动画（`MainWindow.Morph.cs`，在添加 / 移除联系人时由 `MorphContacts` 包住）。实机效果未验证，放到节 8。
-- **续跑点**：节 7——`MainWindow.Attention.cs` 的 `OpenModeSettings(card, kind)` 目前是空的。做两张设置卡片，外观复用 `ReleaseNotesDialog`（米白底 `#FFFEFB`、`#DCE3DF` 细边、圆角 14、右上角关闭、22 号标题 + 灰色副标题、内嵌白色圆角框、底部居中「完成」）。
-  - 隐私卡：三选一（只报来消息 / 播报名字 / 自定义暗语 + 输入框）。
-  - 提醒卡：每隔 / 最多持续（步进器，1–180 分钟）、持续提醒开关、提醒音（`ReminderSounds.BuiltIn` 下拉 + 试听 + 选择本机音频）、提醒词下拉（`AttentionText.WordingChoices`）。
-  - 改动通过 `card.UpdateAttention(...)` 写回。
-  - 之后节 8：使用说明 + 实机验证（备份 `settings.json` 与 `release-notes-seen.json` 后再操作，最后复原）。
+- **节 7 已完成**：两张设置卡片（`ModeSettingsDialog.cs`），实机巡检完成（`tools/UiSmokeTest task2`，截图在 `artifacts/screenshots/tour*`，巡检前后已备份 / 复原用户设置）。
+- **续跑点**：节 8——`UserGuide.xaml.cs` 新增「隐私模式与提醒模式」一节（开关在哪、三种播报方式、计时规则、已读、提醒音），`docs/user-guide.md` 同步，`privacy-reminder.md` 标为已实现，然后交给用户实测。
+- **用户实测清单**：
+  - 开始监听后，让对方发消息，看「✓ 已读」与角标出现，提醒按 3/6/9… 分钟播报（先响提醒音）。
+  - 在手机上回一条，提醒应停下、角标消失。
+  - 开隐私后，朗读与记录都不出现内容。
+  - 二变一、一变二时，看变形动画。
 - **实机截图守则**：开发版第一次启动会弹「已更新到 v1.6.0」。用 `tools/UiSmokeTest print 0 <png>` 截主窗口（PrintWindow），截完 `Stop-Process`，**不要点掉弹窗**。如果 `%LOCALAPPDATA%\WeChatVoiceBridge\release-notes-seen.json` 被写成 1.6.0，改回 `"1.5.3"`，用户自己打开时才看得到更新说明。
 - **跑适配器测试**：`Test.ps1` 会跳过需要 SQLCipher 的 42 个 Python 测试；改了 `wechat_adapter.py` 时，用 `src\VoiceBridge.App\bin\Release\net8.0-windows\runtime\python\python.exe -B -m unittest discover -s tests\python -p "test_live_adapter.py"`（以及 `test_multi_contact.py`）单独跑。
 - **工具坑**：本机 PowerShell 工具对长等待偶尔提前返回 exit -1 且无输出，后台进程仍会跑完。等 Muse 回执时不要重发，看 `muse-bridge\outbox\<req_id>.reply.json`。

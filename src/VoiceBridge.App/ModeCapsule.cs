@@ -100,9 +100,19 @@ public sealed class ModeCapsule : Border, IModeSwitch
         Grid.SetColumn(more, 1); row.Children.Add(more);
         Child = row;
 
-        toggle.IsKeyboardFocusedChanged += (_, _) => Paint(animate: false);
+        // The green focus edge is for keyboard users: a mouse click focuses the switch too,
+        // but must not leave the capsule looking selected.
+        toggle.PreviewMouseLeftButtonDown += (_, _) => pointer = true;
+        toggle.PreviewKeyDown += (_, _) => { if (pointer) { pointer = false; Paint(animate: false); } };
+        toggle.IsKeyboardFocusedChanged += (_, _) =>
+        {
+            if (!toggle.IsKeyboardFocused) pointer = false;
+            Paint(animate: false);
+        };
         Build();
     }
+
+    private bool pointer;
 
     public bool IsOn { get => (bool)GetValue(IsOnProperty); set => SetValue(IsOnProperty, value); }
     public ModeKind Kind { get => (ModeKind)GetValue(KindProperty); set => SetValue(KindProperty, value); }
@@ -150,7 +160,7 @@ public sealed class ModeCapsule : Border, IModeSwitch
         var on = IsOn;
         var privacy = Kind == ModeKind.Privacy;
         var colors = privacy ? on ? PrivacyOn : PrivacyOff : on ? ReminderOn : ReminderOff;
-        var focused = toggle.IsKeyboardFocused;
+        var focused = toggle.IsKeyboardFocused && !pointer;
         var duration = animate && SystemParameters.ClientAreaAnimation && IsLoaded ? Motion : TimeSpan.Zero;
         To(fill, colors.Fill, duration);
         To(edge, focused ? (Color)ColorConverter.ConvertFromString("#0B8F66") : colors.Edge, duration);

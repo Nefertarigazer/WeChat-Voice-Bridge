@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
@@ -53,6 +54,13 @@ if (args.Length > 0 && string.Equals(args[0], "dialog", StringComparison.Ordinal
 if (args.Length > 0 && string.Equals(args[0], "cursor", StringComparison.Ordinal))
     return CursorCheck(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "清空朗读记录",
         args.Length > 3 ? args[3] : "NavHome");
+
+// task2 <pid> <dir> <second contact name>: a tour of privacy / reminder mode. It closes the
+// release notes if shown, shoots the home page, both settings cards, both modes switched on,
+// then removes the second contact and adds it back from the history, shooting the morph frame
+// by frame. It CHANGES settings.json: the caller backs it up first and restores it afterwards.
+if (args.Length > 0 && string.Equals(args[0], "task2", StringComparison.Ordinal))
+    return Task2Tour(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "task2", args.Length > 3 ? args[3] : "");
 
 // print <pid> <png>: PrintWindow of the main window as it is, without touching it. It works
 // while a modal dialog (the release notes) is open and never closes or acknowledges it.
@@ -594,6 +602,102 @@ static int DialogShots(string pidText, string prefix, string navId, string butto
     if (cancel is not null) (cancel.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();
     Thread.Sleep(500);
     Console.WriteLine("PASS: dialog captured");
+    return 0;
+}
+
+static int Task2Tour(string pidText, string dir, string secondName)
+{
+    Directory.CreateDirectory(dir);
+    var pid = int.TryParse(pidText, out var parsed) && parsed > 0 ? parsed
+        : Process.GetProcessesByName("WeChatVoiceBridge").FirstOrDefault()?.Id ?? 0;
+    if (pid == 0) { Console.WriteLine("FATAL: WeChatVoiceBridge is not running"); return 4; }
+    var process = Process.GetProcessById(pid);
+    for (var i = 0; i < 20 && process.MainWindowHandle == IntPtr.Zero; i++) { Thread.Sleep(500); process.Refresh(); }
+    var main = process.MainWindowHandle;
+    if (main == IntPtr.Zero) { Console.WriteLine("FATAL: no main window"); return 4; }
+    Native.Show(main);
+    Thread.Sleep(800);
+
+    AutomationElement? OtherWindow()
+    {
+        foreach (var hWnd in Native.Windows(pid))
+            if (hWnd != main)
+                try { return AutomationElement.FromHandle(hWnd); } catch (Exception) { }
+        return null;
+    }
+    void Press(AutomationElement? button, bool opensDialog = false)
+    {
+        if (button is null) { Console.WriteLine("note: button missing"); return; }
+        var work = new Thread(() =>
+        {
+            try { (button.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke(); }
+            catch (Exception error) { Console.WriteLine("invoke: " + error.Message); }
+        }) { IsBackground = true };
+        work.Start();
+        if (!opensDialog) work.Join(3000);
+    }
+    AutomationElement? Named(AutomationElement parent, string name) => parent.FindFirst(TreeScope.Descendants,
+        new PropertyCondition(AutomationElement.NameProperty, name));
+    AutomationElement? WaitDialog()
+    {
+        for (var i = 0; i < 30; i++) { Thread.Sleep(200); if (OtherWindow() is { } window) return window; }
+        return null;
+    }
+    void Frames(string name, params int[] at)
+    {
+        var clock = Stopwatch.StartNew();
+        foreach (var ms in at)
+        {
+            while (clock.ElapsedMilliseconds < ms) Thread.Sleep(5);
+            Capture(main, Path.Combine(dir, $"{name}-{ms:000}.png"));
+        }
+    }
+
+    // 1. The release notes of the dev build, if they are showing.
+    if (OtherWindow() is { } notes)
+    {
+        Press(ByNameContains(notes, "知道了", ControlType.Button));
+        Thread.Sleep(800);
+    }
+    var root = AutomationElement.FromHandle(main);
+    Capture(main, Path.Combine(dir, "01-home.png"));
+
+    // 2–3. Both settings cards of the first contact.
+    foreach (var (opener, file) in new[] { ("隐私模式设置", "02-privacy-settings.png"), ("提醒模式设置", "03-reminder-settings.png") })
+    {
+        Press(WaitFor(() => Named(root, opener), 6), opensDialog: true);
+        if (WaitDialog() is not { } card) { Console.WriteLine($"FATAL: {opener} did not open"); return 6; }
+        Thread.Sleep(700);
+        Capture(new IntPtr(card.Current.NativeWindowHandle), Path.Combine(dir, file));
+        Press(ByNameContains(card, "完成", ControlType.Button));
+        Thread.Sleep(700);
+    }
+
+    // 4. Both modes on for the first contact.
+    foreach (var name in new[] { "隐私模式", "提醒模式" })
+        if (Named(root, name) is { } toggle && toggle.TryGetCurrentPattern(TogglePattern.Pattern, out var pattern))
+            ((TogglePattern)pattern).Toggle();
+    Thread.Sleep(600);
+    Capture(main, Path.Combine(dir, "04-modes-on.png"));
+
+    // 5. Two people become one: frames of the morph.
+    var removes = root.FindAll(TreeScope.Descendants, new AndCondition(
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+        new PropertyCondition(AutomationElement.NameProperty, "移除")));
+    if (removes.Count < 2) { Console.WriteLine($"FATAL: expected two 移除 buttons, found {removes.Count}"); return 4; }
+    Press(removes[1]);
+    Frames("05-to-one", 0, 60, 120, 180, 260, 520);
+
+    // 6. One becomes two again, from the recent contacts.
+    Press(ByNameContains(root, "添加", ControlType.Button));
+    Thread.Sleep(900);
+    var again = WaitFor(() => secondName.Length > 0 ? Named(root, secondName) is { } hit &&
+        hit.Current.ControlType == ControlType.Button ? hit : null : null, 6);
+    if (again is null) { Console.WriteLine("FATAL: the removed contact is not in the recent list"); return 4; }
+    Capture(main, Path.Combine(dir, "06-picker.png"));
+    Press(again);
+    Frames("07-to-two", 0, 60, 120, 180, 260, 520);
+    Console.WriteLine("tour done");
     return 0;
 }
 
