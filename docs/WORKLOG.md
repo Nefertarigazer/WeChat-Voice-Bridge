@@ -14,6 +14,7 @@
   - Setup `artifacts\WeChat-Voice-Bridge-V1.7.0-Setup.exe` = **67,123,954** 字节 / `763909e1c9814277112b945a627b042f19fbd31dbc09ed7c9979ca1b7dac5114`。
 - **没做**：没有运行打包出来的程序。单实例会把启动请求转给用户正在用的那份，所以没法在这台机器上另起一份。桌面快捷方式未动。
 - **下一节**：发布前四项自查，然后发一张 Muse 发布单。
+- **续（21:14）**：四项自查全绿（WORKLOG 到节 11、HANDOVER 是当前状态、工作区干净、远端 HEAD = 本地 `bec3102`）。已发 Muse 发布单 `codex_20261111_211423_9ceb57`（`publish-voicebridge`，version 1.7.0，ZIP 与上面的 SHA-256，中文说明 177 字），等回执。
 
 ---
 
