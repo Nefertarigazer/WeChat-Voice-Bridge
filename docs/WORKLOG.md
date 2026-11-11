@@ -4,6 +4,22 @@
 
 ---
 
+## 任务一 · 多厂商语音 API 融合（2026-11-11 起，工作区，未升版本号）
+
+**用户要求**（原话整理见 `docs/tts-integration.md` §1）：支持通用协议、主流厂商专属入口、本地模型；保留现有「多厂商同时用、每厂商只启用一个 Key、音色挂厂商、模型可热切换」的机制；修正过时选项；教程页写清接入方式；优先复用 GitHub 上成熟、高星、活跃的轮子。任务二（隐私模式 / 提醒模式）等任务一稳定后再做。
+
+### 节 1：存档 + 调研 + 设计文档
+
+- **存档**：打了两个附注标签并推送：`v1.5.3` → `67a74f0`（1.5.3 发布源码），`pre-multi-provider` → `d608aca`（动工前的完整状态）。远端 `git ls-remote --tags` 已核对。
+- **调研**：三路并行——成熟项目的服务/模型/音色组织方式（Dify、LobeHub、Open WebUI、LibreChat、SillyTavern、Open-LLM-VTuber、AstrBot、LiteLLM）；可复用轮子（LiteLLM、edge-tts、RealtimeTTS、tetos、官方 SDK、MEAI）；国内外厂商与本地引擎的官方接口逐字段核对。另亲自核对了 MiniMax 国内地址（默认 `api.minimax.cn`，华北就近 `api-bj.minimaxi.com`）、百炼 CosyVoice HTTP 与千问 TTS 的接口和返回、Gemini 3.8 的请求体、fish-speech 本机服务的请求解析、edge-tts 的许可证（LGPLv3，7.3.1 于 2026-10-13 发布）。
+- **结论**：没有一个能直接装进来的万能库（LiteLLM 太重且国内只有 MiniMax）；真正值得复用的是 OpenAI 兼容协议（等于复用 LiteLLM proxy / LocalAI / Kokoro-FastAPI 等成熟服务端）、edge-tts 库、Dify 的厂商描述结构。现状最大的问题是厂商身份用协议类型 `Kind` 判断，导致所有 OpenAI 兼容服务被当成一家。
+- **设计**：新文档 `docs/tts-integration.md`（调研结论、四层关系、厂商目录字段、协议适配器清单、安全约束、8 节实施计划）。
+- **改动文件**：`docs/tts-integration.md`（新）、本文件、`docs/HANDOVER-CURRENT.md`。
+- **验证**：纯文档，无构建。
+- **下一节**：节 2 数据模型（`Vendor` / `Preset` / 音色固定模型 + 迁移 + 按服务身份的启用规则 + 测试）。
+
+---
+
 ## 1.5.3 · 2026-11-11（已发布上线）
 
 **用户授权**：「联系 muse 打包推新」。
