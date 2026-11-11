@@ -15,8 +15,9 @@ Windows 桌面应用「微信语音桥」：读取本地微信加密数据库（
 | `src/VoiceBridge.App` | WPF 界面、设置、更新流程、`MainWindow.*.cs` 分部类 |
 | `src/VoiceBridge.Core` | 领域模型、更新清单/安装器/握手、词库规则、会话控制 |
 | `src/VoiceBridge.WeChat` | 微信会话绑定、数据目录定位、fixture/真实模式桥接 |
-| `src/VoiceBridge.Audio`、`VoiceBridge.FishAudio` | 音频播放与 Fish 语音 API |
-| `worker/` | Python 端：密钥提取 `audited_wechat_keys.py`、`wechat_adapter.py`、`main.py`、词库/联系人索引等 |
+| `src/VoiceBridge.Audio`、`VoiceBridge.FishAudio` | 音频播放；所有语音服务的协议适配（`SpeechProviderFactory.cs`，名字沿用早期的 Fish 项目） |
+| `src/VoiceBridge.Core/ProviderCatalog.cs`、`ServiceIdentity.cs` | 厂商目录（19 个入口）与「同一家」的判断规则，见 `docs/providers.md` |
+| `worker/` | Python 端：密钥提取 `audited_wechat_keys.py`、`wechat_adapter.py`、`main.py`、词库/联系人索引等；`edge_speak.py` 是 Edge 免费朗读助手（依赖在 `worker\tts-deps`） |
 | `tests/python`、`tests/VoiceBridge.Tests` | Python unittest 与 C# xunit |
 | `scripts/` | 构建/测试/门禁/打包/快捷方式/源码断言 |
 | `artifacts/` | 本地发布产物（ZIP、Setup.exe、各版本目录） |
@@ -26,11 +27,11 @@ Windows 桌面应用「微信语音桥」：读取本地微信加密数据库（
 
 ## 2. 环境与常用命令（本机 Windows）
 
-- 系统 `C:\Program Files\dotnet` **只有运行时、没有 SDK**。已下载 .NET SDK 8.0.427 解压到 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk\dotnet.exe`，不改系统 PATH。跑构建/测试脚本必须传 `-Dotnet $sdk`。
+- 系统 `C:\Program Files\dotnet` **只有运行时、没有 SDK**。.NET SDK 8.0.427 解压在 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk-tmp\dotnet.exe`（2026-11-11 核实；旧写法 `wvb-sdk\sdk\` 已不存在，临时目录被清理后需重新下载解压），不改系统 PATH。跑构建/测试脚本必须传 `-Dotnet $sdk`。
 - Python 运行时在 `artifacts\win-x64\runtime\python\python.exe`（3.12 x64）。
 
 ```powershell
-$sdk = Join-Path $env:TEMP 'wvb-sdk\sdk\dotnet.exe'
+$sdk = Join-Path $env:TEMP 'wvb-sdk\sdk-tmp\dotnet.exe'
 $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 & $sdk build "$root\WeChatVoiceBridge.sln" -c Release                 # 编译
 & "$root\scripts\Test.ps1" -Dotnet $sdk                               # 全量：Release build + C# xunit + Python unittest
@@ -89,7 +90,11 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 - **更新握手**：见第 5 条第 3 点；老客户端 5 参数 `--update-result` 路径必须保持原行为。
 - **IPC**：`worker/ipc_protocol.py` 的 `send(kind, session, generation, **fields)` 支持任意关键字字段（含 `code`、`message`），UTF-8 JSON Lines，stdout 专供协议。
 
-## 7. 当前进行中的任务（2026-11-10 用户新指令）
+## 7. 当前进行中的任务
+
+> **2026-11-11 起的现行任务**：任务一「多厂商语音 API 融合」已完成 8 节、待用户检查；任务二「隐私模式 / 提醒模式」等用户确认任务一后再做。准绳是 [tts-integration.md](tts-integration.md)，现状与续跑点看 [HANDOVER-CURRENT.md](HANDOVER-CURRENT.md) 第 00 节。下面 A–C 是 2026-11-10 的旧任务，**已在 1.4.9–1.5.3 完成并上线**，仅作历史参考。
+
+### 已完成的旧任务（2026-11-10）
 
 ### A. 合并微信多版本适配（wx-multi）
 

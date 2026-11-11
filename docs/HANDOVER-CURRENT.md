@@ -4,9 +4,11 @@
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 00. 进行中：任务一 · 多厂商语音 API 融合（2026-11-11 起）
+## 00. 任务一 · 多厂商语音 API 融合（2026-11-11，8 节全部完成，等用户检查）
 
-- **准绳文档**：[tts-integration.md](tts-integration.md)（调研结论、设计、8 节实施计划）。逐节进度看 WORKLOG 顶部「任务一」段。
+- **一句话现状**：源码在 v1.5.3 之上新增多厂商接入（未升版本号、未打包、未上线、桌面快捷方式未动）。开发版位置 `src\VoiceBridge.App\bin\Release\net8.0-windows\WeChatVoiceBridge.exe`。线上仍是 1.5.3。
+- **用户检查后的下一步**：若满意 → 升版本号（建议 1.6.0）+ `ReleaseHistory` 写条目 → `Publish.ps1` / `Build-Installer.ps1`（已验证 tts-deps 步骤能跑通，出厂包 1993 文件）→ Muse 发布 → 公网复核；然后开始任务二（隐私模式 / 提醒模式）。
+- **准绳文档**：[tts-integration.md](tts-integration.md)（调研结论、设计、8 节实施计划）。逐节进度看 WORKLOG 顶部「任务一」段。开发者说明见 [providers.md](providers.md)。
 - **存档点**：标签 `v1.5.3`（`67a74f0`）与 `pre-multi-provider`（`d608aca`）已推送；任何时候都能回到动工前。
 - **已完成**：节 1（调研 + 设计文档）；节 2（厂商身份改为服务身份 `ServiceIdentity`、音色固定模型、模型切换推广到所有协议、迁移与测试，.NET 216/216）。
 - **关键约定（节 2 起）**：判断「是不是同一家」一律用 `ServiceIdentity.Of/Same`，**不要再用 `Kind ==`**；读写当前模型一律用 `SpeechModels.Current/Use/Listed`（豆包的模型是资源 ID）。`SpeechProviderKind` 只能在末尾追加。
@@ -17,7 +19,7 @@
 - **节 6 已完成**：添加服务对话框按目录分三组、字段按预设生成；添加音色给常用音色与「固定模型」。截图见 WORKLOG 节 6。
 - **界面约定（节 6 起）**：对话框里的下拉框模板不支持 `IsEditable`（`App.xaml` 的 ComboBox 模板没有编辑框），需要「可选可填」时用「文本框 + 常用项下拉」的组合，不要直接设 `IsEditable`。
 - **节 7 已完成**：使用说明 03/04 重写，新增 05 主流厂商逐家、06 通用协议、07 本地模型（后续顺延 08–16）；`docs/providers.md` 重写为开发者说明（含「加一家新厂商」步骤）。**改目录（`ProviderCatalog`）时同步改教程第 05–07 节。**
-- **续跑点**：节 8 收尾（全量回归、文档定稿、推送），然后等用户检查效果；任务二（隐私模式 / 提醒模式）等用户确认任务一后再开始。
+- **节 8 已完成**：全量回归通过；开发版用真实 Fish Key 试听成功（迁移后 `CredentialId` 与 `FishKeyName` 不变）；`Publish.ps1` 发到临时目录验证通过（edge-tts 冒烟检查 + 出厂门禁 PASS，验证后已删除临时目录）。
 - **约束**：不打包、不上线、不改桌面快捷方式；保留三条红线；任务二（隐私模式 / 提醒模式）等任务一稳定后再做。
 - **环境**：SDK 实际在 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk-tmp\dotnet.exe`（文档里旧写法 `wvb-sdk\sdk\dotnet.exe` 已不存在）。
 

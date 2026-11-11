@@ -106,6 +106,15 @@
 - **验证**：build 0/0；`Test.ps1` **.NET 253/253 PASS** + Python 54 PASS；`Verify-Source` PASS；真实窗口截图 `artifacts/screenshots/guide-top.png`（新跳转按钮与快速开始文案）。
 - **下一节**：节 8 收尾——全量回归、交接文档、`tts-integration.md` 结论更新、推送。
 
+### 节 8：收尾回归 + 交接定稿
+
+- **真实链路**：开发版启动 → `UiSmokeTest` 驱动「设置 → 试听这段文字」→ **「试听完成」**（真实 Fish Key、免费模型）。迁移后 `settings.json`：Fish 服务 `Vendor=fish`，4 个音色 `Vendor=fish`，`CredentialId` 与 `FishKeyName` 仍是 `speech-5f1c37e3…`，没有发生凭据指针变化。
+- **打包脚本试跑**：`Publish.ps1 -OutputDirectory %TEMP%\wvb-publish-check`（不生成 ZIP）→ `worker dependencies ok`、`speech dependencies ok`、`Clean-payload check: PASS (1993 files …)`；`worker\tts-deps` 3,750,013 字节。验证后删除了临时发布目录和 Edge 探针目录。
+- **回归**：`Test.ps1` .NET 253/253 + Python 54 PASS；`Verify-Source` PASS；58 项 wx-multi 等价性未受影响（worker 微信部分未改）。
+- **文档**：`PROJECT-BRIEF.md` 修正 SDK 实际路径（`wvb-sdk\sdk-tmp`）、项目结构补上目录/身份/Edge 助手、§7 标明旧任务已完成并指向现行任务；`HANDOVER-CURRENT.md` §00 写成「8 节完成、等用户检查」与下一步；`tts-integration.md` §5 补执行结果与提交号。
+- **清理**：删除了第 7 节一条命令误写出的 0 字节文件 `System.Xml.XmlDocument`（PowerShell 会话里变量类型被前一条命令锁成 XML 所致，未提交过）。
+- **状态**：任务一完成，**未升版本号、未打包、未上线、未改桌面快捷方式**，等用户检查效果后再决定发版；任务二尚未开始。
+
 ---
 
 ## 1.5.3 · 2026-11-11（已发布上线）
