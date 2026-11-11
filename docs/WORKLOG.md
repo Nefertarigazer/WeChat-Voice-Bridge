@@ -4,6 +4,41 @@
 
 ---
 
+## 任务二 · 节 5：多人卡片方案 A（胶囊、已读、角标）（2026-11-11）
+
+- **做了什么**：
+  - `src/VoiceBridge.App/ModeCapsule.cs`（新）：胶囊控件，代码里搭出来，包含锁 / 铃图标、两个字的名字、34×20 小开关和竖排 ⋮。
+    - 开关部分是一个透明模板的 `ToggleButton`，键盘和读屏可用。
+    - ⋮ 是单独按钮，发出 `SettingsRequested` 事件。
+    - 颜色：关闭时浅灰；隐私开启时靛蓝（`#EFEFFC` 底、`#5E5CE0` 开关）；提醒开启时橙色（`#FFF3E4` 底、`#EE8B12` 开关）。开启时名字加粗。
+    - 动画：开关 160 ms 过渡；系统关闭动画时直接到位。
+  - `ContactCard`：新增 `PrivacyOn`、`ReminderOn`、`ShowPreview`、`ShowRead`、`ShowBadge`、`Badge`，以及给单人宽卡用的 `PrivacySummary` / `ReminderSummary`。
+    - 切换隐私时，提醒词改回跟随默认。
+    - `SetListening`、`SetUnanswered` 由主窗口推送。
+  - `MainWindow.xaml` 多人卡片：
+    - 「试听」「移除」挪到名字右侧，保留原样式与文字。
+    - 空出来的一行放两个对称胶囊。
+    - 头像换成带红色角标的 `BadgedAvatar`。
+    - 新增琥珀色药丸样式 `ContactReadAction`（✓ 已读）。
+  - 单人卡片同样：监听时隐藏试听、待回复时出现已读、头像角标。
+  - `MainWindow.Attention.cs`：`RenderAttention` 在每次 `Render` 时推送监听状态和条数；`AttentionChanged` 只更新那一位；`MarkReadClick`。⋮ 的设置卡片留到节 7，目前点了没有反应。
+  - `ContactPreferenceChanged`：开关提醒后立刻刷新角标。
+- **工具**：
+  - `tools/CapsulePreview`（新）：链接真实的 `ModeCapsule.cs`，离屏按 2 倍渲染四种开关组合，不碰用户数据。
+  - `tools/UiSmokeTest` 新增 `print` 模式：用 PrintWindow 截主窗口当前的样子，不点任何东西，弹窗开着也能截。
+- **验证**：
+  - 应用编译 0 错误；`Test.ps1` .NET **277/277**、Python 55（42 跳过）；`Verify-Source` PASS。
+  - 实机截图 `artifacts/screenshots/task2-multi-a-print.png`：两位联系人时，名字右侧是试听 / 移除，下方两个灰色胶囊，页面仍不滚动。
+  - 胶囊四态预览 `task2-capsules-2.png`。初版预览发现开启态滑块没移到右边：离屏渲染不跑动画时钟，零时长动画不生效。已改为不做动画时直接设值。
+  - **未验证**：监听中「✓ 已读」与角标的实际样子（要真的开始监听并收到消息，放到节 8 实机验证）。
+- **副作用与复原**：
+  - 开发版启动时弹出了「已更新到 v1.6.0」。截完图我直接结束了进程，没有点「知道了」。但 `release-notes-seen.json` 已被写成 1.6.0，原因没查明：确认操作只在对话框关闭后才写这个记录，而我没关它。
+  - 为了让用户自己打开 1.6.0 时仍能看到更新说明，我把它改回 `"1.5.3"`。
+  - 以后实机截图：先用 `print` 模式，截完用 `Stop-Process` 结束，不要点掉弹窗。
+- **下一节**：节 6，单人方案 B（两张宽卡放在状态卡与朗读对象之间）+ 单人 ↔ 多人切换动画。
+
+---
+
 ## 任务二 · 节 4：应用接线（隐私播报、提醒调度、提醒音；还没有新界面）（2026-11-11）
 
 - **做了什么**：

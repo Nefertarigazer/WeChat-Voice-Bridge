@@ -53,8 +53,42 @@ public partial class MainWindow
         controller.Merge = message => RoutedContact(Volatile.Read(ref routing), message.ConversationId)
             ?.Privacy is { Enabled: true };
         replies.Changed += conversation => AttentionChanged?.Invoke(conversation);
+        AttentionChanged += conversation =>
+        {
+            foreach (var card in contactCards.Where(card => card.Profile.ConversationId == conversation))
+                card.SetUnanswered(Unanswered(card.Profile));
+        };
         reminderTimer = new(TimeSpan.FromSeconds(1), DispatcherPriority.Background, (_, _) => RemindDue(), Dispatcher);
         reminderTimer.Start();
+    }
+
+    /// <summary>Keeps every card's 试听 / 已读 place and badge in step with the session.</summary>
+    private void RenderAttention(bool active)
+    {
+        foreach (var card in contactCards)
+        {
+            card.SetListening(active);
+            card.SetUnanswered(Unanswered(card.Profile));
+        }
+    }
+
+    private void MarkReadClick(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if ((sender as System.Windows.FrameworkElement)?.Tag is ContactCard card)
+            MarkRead(card.Profile.ConversationId);
+    }
+
+    private void ModeSettingsRequested(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (sender is ModeCapsule { Tag: ContactCard card } capsule)
+            OpenModeSettings(card, capsule.Kind);
+    }
+
+    /// <summary>The settings card for one mode of one contact (节 7).</summary>
+    private void OpenModeSettings(ContactCard card, ModeKind kind)
+    {
+        _ = card;
+        _ = kind;
     }
 
     /// <summary>Unanswered messages of a contact, while reminder mode is on for them.</summary>

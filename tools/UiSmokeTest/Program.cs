@@ -54,6 +54,21 @@ if (args.Length > 0 && string.Equals(args[0], "cursor", StringComparison.Ordinal
     return CursorCheck(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "清空朗读记录",
         args.Length > 3 ? args[3] : "NavHome");
 
+// print <pid> <png>: PrintWindow of the main window as it is, without touching it. It works
+// while a modal dialog (the release notes) is open and never closes or acknowledges it.
+if (args.Length > 0 && string.Equals(args[0], "print", StringComparison.Ordinal))
+{
+    var owner = args.Length > 1 && int.TryParse(args[1], out var given) && given > 0
+        ? Process.GetProcessById(given) : Process.GetProcessesByName("WeChatVoiceBridge").FirstOrDefault();
+    if (owner is null || owner.MainWindowHandle == IntPtr.Zero)
+    {
+        Console.WriteLine("no window");
+        return 4;
+    }
+    Capture(owner.MainWindowHandle, args.Length > 2 ? args[2] : "print.png");
+    return 0;
+}
+
 var pid = args.Length > 0 && int.TryParse(args[0], out var parsed) ? parsed : 0;
 if (pid == 0)
 {

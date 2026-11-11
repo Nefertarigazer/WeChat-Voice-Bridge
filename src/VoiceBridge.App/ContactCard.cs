@@ -262,6 +262,66 @@ internal sealed class ContactCard : INotifyPropertyChanged
     }
     public ImageSource? Avatar { get => avatar; set { avatar = value; Notify(); } }
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    // ------------------------------------------------------------ privacy and reminders
+
+    private bool listening;
+    private int unanswered;
+    public PrivacySettings Privacy => Profile.Privacy ?? new();
+    public ReminderSettings Reminder => Profile.Reminder ?? new();
+    public bool PrivacyOn
+    {
+        get => Privacy.Enabled;
+        // A different privacy choice brings back the reminder wording that belongs to it.
+        set { if (value != PrivacyOn) UpdateAttention(Privacy with { Enabled = value }, Reminder with { Wording = null }); }
+    }
+    public bool ReminderOn
+    {
+        get => Reminder.Enabled;
+        set { if (value != ReminderOn) UpdateAttention(Privacy, Reminder with { Enabled = value }); }
+    }
+    /// <summary>「试听」only helps before listening starts; afterwards its place is free.</summary>
+    public bool ShowPreview => !listening;
+    /// <summary>「✓ 已读」takes that place while reminders wait on this contact.</summary>
+    public bool ShowRead => listening && ReminderOn && unanswered > 0;
+    public bool ShowBadge => ShowRead;
+    public string Badge => unanswered > 99 ? "99+" : unanswered.ToString();
+    public string PrivacySummary => !PrivacyOn ? "关闭" : Privacy.Style switch
+    {
+        PrivacyStyle.Name => $"播报“{Name}给你发消息了”",
+        PrivacyStyle.Secret when Privacy.Secret.Trim().Length > 0 => $"暗语“{Privacy.Secret.Trim()}”",
+        _ => "播报“微信来消息了”"
+    };
+    public string ReminderSummary => !ReminderOn ? "关闭" : ShowRead ? $"{unanswered} 条没回" :
+        Reminder.Continuous ? "持续提醒，直到回复" : $"每 {Reminder.Interval} 分钟，最多 {Minutes(Reminder.Duration)}";
+
+    public void UpdateAttention(PrivacySettings privacy, ReminderSettings reminder)
+    {
+        if (privacy == Privacy && reminder == Reminder) return;
+        Profile = Profile with { Privacy = privacy, Reminder = reminder };
+        NotifyAttention();
+        changed(this);
+    }
+    public void SetListening(bool value)
+    {
+        if (listening == value) return;
+        listening = value;
+        NotifyAttention();
+    }
+    public void SetUnanswered(int count)
+    {
+        if (unanswered == count) return;
+        unanswered = count;
+        NotifyAttention();
+    }
+    private void NotifyAttention()
+    {
+        foreach (var name in new[] { nameof(PrivacyOn), nameof(ReminderOn), nameof(ShowPreview), nameof(ShowRead),
+                     nameof(ShowBadge), nameof(Badge), nameof(PrivacySummary), nameof(ReminderSummary) })
+            Notify(name);
+    }
+    private static string Minutes(int minutes) => minutes < 60 ? $"{minutes} 分钟" :
+        minutes % 60 == 0 ? $"{minutes / 60} 小时" : $"{minutes / 60} 小时 {minutes % 60} 分钟";
     public void RefreshAnnouncement() => Notify(nameof(AnnouncementChoiceId));
     public void RefreshVoice() => Notify(nameof(VoiceProfileId));
     public void SetPeopleCount(int count)

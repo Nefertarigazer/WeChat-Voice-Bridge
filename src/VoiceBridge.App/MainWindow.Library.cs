@@ -205,6 +205,7 @@ public partial class MainWindow
     private void ContactPreferenceChanged(ContactCard card)
     {
         UpsertContact(card.Profile);
+        card.SetUnanswered(Unanswered(card.Profile));
         PublishRouting();
         ScheduleSave();
     }

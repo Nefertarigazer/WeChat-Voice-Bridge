@@ -377,6 +377,7 @@ public partial class MainWindow : Window
             SaveNow();
         }
         ApplySelection();
+        RenderAttention(active);
         UpdateInteractionRestrictions(active);
         StartButton.IsEnabled = !closing && state.State != BridgeState.Stopping;
         PreviewButton.Content = manualCancel != null ? "取消试听" : "试听最后一条消息";
