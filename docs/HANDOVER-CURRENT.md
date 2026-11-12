@@ -31,6 +31,7 @@
     - 改写用的克隆：`D:\USERNAME\CodexScratch\wvb-rewrite\repo`，工具 git-filter-repo 2.47.0 装在 `wvb-rewrite\gfr`。替换清单 `wvb-rewrite\replacements.txt` 含个人信息，**不要提交进仓库**。
     - 文档里的 `USERNAME` 是本机用户名的占位，`服务器IP`、`wxid_本人账号`、`wxid_联系人`、`（联系人昵称）`、`（联系人微信号）` 也是占位。**公开仓库里不要再写真实的用户名、wxid、微信号或服务器 IP。**
     - 提交作者已统一成 `Nefertarigazer <97020488+Nefertarigazer@users.noreply.github.com>`。本机 git 配置里的作者还是原来的名字和邮箱，**新提交要么请用户把仓库的 `user.name` / `user.email` 改成上面这个，要么提交时加 `git -c user.name=… -c user.email=…`**，否则真实邮箱会再次出现在公开历史里。
+  - **已发 Muse 任务单 `codex_20261112_033119_f7b681`**（2026-11-12 03:31，改名旧仓库 + 新建公开空仓库）。**不要重发**；回执直接读 `muse-bridge\outbox\codex_20261112_033119_f7b681.reply.json`。
   - **续跑点（节 23）**：GitHub 一侧**不强推**。请 Muse：把 `Nefertarigazer/WeChat-Voice-Bridge` 改名为 `WeChat-Voice-Bridge-private-history` 并保持私有（原始历史的备份，不公开、不删除）；用原名新建一个**空的公开**仓库（不勾选 README / LICENSE / .gitignore），设好简介和话题。回执后从改写用的克隆推 `master` 和两个标签，核对远端；公网（不登录）打开仓库页、README、LICENSE，确认旧提交号打不开。
     - 推送后，本机这个仓库要切到新历史：`git fetch origin`（地址不变），`git reset --mixed origin/master`，再 `git restore --source=HEAD --worktree -- .`，`git fetch --force --tags origin`。不要 `reset --hard`，不要删本机那些已忽略的内部文件。
   - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
