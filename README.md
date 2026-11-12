@@ -48,6 +48,8 @@
 | [**安装包** WeChat-Voice-Bridge-V1.8.1-Setup.exe](https://iceland.de5.net/voice-bridge/WeChat-Voice-Bridge-V1.8.1-Setup.exe) | 推荐。中文安装向导，装好后在桌面和开始菜单建快捷方式 |
 | [免安装版 WeChat-Voice-Bridge-V1.8.1-win-x64.zip](https://iceland.de5.net/voice-bridge/WeChat-Voice-Bridge-V1.8.1-win-x64.zip) | 完整解压后运行 `WeChatVoiceBridge.exe` |
 
+同样的两个文件也可以在本仓库的 [Releases 页面](https://github.com/Nefertarigazer/WeChat-Voice-Bridge/releases/latest) 下载。
+
 - **系统**：Windows 10 或 11，64 位。
 - **微信**：电脑微信 4.1.11 至 4.2.0.13，其中 4.2.0.13 已实测。不在这个范围内的版本，打开软件时会提示。
 - 安装到 `%LOCALAPPDATA%\Programs\微信语音桥`，不弹管理员确认。安装包没有代码签名，Windows 可能提示「未知发布者」。
