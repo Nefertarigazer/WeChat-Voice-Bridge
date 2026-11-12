@@ -37,12 +37,6 @@ public sealed class ModeCard : Border, IModeSwitch
         typeof(ModeCard), new PropertyMetadata(false, (item, _) => ((ModeCard)item).Paint(animate: true)));
     public static readonly RoutedEvent SettingsRequestedEvent = ModeCapsule.SettingsRequestedEvent.AddOwner(typeof(ModeCard));
 
-    private static readonly Palette PrivacyOff = new("#FFFFFF", "#9C9AEC", "#1D1D1F", "#D5DBD8", "#8E95A3");
-    private static readonly Palette PrivacyOn = new("#F4F4FE", "#5E5CE0", "#4A47BD", "#5E5CE0", "#5653CF");
-    private static readonly Palette ReminderOff = new("#FFFFFF", "#F3B96A", "#1D1D1F", "#D5DBD8", "#A39A8D");
-    private static readonly Palette ReminderOn = new("#FFF7EC", "#EE8B12", "#A95A00", "#EE8B12", "#D0730A");
-    private static readonly Color Quiet = (Color)ColorConverter.ConvertFromString("#6E7673");
-    private static readonly Color Amber = (Color)ColorConverter.ConvertFromString("#B2760A");
     private static readonly TimeSpan Motion = TimeSpan.FromMilliseconds(180);
     private const double Travel = 18;
 
@@ -115,7 +109,34 @@ public sealed class ModeCard : Border, IModeSwitch
         row.Children.Add(toggle);
         Grid.SetColumn(more, 1); row.Children.Add(more);
         Child = row;
+        // Painted in code, so it follows a theme change itself while it is on screen.
+        Loaded += (_, _) =>
+        {
+            if (listening) return;
+            listening = true;
+            Theme.Changed += Repaint;
+            Paint(animate: false);
+        };
+        Unloaded += (_, _) => { listening = false; Theme.Changed -= Repaint; };
         Build();
+    }
+
+    private bool listening;
+
+    private void Repaint(object? sender, EventArgs e) => Paint(animate: false);
+
+    /// <summary>Off: a plain card with the mode's tile in a light shade. On: tinted in the mode's color.</summary>
+    private Palette PaletteFor(bool on)
+    {
+        var dark = Theme.IsDark;
+        var mode = ThemePalette.ModeColor(Kind, dark);
+        var card = Theme.ColorOf("CardBg");
+        if (!on)
+            return new(card, ThemePalette.Mix(card, mode, dark ? 0.5 : 0.55), Theme.ColorOf("Label"), Theme.ColorOf("SwitchOff"),
+                ThemePalette.Mix(Theme.ColorOf("Tertiary"), mode, 0.14));
+        return new(ThemePalette.Mix(card, mode, dark ? 0.12 : 0.06), mode,
+            dark ? ThemePalette.Mix(mode, Colors.White, 0.3) : ThemePalette.Mix(mode, Colors.Black, 0.2),
+            mode, dark ? ThemePalette.Mix(mode, Colors.White, 0.15) : ThemePalette.Mix(mode, Colors.Black, 0.08));
     }
 
     public bool IsOn { get => (bool)GetValue(IsOnProperty); set => SetValue(IsOnProperty, value); }
@@ -161,12 +182,12 @@ public sealed class ModeCard : Border, IModeSwitch
     private void Paint(bool animate)
     {
         var on = IsOn;
-        var colors = Kind == ModeKind.Privacy ? on ? PrivacyOn : PrivacyOff : on ? ReminderOn : ReminderOff;
+        var colors = PaletteFor(on);
         var duration = animate && SystemParameters.ClientAreaAnimation && IsLoaded ? Motion : TimeSpan.Zero;
         To(fill, colors.Fill, duration);
         To(tileFill, colors.Tile, duration);
         To(titleInk, colors.Title, duration);
-        To(summaryInk, Waiting && on ? Amber : Quiet, duration);
+        To(summaryInk, Theme.ColorOf(Waiting && on ? "Caution" : "Secondary"), duration);
         To(track, colors.Track, duration);
         To(dots, colors.Dots, duration);
         if (duration == TimeSpan.Zero)
@@ -216,22 +237,18 @@ public sealed class ModeCard : Border, IModeSwitch
         dotsPath.SetValue(VerticalAlignmentProperty, VerticalAlignment.Center);
         surface.AppendChild(dotsPath);
         var template = new ControlTemplate(typeof(Button)) { VisualTree = surface };
+        // Theme resources, so the hover veil lightens in dark mode instead of vanishing.
         var hover = new Trigger { Property = IsMouseOverProperty, Value = true };
-        hover.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromArgb(0x12, 0, 0, 0)), "Surface"));
+        hover.Setters.Add(new Setter(BackgroundProperty, new DynamicResourceExtension("Veil"), "Surface"));
         var pressed = new Trigger { Property = ButtonBase.IsPressedProperty, Value = true };
-        pressed.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromArgb(0x22, 0, 0, 0)), "Surface"));
+        pressed.Setters.Add(new Setter(BackgroundProperty, new DynamicResourceExtension("VeilStrong"), "Surface"));
         var focus = new Trigger { Property = IsKeyboardFocusedProperty, Value = true };
-        focus.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromArgb(0x1C, 0x0B, 0x8F, 0x66)), "Surface"));
+        focus.Setters.Add(new Setter(BackgroundProperty, new DynamicResourceExtension("AccentSoft"), "Surface"));
         template.Triggers.Add(hover);
         template.Triggers.Add(pressed);
         template.Triggers.Add(focus);
         return template;
     }
 
-    private sealed record Palette(Color Fill, Color Tile, Color Title, Color Track, Color Dots)
-    {
-        public Palette(string fill, string tile, string title, string track, string dots)
-            : this(Parse(fill), Parse(tile), Parse(title), Parse(track), Parse(dots)) { }
-        private static Color Parse(string value) => (Color)ColorConverter.ConvertFromString(value);
-    }
+    private sealed record Palette(Color Fill, Color Tile, Color Title, Color Track, Color Dots);
 }

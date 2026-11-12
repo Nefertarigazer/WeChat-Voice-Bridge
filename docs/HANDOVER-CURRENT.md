@@ -1,4 +1,4 @@
-# 微信语音桥 · 当前交接（2026-11-11，源码与线上均为 v1.7.0）
+# 微信语音桥 · 当前交接（2026-11-12，线上 v1.7.0；源码在 1.7.0 之后有第三轮改动，尚未发布）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录见 `.workbuddy/memory/2026-11-10.md`。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
@@ -15,16 +15,19 @@
 - **第三轮（2026-11-12 起，用户说这是最后一轮）**，按顺序：
   1. 节 13 **已完成**：更新说明底部渐隐、暗语留空也能完成、更新状态点回到绿色（详见 WORKLOG）。
   2. 节 14 **已完成**：使用说明重做。快速开始三步，附版本表（取自 `WeChatSession`）和服务表（取自 `ProviderCatalog.All`）；其余是常用功能卡片、四问四答、隐私说明和更新日志（默认 4 个版本）。`docs/user-guide.md` 同步。**改说明文字时，软件里的 `GuideContent` 和 `docs/user-guide.md` 一起改。**
-  3. 「设置」里「软件更新」下面新增「外观」：新的默认主题（清新、圆润，苹果 / 鸿蒙风格，布局不大改）。第一层选浅色、深色、跟随系统；第二层选颜色：浅绿（现在的样子）、浅粉、浅蓝。
+  3. 节 15 **已完成**：「设置 → 软件更新」下面新增「外观」。第一层浅色 / 深色 / 跟随系统，第二层主题色默认 / 浅绿 / 浅粉 / 浅蓝；默认是浅色 + 默认（新的中性主题，苹果式浅灰底 + 系统蓝），浅绿是 1.8 之前的样子。存在 `settings.json` 的 `Appearance`，启动时在第一个窗口出现前应用。
+     - **颜色约定（节 15 起）**：所有颜色都是 `Theme.cs` 生成的应用资源，XAML 一律用 `DynamicResource`；代码里上色用 `Theme.Brush/ColorOf` 或 `SetResourceReference`，长期存在的控件在 `Theme.Changed` 时重画。**不要再写死颜色**，也不要给模板里的渐变色标做绑定（找不到模板父级，色块会变空白）。警示色和隐私 / 提醒的颜色固定，不随主题色变。新加颜色就在 `ThemePalette.Build` 里加一个键。
+     - `tools/DialogPreview` 必须先套主题（`--theme Dark/Pink` 这样指定，默认浅色 + 默认），因为新键不在 `App.xaml` 里。
   4. 精修 GitHub 的 README（开头几段讲清定位和用途）。
-  5. 升版本、打包、经 Muse 发布；请 Muse 把 GitHub 仓库从私有改为公开；推送 README。**改公开之前，先给用户看仓库历史的隐私/密钥审计结果，用户确认后再请 Muse 改**（历史里有 `.workbuddy/memory`、交接文档里的本机路径和服务器信息等）。
-  - **续跑点**：第 3 项「外观」，从 `App.xaml` 的色板入手。
+  5. 升版本（1.8.0）、打包、经 Muse 发布；请 Muse 把 GitHub 仓库从私有改为公开；推送 README。**改公开之前，先给用户看仓库历史的隐私/密钥审计结果，用户确认后再请 Muse 改**（历史里有 `.workbuddy/memory`、交接文档里的本机路径和服务器信息等）。
+  - **续跑点**：第 4 项 README（节 16），从仓库根目录的 `README.md` 入手。
+  - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
 - **界面检查**：`tools/DialogPreview` 加了 `--realclick`（真实鼠标点击，鼠标不动，确认最上层是自己的窗口才点）。
   - **还要用户实测的**：开始监听后，对方发消息时「✓ 已读」与角标出现、提醒按时播报（先响提醒音）；手机上回一条后提醒停下、角标消失；开隐私后朗读与记录都不出现内容；「选择本机音频」打开文件框（离屏没测）。
   - **1.7.0 产物**（源码 commit `dd263df`，payload ProductVersion `1.7.0+dd263dfdf21e0e153709129a886289f74a2aa6b8`）：ZIP `artifacts\WeChat-Voice-Bridge-V1.7.0-win-x64.zip` = 92,186,434 字节 / `2a0940984d95bc72fb05ca4f69ad3fa9e9a422fe75121832db171b8af166029a`；Setup `artifacts\WeChat-Voice-Bridge-V1.7.0-Setup.exe` = 67,123,954 字节 / `763909e1c9814277112b945a627b042f19fbd31dbc09ed7c9979ca1b7dac5114`；payload `artifacts\win-x64-v1.7.0\`（1993 文件，Clean-payload PASS）。
   - **界面检查工具** `tools/DialogPreview`（Debug 编译）：屏幕外打开真实的更新说明与设置卡片，自动检查半行、滚动条、试听/取消并存截图。**不要在工具里构造 `App`**，它会触发 `OnStartup`、敲正在运行的那份应用。
   - **更新说明约定**：底部不要再加渐隐（会洗掉露出的半行）；滚动条透明度只由代码控制，不要在模板里加回 `IsMouseOver` 触发器。
-  - **用户正在运行开发版**（`bin\Release\net8.0-windows`，文件被锁）。不要结束它。应用改用 `-r win-x64` 编译；`Test.ps1` 第一步会编不过，用同样步骤、应用加 `-r win-x64` 代替。打包 `Publish.ps1` 本来就带 `-r win-x64`，不受影响。实机巡检做不了（单实例，第二份会直接唤醒用户那份）。
+  - **开发版目录被占用时**（用户在跑 `bin\Release\net8.0-windows` 那份）：不要结束它，应用改用 `-r win-x64` 编译，`Test.ps1` 第一步会编不过，用同样步骤、应用加 `-r win-x64` 代替；实机巡检做不了（单实例，第二份会直接唤醒用户那份）。2026-11-12 起没有被占用。
   - worker：`wechat_adapter.py` 的回复游标与 `take_replies()`，`main.py` 在 `message` / `heartbeat` 里带 `replies`。
   - Core：`Attention.cs`（设置与播报句）、`ReplyTracker.cs`（待回复与计时），以及 `SessionController` 的 `Replied` / `Received` / `Finished` / `Merge` / `Announce`。
   - App：`MainWindow.Attention.cs`（接线、定时器、提醒音）、`ModeCapsule.cs`（多人胶囊）、`ModeCard.cs`（单人宽卡）、`MainWindow.Morph.cs`（单人 ↔ 多人变形）、`ModeSettingsDialog.cs`（设置卡片）、使用说明第 10 节。

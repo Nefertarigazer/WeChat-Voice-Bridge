@@ -77,6 +77,12 @@ if (args.Length > 0 && string.Equals(args[0], "print", StringComparison.Ordinal)
     return 0;
 }
 
+// pick <pid> <automationId> [navId]: opens the nav page if given, scrolls the element into
+// view and selects it (radio buttons, such as 外观's ThemeDark or TintPink). Selecting a
+// theme option CHANGES settings.json: the caller backs it up first and restores it afterwards.
+if (args.Length > 0 && string.Equals(args[0], "pick", StringComparison.Ordinal))
+    return Pick(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "", args.Length > 3 ? args[3] : "");
+
 var pid = args.Length > 0 && int.TryParse(args[0], out var parsed) ? parsed : 0;
 if (pid == 0)
 {
@@ -698,6 +704,36 @@ static int Task2Tour(string pidText, string dir, string secondName)
     Press(again);
     Frames("07-to-two", 0, 60, 120, 180, 260, 520);
     Console.WriteLine("tour done");
+    return 0;
+}
+
+static int Pick(string pidText, string id, string navId)
+{
+    var pid = int.TryParse(pidText, out var parsed) && parsed > 0
+        ? parsed
+        : Process.GetProcessesByName("WeChatVoiceBridge").FirstOrDefault()?.Id ?? 0;
+    if (pid == 0) { Console.WriteLine("FATAL: WeChatVoiceBridge is not running"); return 4; }
+    var process = Process.GetProcessById(pid);
+    if (process.MainWindowHandle == IntPtr.Zero) { Console.WriteLine("FATAL: no main window"); return 4; }
+    var root = AutomationElement.FromHandle(process.MainWindowHandle);
+    if (navId.Length > 0)
+    {
+        var nav = WaitFor(() => ByAutomationId(root, navId));
+        if (nav is null) { Console.WriteLine($"FATAL: {navId} not found"); return 4; }
+        (nav.GetCurrentPattern(SelectionItemPattern.Pattern) as SelectionItemPattern)!.Select();
+        Thread.Sleep(1500);
+    }
+    var target = WaitFor(() => ByAutomationId(root, id));
+    if (target is null) { Console.WriteLine($"FATAL: {id} not found"); return 4; }
+    if (target.TryGetCurrentPattern(ScrollItemPattern.Pattern, out var scroll))
+        ((ScrollItemPattern)scroll).ScrollIntoView();
+    Thread.Sleep(600);
+    if (target.TryGetCurrentPattern(SelectionItemPattern.Pattern, out var select)) ((SelectionItemPattern)select).Select();
+    else if (target.TryGetCurrentPattern(InvokePattern.Pattern, out var invoke)) ((InvokePattern)invoke).Invoke();
+    else { Console.WriteLine($"FATAL: {id} can be neither selected nor invoked"); return 4; }
+    // Long enough for the repaint and the settings save that follows.
+    Thread.Sleep(1500);
+    Console.WriteLine($"picked {id}");
     return 0;
 }
 

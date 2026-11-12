@@ -35,16 +35,6 @@ namespace VoiceBridge.App;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private static readonly Brush IdleDot = Frozen(0xAE, 0xAE, 0xB2);
-    private static readonly Brush LiveDot = Frozen(0x1D, 0x9A, 0x5B);
-    private static readonly Brush WarnDot = Frozen(0xB2, 0x76, 0x0A);
-    private static readonly Brush ErrorDot = Frozen(0xD3, 0x3B, 0x3B);
-    private static readonly Brush IdleFill = Frozen(0xF0, 0xF0, 0xF3);
-    private static readonly Brush LiveFill = Frozen(0xE6, 0xF5, 0xED);
-    private static readonly Brush ErrorFill = Frozen(0xFC, 0xEC, 0xEC);
-    private static readonly Brush WarnFill = Frozen(0xFD, 0xF3, 0xE2);
-    private static readonly Brush LabelBrush = Frozen(0x1D, 0x1D, 0x1F);
-    private static readonly Brush SecondaryBrush = Frozen(0x6E, 0x6E, 0x73);
 
     private readonly SessionController controller = new();
     private readonly HttpClient http;
@@ -130,13 +120,6 @@ public partial class MainWindow : Window
 
     private static string WorkerScript => Path.Combine(AppContext.BaseDirectory, "worker", "main.py");
 
-    private static Brush Frozen(byte r, byte g, byte b)
-    {
-        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-        brush.Freeze();
-        return brush;
-    }
-
     /// <summary>
     /// The picture the tray shows. It has to be the app icon, because the
     /// generic Windows placeholder makes the bridge look like an uninstalled
@@ -214,6 +197,7 @@ public partial class MainWindow : Window
             });
         };
         InitializeAttention();
+        InitializeAppearance();
 
         LatencyBox.ItemsSource = new[] { "balanced", "normal", "low" };
         LatencyBox.SelectionChanged += (_, _) => ScheduleSave();
@@ -355,10 +339,11 @@ public partial class MainWindow : Window
 
         (StatusPillText.Text, StatusPillText.Foreground, StatusPillDot.Fill, StatusPill.Background) = state.State switch
         {
-            BridgeState.Running => ("正在监听", LiveDot, LiveDot, LiveFill),
-            BridgeState.Starting or BridgeState.Stopping => ("正在准备", WarnDot, WarnDot, WarnFill),
-            BridgeState.Error => ("已停止", ErrorDot, ErrorDot, ErrorFill),
-            _ => ("未开始", SecondaryBrush, IdleDot, IdleFill)
+            BridgeState.Running => ("正在监听", Theme.Brush("Positive"), Theme.Brush("Positive"), Theme.Brush("PositiveSoft")),
+            BridgeState.Starting or BridgeState.Stopping =>
+                ("正在准备", Theme.Brush("Caution"), Theme.Brush("Caution"), Theme.Brush("CautionSoft")),
+            BridgeState.Error => ("已停止", Theme.Brush("Danger"), Theme.Brush("Danger"), Theme.Brush("DangerSoft")),
+            _ => ("未开始", Theme.Brush("Secondary"), Theme.Brush("IdleDot"), Theme.Brush("Fill"))
         };
         // Only a live connection breathes; every other state holds the dot still.
         SetPillBreathing(state.State == BridgeState.Running);
@@ -947,7 +932,8 @@ public partial class MainWindow : Window
             Lexicon = new List<WordEntry>(),
             LexiconSeeded = lexiconSeeded,
             CacheLimitBytes = CacheLimitBox.SelectedValue is long limit && limit > 0
-                ? limit : CacheLimits.DefaultBytes
+                ? limit : CacheLimits.DefaultBytes,
+            Appearance = Theme.Choice
         };
     }
 

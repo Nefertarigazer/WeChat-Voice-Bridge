@@ -42,16 +42,16 @@
             <Border x:Name="Root" Background="Transparent" CornerRadius="6">
               <Path x:Name="Glyph" Width="10" Height="10" Stretch="Uniform"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Data="M 1,1 L 9,9 M 9,1 L 1,9" Stroke="{StaticResource Secondary}"
+                    Data="M 1,1 L 9,9 M 9,1 L 1,9" Stroke="{DynamicResource Secondary}"
                     StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#C42B1C"/>
-                <Setter TargetName="Glyph" Property="Stroke" Value="White"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource CloseHover}"/>
+                <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource WhiteText}"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#A81E13"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ClosePressed}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -62,12 +62,12 @@
   <Grid>
     <!-- Shadow only the surface, keeping the text itself crisp at each DPI.
          The outer 16 DIP stays transparent, so no tinted frame surrounds the card. -->
-    <Border x:Name="SurfaceShadow" Margin="16" Background="#FFFEFB" CornerRadius="14" IsHitTestVisible="False">
+    <Border x:Name="SurfaceShadow" Margin="16" Background="{DynamicResource DialogBg}" CornerRadius="14" IsHitTestVisible="False">
       <Border.Effect>
         <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Opacity="0.24" Color="#20262B"/>
       </Border.Effect>
     </Border>
-    <Border x:Name="DialogSurface" Margin="16" Background="#FFFEFB" BorderBrush="#DCE3DF"
+    <Border x:Name="DialogSurface" Margin="16" Background="{DynamicResource DialogBg}" BorderBrush="{DynamicResource DialogBorder}"
             BorderThickness="1" CornerRadius="14">
     <Grid>
     <Grid.RowDefinitions>
@@ -89,7 +89,7 @@
         <TextBlock x:Name="VersionTitle" FontSize="22" FontWeight="SemiBold"/>
         <TextBlock Text="看看这次有哪些变化" Style="{StaticResource Subtitle}" Margin="0,6,0,0"/>
       </StackPanel>
-      <Border Grid.Row="1" Background="White" BorderBrush="#E4E9E5" BorderThickness="1" CornerRadius="12">
+      <Border Grid.Row="1" Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource GroupBorder}" BorderThickness="1" CornerRadius="12">
         <Grid>
         <!-- The vertical padding sits inside the scrolled content, so the viewport reaches
              the frame and a cut-off line ends at its bottom edge. The code-behind fades the
@@ -105,7 +105,7 @@
                 <DataTemplate>
                   <Grid Margin="0,0,0,12">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <TextBlock Text="•" Foreground="{StaticResource Accent}"/>
+                    <TextBlock Text="•" Foreground="{DynamicResource Accent}"/>
                     <TextBlock Grid.Column="1" Text="{Binding}" LineHeight="23" TextWrapping="Wrap"/>
                   </Grid>
                 </DataTemplate>

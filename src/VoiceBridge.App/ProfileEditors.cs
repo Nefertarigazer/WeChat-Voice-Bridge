@@ -21,7 +21,7 @@ internal abstract class ProfileEditor : Window
     protected readonly TextBlock Error = new() { Margin = new(0, 12, 0, 0) };
     private readonly Button save, back;
     private readonly ScrollViewer scroll;
-    // The card surface is #FFFEFB (DialogShell); the edges melt the content into it.
+    // The edges melt the content into the card surface (DialogBg, see DialogShell).
     private readonly Border topEdge = Edge(VerticalAlignment.Top, 28,
         (0, 0xFF), (0.55, 0x8C), (1, 0x00));
     // Light at the top so a peeking row stays readable, solid only at the very edge.
@@ -77,8 +77,9 @@ internal abstract class ProfileEditor : Window
     private static Border Edge(VerticalAlignment side, double height, params (double Offset, byte Alpha)[] stops)
     {
         var brush = new LinearGradientBrush { StartPoint = new(0, 0), EndPoint = new(0, 1) };
+        var surface = Theme.ColorOf("DialogBg");
         foreach (var (offset, alpha) in stops)
-            brush.GradientStops.Add(new GradientStop(Color.FromArgb(alpha, 0xFF, 0xFE, 0xFB), offset));
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(alpha, surface.R, surface.G, surface.B), offset));
         brush.Freeze();
         return new Border { Height = height, VerticalAlignment = side, Background = brush, IsHitTestVisible = false, Opacity = 0 };
     }
@@ -226,12 +227,12 @@ internal abstract class ProfileEditor : Window
 
     /// <summary>A soft amber pill with a globe: this vendor needs an overseas network from mainland China.</summary>
     protected const string OverseasBadge = """
-        <Border Background="#FDF1DD" BorderBrush="#F2DDB6" BorderThickness="1" CornerRadius="7" Padding="6,1,8,2"
+        <Border Background="{DynamicResource CautionSoft}" BorderBrush="{DynamicResource CautionBorder}" BorderThickness="1" CornerRadius="7" Padding="6,1,8,2"
                 Margin="8,0,0,0" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal">
             <Path Data="M0.5,6 A5.5,5.5 0 1 1 11.5,6 A5.5,5.5 0 1 1 0.5,6 Z M0.9,4 H11.1 M0.9,8 H11.1 M6,0.5 C3.3,2.7 3.3,9.3 6,11.5 M6,0.5 C8.7,2.7 8.7,9.3 6,11.5"
-                  Stroke="#A8701C" StrokeThickness="1" Width="11" Height="11" Stretch="Uniform" VerticalAlignment="Center"/>
-            <TextBlock Text="需海外网络" FontSize="11" Foreground="#9A681D" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                  Stroke="{DynamicResource Caution}" StrokeThickness="1" Width="11" Height="11" Stretch="Uniform" VerticalAlignment="Center"/>
+            <TextBlock Text="需海外网络" FontSize="11" Foreground="{DynamicResource CautionText}" Margin="4,0,0,0" VerticalAlignment="Center"/>
           </StackPanel>
         </Border>
         """;
@@ -302,13 +303,13 @@ internal sealed class ProviderEditor : ProfileEditor
             ItemsSource = view,
             ItemTemplate = MarkupTemplate("<StackPanel Margin=\"2,1\"><StackPanel Orientation=\"Horizontal\">" +
                 "<TextBlock Text=\"{Binding Label}\" FontWeight=\"SemiBold\" VerticalAlignment=\"Center\"/>" + badge + "</StackPanel>" +
-                "<TextBlock Text=\"{Binding Summary}\" FontSize=\"12\" Foreground=\"#6E7673\" TextWrapping=\"Wrap\" Margin=\"0,2,0,0\"/></StackPanel>"),
+                "<TextBlock Text=\"{Binding Summary}\" FontSize=\"12\" Foreground=\"{DynamicResource Secondary}\" TextWrapping=\"Wrap\" Margin=\"0,2,0,0\"/></StackPanel>"),
             SelectedIndex = 0
         };
         ScrollViewer.SetVerticalScrollBarVisibility(presets, ScrollBarVisibility.Disabled);
         presets.GroupStyle.Add(new GroupStyle
         {
-            HeaderTemplate = MarkupTemplate("<TextBlock Text=\"{Binding Name}\" FontSize=\"12\" FontWeight=\"SemiBold\" Foreground=\"#0B8F66\" Margin=\"6,14,0,4\"/>")
+            HeaderTemplate = MarkupTemplate("<TextBlock Text=\"{Binding Name}\" FontSize=\"12\" FontWeight=\"SemiBold\" Foreground=\"{DynamicResource Accent}\" Margin=\"6,14,0,4\"/>")
         });
         presets.MouseDoubleClick += (_, _) => { if (presets.SelectedItem is PresetChoice) Advance(); };
         Choice.Children.Add(new TextBlock { Text = "选择要接入的语音服务。没有专属入口的厂商用「通用协议」接入。",
@@ -340,7 +341,7 @@ internal sealed class ProviderEditor : ProfileEditor
             Fields.Children.Add(new TextBlock
             {
                 Text = "在中国大陆，注册账号、获取 Key 和合成语音都需要海外网络环境；网络断开时这一家的音色会读不出来。",
-                FontSize = 12, Foreground = new SolidColorBrush(Color.FromRgb(0x9A, 0x68, 0x1D)), TextWrapping = TextWrapping.Wrap,
+                FontSize = 12, Foreground = Theme.Brush("CautionText"), TextWrapping = TextWrapping.Wrap,
                 Margin = new(0,6,0,0)
             });
 

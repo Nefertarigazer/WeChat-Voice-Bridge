@@ -30,6 +30,10 @@ public partial class App : Application
         try { SetCurrentProcessExplicitAppUserModelID(AppUserModelId); }
         catch (Exception) { /* Taskbar grouping is optional; never block startup. */ }
         base.OnStartup(e);
+        // Before any window exists, so the first frame is already in the saved theme
+        // (the update helper window included).
+        Theme.Apply(Theme.ReadSaved());
+        Theme.FollowWindows();
         // One smooth, frame-synced wheel scroll for every ScrollViewer in the app.
         SmoothScroll.Install();
         if (e.Args.Length > 0 && e.Args[0] == "--apply-update")

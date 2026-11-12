@@ -23,7 +23,10 @@ internal sealed class ModeSettingsDialog : Window
     private const string PickSound = "\u0001pick";
     private static readonly int[] Steps = Enumerable.Range(1, 10).Concat(Enumerable.Range(3, 10).Select(step => step * 5))
         .Concat(Enumerable.Range(5, 8).Select(step => step * 15)).Distinct().Order().ToArray();
-    private static readonly Brush Accent = Brush("#0B8F66"), Ring = Brush("#B8C2BD"), Hover = Brush("#F3F7F5");
+    // Looked up when used: the theme may have changed since the last card was open.
+    private static Brush Accent => Theme.Brush("Accent");
+    private static Brush Ring => Theme.Brush("CheckBorder");
+    private static Brush Hover => Theme.Brush("FillSubtle");
 
     private readonly ContactCard card;
     private readonly Func<string, CancellationToken, Task> previewSound;
@@ -53,7 +56,7 @@ internal sealed class ModeSettingsDialog : Window
         });
         panel.Children.Add(new Border
         {
-            Background = Brushes.White, BorderBrush = Brush("#E4E9E5"), BorderThickness = new(1),
+            Background = Theme.Brush("CardBg"), BorderBrush = Theme.Brush("GroupBorder"), BorderThickness = new(1),
             CornerRadius = new(12), Padding = new(16, 12, 16, 14),
             Child = privacy ? BuildPrivacy() : BuildReminder()
         });
@@ -97,7 +100,7 @@ internal sealed class ModeSettingsDialog : Window
 
     private void AddChoice(Panel stack, PrivacyStyle style, string title, string example)
     {
-        var outline = new Ellipse { Stroke = Ring, StrokeThickness = 1.5, Fill = Brushes.White };
+        var outline = new Ellipse { Stroke = Ring, StrokeThickness = 1.5, Fill = Theme.Brush("CheckBg") };
         var dot = new Ellipse { Width = 8, Height = 8, Fill = Accent };
         var ring = new Grid { Width = 18, Height = 18, VerticalAlignment = VerticalAlignment.Top, Margin = new(2, 2, 12, 0) };
         ring.Children.Add(outline);
@@ -319,9 +322,9 @@ internal sealed class ModeSettingsDialog : Window
         <DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
           <StackPanel>
-            <Border x:Name="Rule" Height="1" Margin="0,5,0,5" Background="#E6EBE9" Visibility="Collapsed"/>
+            <Border x:Name="Rule" Height="1" Margin="0,5,0,5" Background="{DynamicResource Separator}" Visibility="Collapsed"/>
             <StackPanel Orientation="Horizontal">
-              <TextBlock x:Name="Plus" Text="＋" Foreground="#0B8F66" FontWeight="SemiBold" FontSize="15"
+              <TextBlock x:Name="Plus" Text="＋" Foreground="{DynamicResource Accent}" FontWeight="SemiBold" FontSize="15"
                          Margin="0,0,7,0" VerticalAlignment="Center" Visibility="Collapsed"/>
               <TextBlock x:Name="Caption" Text="{Binding Label}" VerticalAlignment="Center"
                          TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
@@ -331,7 +334,7 @@ internal sealed class ModeSettingsDialog : Window
             <DataTrigger Binding="{Binding IsAction}" Value="True">
               <Setter TargetName="Rule" Property="Visibility" Value="Visible"/>
               <Setter TargetName="Plus" Property="Visibility" Value="Visible"/>
-              <Setter TargetName="Caption" Property="Foreground" Value="#0B8F66"/>
+              <Setter TargetName="Caption" Property="Foreground" Value="{DynamicResource Accent}"/>
               <Setter TargetName="Caption" Property="FontWeight" Value="SemiBold"/>
             </DataTrigger>
           </DataTemplate.Triggers>
@@ -346,7 +349,7 @@ internal sealed class ModeSettingsDialog : Window
         {
             var button = new Button
             {
-                Content = new TextBlock { Text = glyph, FontSize = 16, Foreground = Brush("#3A4440"), Margin = new(0, -2, 0, 0) },
+                Content = new TextBlock { Text = glyph, FontSize = 16, Foreground = Theme.Brush("Ink"), Margin = new(0, -2, 0, 0) },
                 Width = 32, Height = 32, MinHeight = 0, Padding = new(0), Background = Brushes.Transparent, BorderThickness = new(0)
             };
             AutomationProperties.SetName(button, label + name);
@@ -370,7 +373,7 @@ internal sealed class ModeSettingsDialog : Window
         Grid.SetColumn(value, 1); stepper.Children.Add(value);
         var plus = Step("+", 1, "增加");
         Grid.SetColumn(plus, 2); stepper.Children.Add(plus);
-        var frame = new Border { Background = Brush("#F0F4F2"), CornerRadius = new(9), Child = stepper };
+        var frame = new Border { Background = Theme.Brush("Fill"), CornerRadius = new(9), Child = stepper };
         var row = new Grid { Margin = new(0, 4, 0, 4) };
         row.ColumnDefinitions.Add(new() { Width = new(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
@@ -411,19 +414,12 @@ internal sealed class ModeSettingsDialog : Window
 
     private static TextBlock Heading(string text) => new() { Text = text, FontWeight = FontWeights.SemiBold, Margin = new(0, 4, 0, 6) };
 
-    private static Border Hairline() => new() { Height = 1, Background = Brush("#E6EBE9"), Margin = new(0, 12, 0, 10) };
+    private static Border Hairline() => new() { Height = 1, Background = Theme.Brush("Separator"), Margin = new(0, 12, 0, 10) };
 
     private static bool Same(string sound, string other) => sound.Equals(other, StringComparison.OrdinalIgnoreCase);
 
     private static string Minutes(int minutes) => minutes < 60 ? $"{minutes} 分钟" :
         minutes % 60 == 0 ? $"{minutes / 60} 小时" : $"{minutes / 60} 小时 {minutes % 60} 分";
-
-    private static SolidColorBrush Brush(string color)
-    {
-        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-        brush.Freeze();
-        return brush;
-    }
 
     private sealed record Labeled(ReminderWording Value, string Label);
     private sealed record SoundItem(string Id, string Label, bool IsAction);

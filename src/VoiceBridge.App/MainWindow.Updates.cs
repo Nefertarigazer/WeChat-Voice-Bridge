@@ -276,7 +276,7 @@ public partial class MainWindow
         // The dot reads green "up to date", red "update available", orange "ready to
         // install". The bridge status pill keeps its own grey/amber/green mapping, so
         // the shared brushes are reused in this order instead of being redefined.
-        UpdateStateDot.Fill = manifest is null ? LiveDot : verifiedUpdate is not null ? WarnDot : ErrorDot;
+        UpdateStateDot.Fill = Theme.Brush(manifest is null ? "Positive" : verifiedUpdate is not null ? "Caution" : "Danger");
         UpdateAction.IsEnabled = !closing && !updateHandoff && updateCancel is null;
         UpdatePackage.Visibility = manifest is null ? Visibility.Collapsed : Visibility.Visible;
         // The title row shares the header grid with the status row, so collapsing it is

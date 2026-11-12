@@ -41,14 +41,17 @@ internal static class DialogShell
         window.Background = Brushes.Transparent;
         TextOptions.SetTextFormattingMode(window, TextFormattingMode.Display);
         var root = new Grid();
-        root.Children.Add(new Border
+        var shadow = new Border
         {
-            Margin = new(16), Background = Brush("#FFFEFB"), CornerRadius = new(14), IsHitTestVisible = false,
+            Margin = new(16), CornerRadius = new(14), IsHitTestVisible = false,
             Effect = new DropShadowEffect { BlurRadius = 12, ShadowDepth = 2, Direction = 270,
                 Opacity = .24, Color = (Color)ColorConverter.ConvertFromString("#20262B") }
-        });
-        var surface = new Border { Margin = new(16), Background = Brush("#FFFEFB"),
-            BorderBrush = Brush("#DCE3DF"), BorderThickness = new(1), CornerRadius = new(14) };
+        };
+        shadow.SetResourceReference(Border.BackgroundProperty, "DialogBg");
+        root.Children.Add(shadow);
+        var surface = new Border { Margin = new(16), BorderThickness = new(1), CornerRadius = new(14) };
+        surface.SetResourceReference(Border.BackgroundProperty, "DialogBg");
+        surface.SetResourceReference(Border.BorderBrushProperty, "DialogBorder");
         var layout = new Grid();
         layout.RowDefinitions.Add(new() { Height = new(36) });
         layout.RowDefinitions.Add(new() { Height = new(1, GridUnitType.Star) });
@@ -135,6 +138,4 @@ internal static class DialogShell
         var top = Math.Clamp(window.Top, area.Top + 16, Math.Max(area.Top + 16, area.Bottom - window.ActualHeight - 16));
         if (Math.Abs(top - window.Top) > 0.1) window.Top = top;
     }
-
-    private static SolidColorBrush Brush(string color) => new((Color)ColorConverter.ConvertFromString(color));
 }

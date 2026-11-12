@@ -14,10 +14,22 @@ using VoiceBridge.Audio;
 using VoiceBridge.Core;
 using Lambda = System.Linq.Expressions.Expression;
 
-// DialogPreview <output folder> [version ...]
+// DialogPreview [--theme Light|Dark/Default|Green|Pink|Blue] <output folder> [version ...]
 // Off screen, with the app's own resources: the release notes for each version (default
 // 1.6.0), then the reminder and privacy settings cards of a sample contact. Prints what it
 // measured and saves PNGs at 2x. Preview sounds play at volume 0, so nothing is audible.
+// The theme defaults to the app's own default, 浅色 + 默认.
+var appearance = new AppearanceSettings();
+if (Array.IndexOf(args, "--theme") is var themeAt and >= 0 && themeAt + 1 < args.Length)
+{
+    var parts = args[themeAt + 1].Split('/');
+    appearance = new AppearanceSettings
+    {
+        Mode = Enum.Parse<ThemeMode>(parts[0], true),
+        Tint = parts.Length > 1 ? Enum.Parse<ThemeTint>(parts[1], true) : ThemeTint.Default
+    };
+    args = [.. args[..themeAt], .. args[(themeAt + 2)..]];
+}
 var realClick = args.Length > 0 && args[0] == "--realclick";
 if (realClick) args = args[1..];
 var output = Path.GetFullPath(args.Length > 0 ? args[0] : "dialog-preview");
@@ -37,6 +49,10 @@ var thread = new Thread(() =>
     // A plain Application with App.xaml's resources. Never construct App itself: its
     // constructor queues OnStartup, which would knock on a running copy of the app.
     var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown, Resources = AppResources() };
+    // As App.OnStartup does: the colors come from the theme, not from App.xaml.
+    typeof(ReleaseNotesDialog).Assembly.GetType("VoiceBridge.App.Theme", true)!
+        .GetMethod("Apply", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, [appearance]);
+    Console.WriteLine($"[theme] {appearance.Mode} / {appearance.Tint}");
     var owner = new Window
     {
         Width = 1000, Height = 760, Left = -9000, Top = -3000, ShowInTaskbar = false,
@@ -510,7 +526,8 @@ static void Save(FrameworkElement element, string path)
     var visual = new DrawingVisual();
     using (var context = visual.RenderOpen())
     {
-        context.DrawRectangle(new SolidColorBrush(Color.FromRgb(0xE9, 0xEE, 0xEB)), null, new Rect(size));
+        // The page the dialog opens over, in the theme in use.
+        context.DrawRectangle((Brush)Application.Current.Resources["SidebarBg"], null, new Rect(size));
         context.DrawRectangle(new VisualBrush(root), null, new Rect(size));
     }
     var bitmap = new RenderTargetBitmap((int)Math.Ceiling(size.Width * 2), (int)Math.Ceiling(size.Height * 2), 192, 192, PixelFormats.Pbgra32);

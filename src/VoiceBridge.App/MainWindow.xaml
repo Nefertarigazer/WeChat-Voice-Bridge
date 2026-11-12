@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:VoiceBridge.App"
         Title="微信语音桥"
         Width="940" Height="780" MinWidth="780" MinHeight="600" WindowStartupLocation="CenterScreen"
-        Background="{StaticResource PageBg}" FontFamily="Microsoft YaHei UI" FontSize="14"
+        Background="{DynamicResource PageBg}" FontFamily="Microsoft YaHei UI" FontSize="14"
         TextOptions.TextFormattingMode="Display" UseLayoutRounding="True"
         Icon="pack://application:,,,/app-icon.png"
         WindowStyle="None" AllowsTransparency="False" ResizeMode="CanResize"
@@ -13,13 +13,13 @@
     <DataTemplate x:Key="AnnouncementMenuTemplate">
       <StackPanel>
         <!-- The "自定义" entry is an action, not a saved choice: give it a rule and a plus. -->
-        <Border x:Name="AddNewRule" Height="1" Margin="0,5,0,5" Background="{StaticResource Separator}"
+        <Border x:Name="AddNewRule" Height="1" Margin="0,5,0,5" Background="{DynamicResource Separator}"
                 Visibility="Collapsed"/>
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <TextBlock x:Name="AddNewPlus" Text="＋" Foreground="{StaticResource Accent}" FontWeight="SemiBold"
+          <TextBlock x:Name="AddNewPlus" Text="＋" Foreground="{DynamicResource Accent}" FontWeight="SemiBold"
                      FontSize="15" Margin="0,0,7,0" VerticalAlignment="Center" Visibility="Collapsed"/>
           <TextBlock x:Name="ChoiceLabel" Grid.Column="1" Text="{Binding Label}" VerticalAlignment="Center"
                      TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
@@ -45,7 +45,7 @@
         <DataTrigger Binding="{Binding IsAddNew}" Value="True">
           <Setter TargetName="AddNewRule" Property="Visibility" Value="Visible"/>
           <Setter TargetName="AddNewPlus" Property="Visibility" Value="Visible"/>
-          <Setter TargetName="ChoiceLabel" Property="Foreground" Value="{StaticResource Accent}"/>
+          <Setter TargetName="ChoiceLabel" Property="Foreground" Value="{DynamicResource Accent}"/>
           <Setter TargetName="ChoiceLabel" Property="FontWeight" Value="SemiBold"/>
         </DataTrigger>
       </DataTemplate.Triggers>
@@ -54,8 +54,8 @@
       <Setter Property="Cursor" Value="Hand"/><Setter Property="MinHeight" Value="32"/>
       <Setter Property="Padding" Value="12,7"/><Setter Property="FontSize" Value="12"/>
       <Setter Property="FontWeight" Value="Medium"/>
-      <Setter Property="Background" Value="#EAF6EF"/><Setter Property="Foreground" Value="#13754F"/>
-      <Setter Property="BorderBrush" Value="#D8EDE1"/>
+      <Setter Property="Background" Value="{DynamicResource AccentSubtle}"/><Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderLight}"/>
       <Setter Property="local:ContactActionIcon.Geometry" Value="M 3,1 L 11,6 L 3,11 Z"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
         <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
@@ -70,45 +70,45 @@
         </Border>
         <ControlTemplate.Triggers>
           <Trigger Property="Content" Value="取消试听"><Setter TargetName="Glyph" Property="Data" Value="M 2,2 L 10,2 L 10,10 L 2,10 Z"/></Trigger>
-          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource Accent}"/></Trigger>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
           <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="RenderTransform"><Setter.Value><ScaleTransform ScaleX="0.97" ScaleY="0.97"/></Setter.Value></Setter></Trigger>
           <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.5"/></Trigger>
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
       <Style.Triggers><Trigger Property="IsMouseOver" Value="True">
-        <Setter Property="Background" Value="#DDEFE4"/><Setter Property="BorderBrush" Value="#AED4BE"/>
+        <Setter Property="Background" Value="{DynamicResource AccentSoft}"/><Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
       </Trigger></Style.Triggers>
     </Style>
     <!-- 词库表头：小一号、字距略开、颜色压暗，读起来像列名 -->
     <Style x:Key="TableHead" TargetType="TextBlock">
       <Setter Property="FontSize" Value="11"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="Foreground" Value="#6E8779"/>
+      <Setter Property="Foreground" Value="{DynamicResource AccentTextMuted}"/>
     </Style>
 
     <!-- 方块图标按钮（清空之类）：悬停浮底色，禁用时变淡 -->
     <Style x:Key="IconDangerButton" TargetType="Button">
       <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Foreground" Value="#D81E06"/>
+      <Setter Property="Foreground" Value="{DynamicResource DangerIcon}"/>
       <Setter Property="Width" Value="30"/>
       <Setter Property="Height" Value="30"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
             <!-- Same tint as the 移除 button, so destructive actions look alike. -->
-            <Border x:Name="Surface" Background="#FBF1EE" CornerRadius="9"
-                    BorderBrush="#F1DDD5" BorderThickness="1">
+            <Border x:Name="Surface" Background="{DynamicResource RemoveSoft}" CornerRadius="9"
+                    BorderBrush="{DynamicResource RemoveBorder}" BorderThickness="1">
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Surface" Property="Background" Value="#F7E2DB"/>
-                <Setter TargetName="Surface" Property="BorderBrush" Value="#E6BCAA"/>
-                <Setter Property="Foreground" Value="#934531"/>
+                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource RemoveSoftHover}"/>
+                <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource RemoveBorderHover}"/>
+                <Setter Property="Foreground" Value="{DynamicResource RemoveTextStrong}"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="Surface" Property="Background" Value="#F2D5CB"/>
-                <Setter TargetName="Surface" Property="BorderBrush" Value="#DCAB98"/>
+                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource RemoveSoftPressed}"/>
+                <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource RemoveBorderPressed}"/>
               </Trigger>
               <!-- Disabled: dimmed; the window shows the "not allowed" cursor over it
                    (MainWindow.Interaction.OverIdleClear). -->
@@ -124,13 +124,13 @@
     <!-- 列表里的次要操作（编辑 / 完成）：中性淡绿药丸，和删除同一套外形 -->
     <Style x:Key="RowSecondaryButton" TargetType="Button">
       <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Foreground" Value="#4A6B5A"/>
+      <Setter Property="Foreground" Value="{DynamicResource Ink}"/>
       <Setter Property="Padding" Value="11,5"/>
       <Setter Property="FontSize" Value="12.5"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Surface" Background="#F3F7F5" BorderBrush="#E3EBE6" BorderThickness="1"
+            <Border x:Name="Surface" Background="{DynamicResource FillSubtle}" BorderBrush="{DynamicResource ControlBorder}" BorderThickness="1"
                     CornerRadius="9" Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5">
               <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
                          FontSize="{TemplateBinding FontSize}" FontWeight="Medium"
@@ -138,12 +138,12 @@
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Surface" Property="Background" Value="#E9F2ED"/>
-                <Setter TargetName="Surface" Property="BorderBrush" Value="#CFDED6"/>
-                <Setter Property="Foreground" Value="#2F5344"/>
+                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Fill}"/>
+                <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource ControlBorderStrong}"/>
+                <Setter Property="Foreground" Value="{DynamicResource Label}"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="Surface" Property="Background" Value="#DDEAE3"/>
+                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource FillStrong}"/>
                 <Setter TargetName="Surface" Property="RenderTransform">
                   <Setter.Value><ScaleTransform ScaleX="0.97" ScaleY="0.97"/></Setter.Value>
                 </Setter>
@@ -160,13 +160,13 @@
     <!-- 列表里的删除：淡红药丸，悬停加深、按下更深，比纯文字更像可点的按钮 -->
     <Style x:Key="RowDangerButton" TargetType="Button">
       <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Foreground" Value="#A85643"/>
+      <Setter Property="Foreground" Value="{DynamicResource RemoveText}"/>
       <Setter Property="Padding" Value="11,5"/>
       <Setter Property="FontSize" Value="12.5"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Surface" Background="#FBEFEA" BorderBrush="#F1DCD3" BorderThickness="1"
+            <Border x:Name="Surface" Background="{DynamicResource RemoveSoft}" BorderBrush="{DynamicResource RemoveBorder}" BorderThickness="1"
                     CornerRadius="9" Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5">
               <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
                          FontSize="{TemplateBinding FontSize}" FontWeight="Medium"
@@ -174,12 +174,12 @@
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Surface" Property="Background" Value="#F7E3DA"/>
-                <Setter TargetName="Surface" Property="BorderBrush" Value="#E8BFAF"/>
-                <Setter Property="Foreground" Value="#8F4231"/>
+                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource RemoveSoftHover}"/>
+                <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource RemoveBorderHover}"/>
+                <Setter Property="Foreground" Value="{DynamicResource RemoveTextStrong}"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="Surface" Property="Background" Value="#F1D3C7"/>
+                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource RemoveSoftPressed}"/>
                 <Setter TargetName="Surface" Property="RenderTransform">
                   <Setter.Value><ScaleTransform ScaleX="0.97" ScaleY="0.97"/></Setter.Value>
                 </Setter>
@@ -194,38 +194,38 @@
     </Style>
 
     <Style x:Key="ContactRemoveAction" TargetType="Button" BasedOn="{StaticResource ContactPreviewAction}">
-      <Setter Property="Margin" Value="8,0,0,0"/><Setter Property="Background" Value="#FBF1EE"/>
-      <Setter Property="Foreground" Value="#A85A48"/><Setter Property="BorderBrush" Value="#F1DDD5"/>
+      <Setter Property="Margin" Value="8,0,0,0"/><Setter Property="Background" Value="{DynamicResource RemoveSoft}"/>
+      <Setter Property="Foreground" Value="{DynamicResource RemoveText}"/><Setter Property="BorderBrush" Value="{DynamicResource RemoveBorder}"/>
       <Setter Property="local:ContactActionIcon.Geometry" Value="M 6,1 A 5,5 0 1 1 5.999,1 M 3.5,6 L 8.5,6"/>
       <Style.Triggers><Trigger Property="IsMouseOver" Value="True">
-        <Setter Property="Background" Value="#F7E2DB"/><Setter Property="BorderBrush" Value="#E6BCAA"/>
-        <Setter Property="Foreground" Value="#934531"/>
+        <Setter Property="Background" Value="{DynamicResource RemoveSoftHover}"/><Setter Property="BorderBrush" Value="{DynamicResource RemoveBorderHover}"/>
+        <Setter Property="Foreground" Value="{DynamicResource RemoveTextStrong}"/>
       </Trigger></Style.Triggers>
     </Style>
     <!-- 「✓ 已读」: same pill as 试听, in the reminder capsule's orange family. -->
     <Style x:Key="ContactReadAction" TargetType="Button" BasedOn="{StaticResource ContactPreviewAction}">
-      <Setter Property="Background" Value="#FFF3E4"/><Setter Property="Foreground" Value="#A95A00"/>
-      <Setter Property="BorderBrush" Value="#F2D3A6"/>
+      <Setter Property="Background" Value="{DynamicResource AmberSoft}"/><Setter Property="Foreground" Value="{DynamicResource AmberText}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AmberBorder}"/>
       <Setter Property="local:ContactActionIcon.Geometry" Value="M 1.5,6.4 L 4.6,9.4 L 10.5,2.8"/>
       <Style.Triggers><Trigger Property="IsMouseOver" Value="True">
-        <Setter Property="Background" Value="#FFEACF"/><Setter Property="BorderBrush" Value="#EDBE7C"/>
-        <Setter Property="Foreground" Value="#8F4B00"/>
+        <Setter Property="Background" Value="{DynamicResource AmberSoftHover}"/><Setter Property="BorderBrush" Value="{DynamicResource AmberBorderHover}"/>
+        <Setter Property="Foreground" Value="{DynamicResource AmberTextStrong}"/>
       </Trigger></Style.Triggers>
     </Style>
     <!-- How many messages wait for a reply: a red count on the avatar, like WeChat's own. -->
     <Style x:Key="UnreadBadge" TargetType="Border">
       <Setter Property="MinWidth" Value="18"/><Setter Property="Height" Value="18"/>
       <Setter Property="CornerRadius" Value="9"/><Setter Property="Padding" Value="4,0"/>
-      <Setter Property="Background" Value="#E5484D"/><Setter Property="BorderBrush" Value="White"/>
+      <Setter Property="Background" Value="{DynamicResource Badge}"/><Setter Property="BorderBrush" Value="{DynamicResource CardBg}"/>
       <Setter Property="BorderThickness" Value="1.5"/>
       <Setter Property="HorizontalAlignment" Value="Right"/><Setter Property="VerticalAlignment" Value="Top"/>
       <Setter Property="Margin" Value="0,-5,-6,0"/><Setter Property="IsHitTestVisible" Value="False"/>
     </Style>
 
     <DataTemplate x:Key="LibraryGroupHeader">
-      <Border Background="#EDF7F1" BorderBrush="#DDEBE3" BorderThickness="0,0,0,1"
+      <Border Background="{DynamicResource AccentSubtle}" BorderBrush="{DynamicResource AccentBorderLight}" BorderThickness="0,0,0,1"
               CornerRadius="13,13,0,0" Padding="16,11">
-        <TextBlock Text="{Binding Name}" Foreground="{StaticResource Accent}" FontWeight="SemiBold"/>
+        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Accent}" FontWeight="SemiBold"/>
       </Border>
     </DataTemplate>
     <Style x:Key="LibraryGroupContainer" TargetType="GroupItem">
@@ -237,8 +237,8 @@
     </Style>
     <GroupStyle x:Key="VoiceProviderGroup">
       <GroupStyle.HeaderTemplate><DataTemplate>
-        <Border Background="#EDF7F1" CornerRadius="6" Padding="8,5" Margin="4,7,4,3">
-          <TextBlock Text="{Binding Name}" FontSize="11" Foreground="#46745E" FontWeight="SemiBold"/>
+        <Border Background="{DynamicResource AccentSubtle}" CornerRadius="6" Padding="8,5" Margin="4,7,4,3">
+          <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{DynamicResource AccentTextMuted}" FontWeight="SemiBold"/>
         </Border>
       </DataTemplate></GroupStyle.HeaderTemplate>
     </GroupStyle>
@@ -250,7 +250,7 @@
       <TextBlock x:Name="VoiceChoiceLabel" Text="{Binding Name}"/>
       <DataTemplate.Triggers>
         <DataTrigger Binding="{Binding Usable}" Value="False">
-          <Setter TargetName="VoiceChoiceLabel" Property="Foreground" Value="{StaticResource Secondary}"/>
+          <Setter TargetName="VoiceChoiceLabel" Property="Foreground" Value="{DynamicResource Secondary}"/>
           <Setter TargetName="VoiceChoiceLabel" Property="FontStyle" Value="Italic"/>
         </DataTrigger>
       </DataTemplate.Triggers>
@@ -266,8 +266,8 @@
       <Setter Property="FontWeight" Value="Normal"/>
       <Setter Property="MinHeight" Value="30"/>
       <Setter Property="Padding" Value="10,4"/>
-      <Setter Property="Background" Value="#F7FBF9"/>
-      <Setter Property="BorderBrush" Value="#A8CABB"/>
+      <Setter Property="Background" Value="{DynamicResource AccentSubtle}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="Template">
         <Setter.Value><ControlTemplate TargetType="Button">
@@ -278,8 +278,8 @@
                        FontSize="{TemplateBinding FontSize}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
           <ControlTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{StaticResource AccentSoft}"/></Trigger>
-            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Background" Value="{StaticResource FillStrong}"/></Trigger>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource AccentSoft}"/></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource FillStrong}"/></Trigger>
             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Frame" Property="Opacity" Value="0.5"/></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value>
@@ -297,16 +297,16 @@
           <ControlTemplate TargetType="Button">
             <Border x:Name="Root" Background="Transparent" CornerRadius="6">
               <Path x:Name="Glyph" Width="10" Height="10" Stretch="Uniform" HorizontalAlignment="Center"
-                    VerticalAlignment="Center" Data="M 0,5 H 10" Stroke="#5C5C61" StrokeThickness="1"
+                    VerticalAlignment="Center" Data="M 0,5 H 10" Stroke="{DynamicResource Glyph}" StrokeThickness="1"
                     StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#E3E9E6"/>
-                <Setter TargetName="Glyph" Property="Stroke" Value="#1D1D1F"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource FillStrong}"/>
+                <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource Label}"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#D5DCD9"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource FillPressed}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -326,21 +326,21 @@
             <Border x:Name="Root" Background="Transparent" CornerRadius="6">
               <Grid>
                 <Path x:Name="MaxGlyph" Width="10" Height="10" Stretch="Uniform" HorizontalAlignment="Center"
-                      VerticalAlignment="Center" Data="M 0.5,0.5 H 9.5 V 9.5 H 0.5 Z" Stroke="#5C5C61"
+                      VerticalAlignment="Center" Data="M 0.5,0.5 H 9.5 V 9.5 H 0.5 Z" Stroke="{DynamicResource Glyph}"
                       StrokeThickness="1" StrokeLineJoin="Round"/>
                 <Path x:Name="RestoreGlyph" Width="10" Height="10" Stretch="Uniform" HorizontalAlignment="Center"
                       VerticalAlignment="Center" Data="M 0.5,4 H 7.5 V 10 H 0.5 Z M 3,4 V 0.5 H 9.5 V 6.5 H 7.5"
-                      Stroke="#5C5C61" StrokeThickness="1" StrokeLineJoin="Round" Visibility="Collapsed"/>
+                      Stroke="{DynamicResource Glyph}" StrokeThickness="1" StrokeLineJoin="Round" Visibility="Collapsed"/>
               </Grid>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#E3E9E6"/>
-                <Setter TargetName="MaxGlyph" Property="Stroke" Value="#1D1D1F"/>
-                <Setter TargetName="RestoreGlyph" Property="Stroke" Value="#1D1D1F"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource FillStrong}"/>
+                <Setter TargetName="MaxGlyph" Property="Stroke" Value="{DynamicResource Label}"/>
+                <Setter TargetName="RestoreGlyph" Property="Stroke" Value="{DynamicResource Label}"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#D5DCD9"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource FillPressed}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -359,16 +359,16 @@
           <ControlTemplate TargetType="Button">
             <Border x:Name="Root" Background="Transparent" CornerRadius="6">
               <Path x:Name="Glyph" Width="10" Height="10" Stretch="Uniform" HorizontalAlignment="Center"
-                    VerticalAlignment="Center" Data="M 1,1 L 9,9 M 9,1 L 1,9" Stroke="#5C5C61"
+                    VerticalAlignment="Center" Data="M 1,1 L 9,9 M 9,1 L 1,9" Stroke="{DynamicResource Glyph}"
                     StrokeThickness="1" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
             </Border>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#C42B1C"/>
-                <Setter TargetName="Glyph" Property="Stroke" Value="White"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource CloseHover}"/>
+                <Setter TargetName="Glyph" Property="Stroke" Value="{DynamicResource WhiteText}"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="#A81E13"/>
+                <Setter TargetName="Root" Property="Background" Value="{DynamicResource ClosePressed}"/>
               </Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
@@ -387,7 +387,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- 原文 -->
-        <Border Grid.Column="0" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
+        <Border Grid.Column="0" Background="{DynamicResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
                 Cursor="IBeam" Tag="{Binding}" MouseLeftButtonDown="ReadingFieldClick"
                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
           <TextBlock Text="{Binding Match}" VerticalAlignment="Center" TextWrapping="NoWrap" HorizontalAlignment="Center"
@@ -396,11 +396,11 @@
         <TextBox x:Name="MatchBox" Grid.Column="0" Text="{Binding Match, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                  MaxLength="64" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}"
                  AutomationProperties.Name="原文"/>
-        <TextBlock Grid.Column="1" Text="→" Foreground="{StaticResource Tertiary}" Margin="10,0"
+        <TextBlock Grid.Column="1" Text="→" Foreground="{DynamicResource Tertiary}" Margin="10,0"
                    VerticalAlignment="Center"/>
 
         <!-- 读作 -->
-        <Border Grid.Column="2" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
+        <Border Grid.Column="2" Background="{DynamicResource Fill}" CornerRadius="9" Height="34" Padding="12,0"
                 Cursor="IBeam" Tag="{Binding}" MouseLeftButtonDown="ReadingFieldClick"
                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
           <TextBlock Text="{Binding Say}" VerticalAlignment="Center" TextWrapping="NoWrap" HorizontalAlignment="Center"
@@ -411,7 +411,7 @@
                  AutomationProperties.Name="读作"/>
 
         <!-- 出现方式 -->
-        <Border Grid.Column="3" Background="{StaticResource Fill}" CornerRadius="9" Height="34" Padding="13,0,10,0"
+        <Border Grid.Column="3" Background="{DynamicResource Fill}" CornerRadius="9" Height="34" Padding="13,0,10,0"
                 Margin="12,0,10,0" Cursor="Hand" Tag="{Binding}" MouseLeftButtonDown="ReadingFieldClick"
                 Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVis}}">
           <TextBlock Text="{Binding ScopeLabel}" VerticalAlignment="Center" TextWrapping="NoWrap"
@@ -432,7 +432,7 @@
               <Style.Triggers>
                 <DataTrigger Binding="{Binding IsEditing}" Value="True">
                   <Setter Property="Content" Value="完成"/>
-                  <Setter Property="Foreground" Value="#13754F"/>
+                  <Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
                 </DataTrigger>
               </Style.Triggers>
             </Style>
@@ -444,8 +444,8 @@
     </DataTemplate>
     <DataTemplate x:Key="AvatarTemplate">
       <Grid Width="36" Height="36">
-        <Ellipse Fill="{StaticResource AccentSoft}"/>
-        <TextBlock Text="{Binding Initial}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource Accent}" FontSize="14"/>
+        <Ellipse Fill="{DynamicResource AccentSoft}"/>
+        <TextBlock Text="{Binding Initial}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Accent}" FontSize="14"/>
         <Ellipse><Ellipse.Fill><ImageBrush ImageSource="{Binding Avatar}" Stretch="UniformToFill"/></Ellipse.Fill></Ellipse>
       </Grid>
     </DataTemplate>
@@ -453,7 +453,7 @@
       <Grid>
         <ContentControl Content="{Binding}" ContentTemplate="{StaticResource AvatarTemplate}"/>
         <Border Style="{StaticResource UnreadBadge}" Visibility="{Binding ShowBadge, Converter={StaticResource BoolToVis}}">
-          <TextBlock Text="{Binding Badge}" Foreground="White" FontSize="10.5" FontWeight="SemiBold"
+          <TextBlock Text="{Binding Badge}" Foreground="{DynamicResource WhiteText}" FontSize="10.5" FontWeight="SemiBold"
                      HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap"/>
         </Border>
       </Grid>
@@ -467,7 +467,7 @@
                       SelectedValue="{Binding Model, Mode=TwoWay}" IsSynchronizedWithCurrentItem="False"
                       Visibility="{Binding CanSwitchModels, Converter={StaticResource BoolToVis}}"
                       AutomationProperties.Name="此联系人使用模型"/>
-            <Border Grid.Column="1" Background="{StaticResource Fill}" CornerRadius="9" Padding="12,9"
+            <Border Grid.Column="1" Background="{DynamicResource Fill}" CornerRadius="9" Padding="12,9"
                     Visibility="{Binding CanSwitchModels, Converter={StaticResource InverseBoolToVis}}">
               <TextBlock Text="{Binding ModelLabel}"/>
             </Border>
@@ -489,7 +489,7 @@
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource BadgedAvatar}" Margin="0,0,12,0"/>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
               <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource ContactName}"/>
-              <TextBlock Text="{Binding Alias}" FontSize="11" Foreground="{StaticResource Secondary}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="{Binding Alias}" FontSize="11" Foreground="{DynamicResource Secondary}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
               <Button x:Name="PreviewPeerButton" Content="试听" Style="{StaticResource ContactPreviewAction}" Tag="{Binding}" Click="PreviewContactClick"
@@ -541,7 +541,7 @@
             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource BadgedAvatar}" Margin="0,0,12,0"/>
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
               <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" Style="{StaticResource ContactName}"/>
-              <TextBlock Text="{Binding Alias}" FontSize="11" Foreground="{StaticResource Secondary}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="{Binding Alias}" FontSize="11" Foreground="{DynamicResource Secondary}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
             <!-- 试听 only before listening; while listening its place shows 已读 when someone waits. -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
@@ -567,7 +567,7 @@
               <ComboBox.GroupStyle><StaticResource ResourceKey="VoiceProviderGroup"/></ComboBox.GroupStyle>
             </ComboBox>
           </Grid>
-          <TextBlock Text="{Binding ConnectionName}" Foreground="{StaticResource Secondary}" FontSize="11" Margin="64,5,0,0"
+          <TextBlock Text="{Binding ConnectionName}" Foreground="{DynamicResource Secondary}" FontSize="11" Margin="64,5,0,0"
                      Visibility="{Binding ShowConnection, Converter={StaticResource BoolToVis}}"/>
           <ContentControl Content="{Binding}" ContentTemplate="{StaticResource SpeechOptionsTemplate}" Margin="0,10,0,0"
                           Visibility="{Binding InlineSpeechOptions, Converter={StaticResource BoolToVis}}"/>
@@ -597,7 +597,7 @@
     </Grid.ColumnDefinitions>
 
     <!-- ================= 左侧：品牌 + 导航 + 状态 ================= -->
-    <Border Grid.Column="0" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource Separator}"
+    <Border Grid.Column="0" Background="{DynamicResource SidebarBg}" BorderBrush="{DynamicResource Separator}"
             BorderThickness="0,0,1,0">
       <Grid>
         <Grid.RowDefinitions>
@@ -632,7 +632,7 @@
         <!-- 状态胶囊放在侧边栏底部，切换到哪一页都能看到 -->
         <Grid Grid.Row="3" Margin="18,0,14,20">
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-          <Border x:Name="StatusPill" Background="{StaticResource Fill}" CornerRadius="14"
+          <Border x:Name="StatusPill" Background="{DynamicResource Fill}" CornerRadius="14"
                   Padding="12,6" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal">
               <!-- Breathing light, same definition as the update dot (BreathingLight.cs),
@@ -649,7 +649,7 @@
                     <BlurEffect Radius="4"/>
                   </Ellipse.Effect>
                 </Ellipse>
-                <Ellipse x:Name="StatusPillDot" Width="8" Height="8" Fill="{StaticResource Tertiary}"
+                <Ellipse x:Name="StatusPillDot" Width="8" Height="8" Fill="{DynamicResource Tertiary}"
                          RenderTransformOrigin="0.5,0.5">
                   <Ellipse.RenderTransform>
                     <ScaleTransform x:Name="PillDotScale"/>
@@ -674,7 +674,7 @@
         <RowDefinition Height="*"/>
       </Grid.RowDefinitions>
 
-      <Grid Grid.Row="0" Background="{StaticResource PageBg}" MouseLeftButtonDown="CaptionMouseDown">
+      <Grid Grid.Row="0" Background="{DynamicResource PageBg}" MouseLeftButtonDown="CaptionMouseDown">
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
           <Button x:Name="MinimizeButton" Style="{StaticResource CaptionMinButton}"
                   AutomationProperties.Name="最小化" Click="MinimizeClick"/>
@@ -751,15 +751,15 @@
                         <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
                       </Grid.ColumnDefinitions>
                       <Grid Width="40" Height="40" Margin="0,0,12,0">
-                        <Ellipse Fill="{StaticResource AccentSoft}"/>
+                        <Ellipse Fill="{DynamicResource AccentSoft}"/>
                         <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="18"
-                                   Foreground="{StaticResource Accent}" TextWrapping="NoWrap"
+                                   Foreground="{DynamicResource Accent}" TextWrapping="NoWrap"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                       </Grid>
                       <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock x:Name="SelectedName" Text="联系人" FontSize="16" TextWrapping="NoWrap"
                                    TextTrimming="CharacterEllipsis" Style="{StaticResource ContactName}"/>
-                        <TextBlock x:Name="SelectedIdText" FontSize="12" Foreground="{StaticResource Secondary}"
+                        <TextBlock x:Name="SelectedIdText" FontSize="12" Foreground="{DynamicResource Secondary}"
                                    Margin="0,2,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                       </StackPanel>
                       <Button x:Name="ChangeButton" Grid.Column="2" Content="更换" Style="{StaticResource AccentButton}"
@@ -773,12 +773,12 @@
                              AutomationProperties.Name="搜索联系人"
                              TextChanged="ContactSearchChanged" KeyDown="ContactSearchKeyDown"/>
                     <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               Foreground="{StaticResource Tertiary}" Margin="14,0,0,0" TextWrapping="NoWrap"
+                               Foreground="{DynamicResource Tertiary}" Margin="14,0,0,0" TextWrapping="NoWrap"
                                HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"/>
                     <Button x:Name="CancelContactButton" Grid.Column="1" Content="取消" Style="{StaticResource PlainButton}" Margin="8,0,0,0" Click="CancelContactClick"/>
                   </Grid>
 
-                  <Border x:Name="ResultsPanel" Visibility="Collapsed" BorderBrush="{StaticResource Separator}"
+                  <Border x:Name="ResultsPanel" Visibility="Collapsed" BorderBrush="{DynamicResource Separator}"
                           BorderThickness="0,1,0,0" Padding="0,4" ClipToBounds="True">
                     <ListBox x:Name="ContactResults" MaxHeight="240" SelectionChanged="ContactResultsSelectionChanged">
                       <ListBox.ItemTemplate>
@@ -789,10 +789,10 @@
                             <StackPanel Grid.Column="1">
                               <TextBlock Text="{Binding Name}" FontSize="14" TextWrapping="NoWrap"
                                          TextTrimming="CharacterEllipsis" Style="{StaticResource ContactName}"/>
-                              <TextBlock Text="{Binding Alias}" FontSize="11" Foreground="{StaticResource Secondary}"
+                              <TextBlock Text="{Binding Alias}" FontSize="11" Foreground="{DynamicResource Secondary}"
                                          Margin="0,2,0,0" TextWrapping="NoWrap"/>
                             </StackPanel>
-                            <TextBlock Grid.Column="2" Text="选择" Foreground="{StaticResource Accent}" FontSize="13"
+                            <TextBlock Grid.Column="2" Text="选择" Foreground="{DynamicResource Accent}" FontSize="13"
                                        VerticalAlignment="Center"/>
                           </Grid>
                         </DataTemplate>
@@ -803,7 +803,7 @@
                   <StackPanel x:Name="HistoryPanel" Margin="16,0,16,12">
                     <Grid Margin="0,8,0,4">
                       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                      <TextBlock Text="最近联系人" FontSize="12" Foreground="{StaticResource Secondary}" VerticalAlignment="Center"/>
+                      <TextBlock Text="最近联系人" FontSize="12" Foreground="{DynamicResource Secondary}" VerticalAlignment="Center"/>
                       <Button x:Name="ClearHistoryButton" Grid.Column="1" Content="清空历史" Style="{StaticResource PlainButton}" Click="ClearHistoryClick"/>
                     </Grid>
                     <ItemsControl x:Name="RecentContactsList"><ItemsControl.ItemTemplate><DataTemplate>
@@ -815,7 +815,7 @@
                       </Grid>
                     </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                   </StackPanel>
-                  <Border BorderBrush="{StaticResource Separator}" BorderThickness="0,1,0,0" Padding="16,10">
+                  <Border BorderBrush="{DynamicResource Separator}" BorderThickness="0,1,0,0" Padding="16,10">
                     <Grid>
                       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                       <TextBlock x:Name="ContactHint" Style="{StaticResource Hint}" Margin="0,0,14,0" VerticalAlignment="Center"/>
@@ -844,7 +844,7 @@
                           Click="ClearClick" AutomationProperties.Name="清空朗读记录">
                     <!-- 清空图标：用户提供的矢量垃圾桶（viewBox 1024），两个子路径合成一组，
                          按 18×18 等比缩放。 -->
-                    <Path Width="18" Height="18" Stretch="Uniform" Fill="#D81E06">
+                    <Path Width="18" Height="18" Stretch="Uniform" Fill="{DynamicResource DangerIcon}">
                       <Path.Data>
                         <GeometryGroup>
                           <PathGeometry Figures="M519.620465 0c-103.924093 0-188.511256 82.467721-192.083349 185.820279H85.015814A48.91386 48.91386 0 0 0 36.101953 234.686512a48.91386 48.91386 0 0 0 48.913861 48.866232h54.010046V831.345116c0 102.852465 69.822512 186.844279 155.909954 186.844279h439.200744c86.087442 0 155.909953-83.491721 155.909954-186.844279V284.100465h48.91386a48.91386 48.91386 0 0 0 48.913861-48.890046 48.91386 48.91386 0 0 0-48.913861-48.866233h-227.756651A191.559442 191.559442 0 0 0 519.620465 0z m-107.234232 177.080558c3.548279-49.771163 46.627721-88.540279 99.851907-88.540279 53.224186 0 96.327442 38.745302 99.351813 88.540279h-199.20372z m-111.997024 752.044651c-30.981953 0-65.083535-39.15014-65.083535-95.041488V287.744h575.488v546.839814c0 55.915163-34.077767 95.041488-65.059721 95.041488H300.389209v-0.500093z"/>
@@ -922,7 +922,7 @@
                                 VerticalAlignment="Center"
                                 AutomationProperties.Name="音量" ValueChanged="VolumeChanged"/>
                         <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=VolumeBox, StringFormat={}{0:P0}}"
-                                   Foreground="{StaticResource Secondary}" TextAlignment="Right"
+                                   Foreground="{DynamicResource Secondary}" TextAlignment="Right"
                                    VerticalAlignment="Center" TextWrapping="NoWrap"/>
                       </Grid>
                     </Grid>
@@ -936,7 +936,7 @@
                 <ItemsControl x:Name="VoiceLibraryList">
                   <ItemsControl.GroupStyle><GroupStyle HeaderTemplate="{StaticResource LibraryGroupHeader}" ContainerStyle="{StaticResource LibraryGroupContainer}"/></ItemsControl.GroupStyle>
                   <ItemsControl.ItemTemplate><DataTemplate>
-                  <Border Padding="16,12" BorderBrush="{StaticResource Separator}" BorderThickness="0,0,0,1">
+                  <Border Padding="16,12" BorderBrush="{DynamicResource Separator}" BorderThickness="0,0,0,1">
                     <Grid>
                       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                       <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
@@ -953,7 +953,7 @@
                          grey italic style says it cannot speak until the vendor has
                          a key again. -->
                     <DataTrigger Binding="{Binding ProviderMissing}" Value="True">
-                      <Setter TargetName="VoiceName" Property="Foreground" Value="{StaticResource Secondary}"/>
+                      <Setter TargetName="VoiceName" Property="Foreground" Value="{DynamicResource Secondary}"/>
                       <Setter TargetName="VoiceName" Property="FontStyle" Value="Italic"/>
                     </DataTrigger>
                   </DataTemplate.Triggers>
@@ -966,7 +966,7 @@
                   <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="96"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <TextBlock Text="合成模型" Style="{StaticResource RowLabel}"/>
-                    <Border Grid.Column="1" Background="{StaticResource Fill}" CornerRadius="9" Padding="2"
+                    <Border Grid.Column="1" Background="{DynamicResource Fill}" CornerRadius="9" Padding="2"
                             HorizontalAlignment="Left">
                       <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="FreeModel" GroupName="FishModel" Content="免费" IsChecked="True"
@@ -995,7 +995,7 @@
                   <!-- Flush with the card's top edge (no white sliver) and built on the
                        same six columns as a row, so every heading sits exactly above the
                        field it names. -->
-                  <Border Background="#F4F8F6" BorderBrush="#E6EEE9" BorderThickness="0,0,0,1"
+                  <Border Background="{DynamicResource FillSubtle}" BorderBrush="{DynamicResource Separator}" BorderThickness="0,0,0,1"
                           CornerRadius="13,13,0,0" Padding="17,10"
                           Visibility="{Binding HasItems, ElementName=ReadingList, Converter={StaticResource BoolToVis}}">
                     <Grid>
@@ -1063,7 +1063,7 @@
                               </Ellipse.Effect>
                             </Ellipse>
                             <Ellipse x:Name="UpdateStateDot" Width="10" Height="10"
-                                     VerticalAlignment="Center" Fill="{StaticResource Positive}"
+                                     VerticalAlignment="Center" Fill="{DynamicResource Positive}"
                                      RenderTransformOrigin="0.5,0.5">
                               <Ellipse.RenderTransform>
                                 <ScaleTransform x:Name="UpdateDotScale"/>
@@ -1083,8 +1083,8 @@
                       <TextBlock x:Name="UpdateNoteHeader" Margin="16,0,16,12"
                                  TextWrapping="NoWrap" Visibility="Collapsed">
                         <Run x:Name="UpdateNoteTitle" FontSize="13" FontWeight="SemiBold"
-                             Foreground="{StaticResource Label}"/><Run x:Name="UpdateNoteSize"
-                             FontSize="11" Foreground="{StaticResource Secondary}"/>
+                             Foreground="{DynamicResource Label}"/><Run x:Name="UpdateNoteSize"
+                             FontSize="11" Foreground="{DynamicResource Secondary}"/>
                       </TextBlock>
                     </StackPanel>
                     <!-- Local Height/Padding beat every state style: all three states
@@ -1100,7 +1100,7 @@
                   <Border x:Name="UpdatePackage" Padding="16,0,16,10" Visibility="Collapsed">
                     <!-- The page already scrolls (ContentScroller), so the notes show in
                          full here; a nested capped scroller used to slice a line in half. -->
-                    <Border x:Name="UpdateNotesBox" Background="#F6F9F7" BorderBrush="#E7EEE9" BorderThickness="1"
+                    <Border x:Name="UpdateNotesBox" Background="{DynamicResource FillSubtle}" BorderBrush="{DynamicResource Separator}" BorderThickness="1"
                             CornerRadius="10" Padding="12,10">
                       <StackPanel x:Name="UpdateNotesPanel"/>
                     </Border>
@@ -1111,7 +1111,7 @@
                         <ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="Auto"/>
                       </Grid.ColumnDefinitions>
                       <ProgressBar x:Name="UpdateProgress" Height="5" Maximum="100" VerticalAlignment="Center"
-                                   Foreground="{StaticResource Accent}" Background="{StaticResource Fill}"
+                                   Foreground="{DynamicResource Accent}" Background="{DynamicResource Fill}"
                                    AutomationProperties.Name="更新下载进度"/>
                       <TextBlock x:Name="UpdatePercent" Grid.Column="1" HorizontalAlignment="Center"
                                  Style="{StaticResource RowLabel}"/>
@@ -1126,17 +1126,63 @@
               <Button x:Name="UpdateKeepWorking" Content="暂不重启" Style="{StaticResource PlainButton}"
                       HorizontalAlignment="Left" Visibility="Collapsed" Click="KeepWorkingClick"/>
 
-              <Border Background="#EDF3F0" BorderBrush="#DFE8E2" BorderThickness="1" CornerRadius="18" Padding="18" Margin="0,24,0,0">
+              <!-- 外观: the mode (浅色 / 深色 / 跟随系统) and, under it, the color the theme is
+                   tinted with. Both apply at once and are saved with the other settings. -->
+              <TextBlock Text="外观" Style="{StaticResource Caption}"/>
+              <Border Style="{StaticResource Group}">
+                <StackPanel>
+                  <Border Style="{StaticResource Row}">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="外观模式" Style="{StaticResource RowLabel}"/>
+                      <Border Grid.Column="1" Background="{DynamicResource Fill}" CornerRadius="10" Padding="3"
+                              VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                          <RadioButton x:Name="ThemeLight" GroupName="ThemeMode" Content="浅色" Tag="Light"
+                                       Style="{StaticResource Segment}" Checked="ThemeModeChecked"/>
+                          <RadioButton x:Name="ThemeDark" GroupName="ThemeMode" Content="深色" Tag="Dark"
+                                       Style="{StaticResource Segment}" Checked="ThemeModeChecked"/>
+                          <RadioButton x:Name="ThemeSystem" GroupName="ThemeMode" Content="跟随系统" Tag="System"
+                                       Style="{StaticResource Segment}" Checked="ThemeModeChecked"/>
+                        </StackPanel>
+                      </Border>
+                    </Grid>
+                  </Border>
+                  <Border Style="{StaticResource Hairline}"/>
+                  <Border Style="{StaticResource Row}" Padding="16,12,10,10">
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock Text="主题色" Style="{StaticResource RowLabel}" VerticalAlignment="Top" Margin="0,8,0,0"/>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <RadioButton x:Name="TintDefault" GroupName="ThemeTint" Content="默认" Tag="Default"
+                                     Style="{StaticResource TintSwatch}" local:TintSwatch.Surface="#E6E6EB"
+                                     local:TintSwatch.Accent="#007AFF" Checked="ThemeTintChecked"/>
+                        <RadioButton x:Name="TintGreen" GroupName="ThemeTint" Content="浅绿" Tag="Green"
+                                     Style="{StaticResource TintSwatch}" local:TintSwatch.Surface="#CDEBDD"
+                                     local:TintSwatch.Accent="#0B8F66" Checked="ThemeTintChecked"/>
+                        <RadioButton x:Name="TintPink" GroupName="ThemeTint" Content="浅粉" Tag="Pink"
+                                     Style="{StaticResource TintSwatch}" local:TintSwatch.Surface="#F8D5E1"
+                                     local:TintSwatch.Accent="#D9457C" Checked="ThemeTintChecked"/>
+                        <RadioButton x:Name="TintBlue" GroupName="ThemeTint" Content="浅蓝" Tag="Blue"
+                                     Style="{StaticResource TintSwatch}" local:TintSwatch.Surface="#CFE3F6"
+                                     local:TintSwatch.Accent="#1F88D8" Checked="ThemeTintChecked"/>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+
+              <Border Background="{DynamicResource PanelBg}" BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1" CornerRadius="18" Padding="18" Margin="0,24,0,0">
                 <StackPanel>
                   <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <TextBlock Text="语音服务" FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="1" Text="{Binding Items.Count, ElementName=ProvidersList, StringFormat={}{0} 项配置}" FontSize="12" Foreground="{StaticResource Secondary}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Items.Count, ElementName=ProvidersList, StringFormat={}{0} 项配置}" FontSize="12" Foreground="{DynamicResource Secondary}" VerticalAlignment="Center"/>
                   </Grid>
                 <ItemsControl x:Name="ProvidersList" Margin="0,12,0,0">
                   <ItemsControl.GroupStyle><GroupStyle HeaderTemplate="{StaticResource LibraryGroupHeader}" ContainerStyle="{StaticResource LibraryGroupContainer}"/></ItemsControl.GroupStyle>
                   <ItemsControl.ItemTemplate><DataTemplate>
-                  <Border Padding="16,12" BorderBrush="{StaticResource Separator}" BorderThickness="0,0,0,1">
+                  <Border Padding="16,12" BorderBrush="{DynamicResource Separator}" BorderThickness="0,0,0,1">
                     <Grid>
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
@@ -1146,10 +1192,10 @@
                       <Ellipse Width="9" Height="9" Margin="0,0,12,0" VerticalAlignment="Center">
                         <Ellipse.Style>
                           <Style TargetType="Ellipse">
-                            <Setter Property="Fill" Value="#AEAEB2"/>
+                            <Setter Property="Fill" Value="{DynamicResource IdleDot}"/>
                             <Style.Triggers>
                               <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                <Setter Property="Fill" Value="#1D9A5B"/>
+                                <Setter Property="Fill" Value="{DynamicResource Positive}"/>
                               </DataTrigger>
                             </Style.Triggers>
                           </Style>
@@ -1310,10 +1356,10 @@
         <Border x:Name="BottomFade" Height="56" VerticalAlignment="Bottom" IsHitTestVisible="False" Opacity="0">
           <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#22F6F8F7" Offset="0"/>
-              <GradientStop Color="#66F6F8F7" Offset="0.38"/>
-              <GradientStop Color="#B8F6F8F7" Offset="0.72"/>
-              <GradientStop Color="{StaticResource PageBgColor}" Offset="1"/>
+              <GradientStop Color="{DynamicResource PageFade1Color}" Offset="0"/>
+              <GradientStop Color="{DynamicResource PageFade2Color}" Offset="0.38"/>
+              <GradientStop Color="{DynamicResource PageFade3Color}" Offset="0.72"/>
+              <GradientStop Color="{DynamicResource PageBgColor}" Offset="1"/>
             </LinearGradientBrush>
           </Border.Background>
         </Border>
@@ -1322,8 +1368,8 @@
         <Border x:Name="TopFade" Height="22" VerticalAlignment="Top" IsHitTestVisible="False" Opacity="0">
           <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="{StaticResource PageBgColor}" Offset="0"/>
-              <GradientStop Color="{StaticResource PageBgClearColor}" Offset="1"/>
+              <GradientStop Color="{DynamicResource PageBgColor}" Offset="0"/>
+              <GradientStop Color="{DynamicResource PageBgClearColor}" Offset="1"/>
             </LinearGradientBrush>
           </Border.Background>
         </Border>
@@ -1337,9 +1383,9 @@
     <Border x:Name="HintToast" Panel.ZIndex="40" Grid.Column="1"
             HorizontalAlignment="Center" VerticalAlignment="Bottom"
             Margin="20,0,20,50" MaxWidth="720" Padding="16,6" CornerRadius="12" Opacity="0"
-            Background="#6EE4E7E5" BorderBrush="#8CCBD2CE" BorderThickness="1"
+            Background="{DynamicResource HintBg}" BorderBrush="{DynamicResource HintBorder}" BorderThickness="1"
             IsHitTestVisible="False" Visibility="Collapsed">
-      <TextBlock x:Name="HintText" FontSize="13" LineHeight="20" Foreground="#5C6B64" TextWrapping="Wrap"
+      <TextBlock x:Name="HintText" FontSize="13" LineHeight="20" Foreground="{DynamicResource HintText}" TextWrapping="Wrap"
                  TextAlignment="Center" AutomationProperties.AutomationId="HintPopupText"/>
     </Border>
   </Grid>

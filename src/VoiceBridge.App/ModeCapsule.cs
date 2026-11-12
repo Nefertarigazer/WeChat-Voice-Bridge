@@ -27,13 +27,6 @@ public sealed class ModeCapsule : Border, IModeSwitch
     public static readonly RoutedEvent SettingsRequestedEvent = EventManager.RegisterRoutedEvent(
         nameof(SettingsRequested), RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(ModeCapsule));
 
-    // Like a row in iOS Settings, each mode keeps its own colored icon tile even when off,
-    // so the pair never reads as two identical grey pills. "On" deepens the tile and tints
-    // the whole capsule; the switch is what says on or off.
-    private static readonly Palette PrivacyOff = new("#F8F9FB", "#E3E6EE", "#9C9AEC", "#3F4744", "#D5DBD8", "#8E95A3");
-    private static readonly Palette PrivacyOn = new("#EFEFFC", "#D9D8F5", "#5E5CE0", "#4A47BD", "#5E5CE0", "#5653CF");
-    private static readonly Palette ReminderOff = new("#FBF9F6", "#ECE5DB", "#F3B96A", "#3F4744", "#D5DBD8", "#A39A8D");
-    private static readonly Palette ReminderOn = new("#FFF3E4", "#F5D9B0", "#EE8B12", "#A95A00", "#EE8B12", "#D0730A");
     private static readonly TimeSpan Motion = TimeSpan.FromMilliseconds(160);
     private const double Travel = 14;
 
@@ -109,10 +102,40 @@ public sealed class ModeCapsule : Border, IModeSwitch
             if (!toggle.IsKeyboardFocused) pointer = false;
             Paint(animate: false);
         };
+        // Painted in code, so it follows a theme change itself while it is on screen.
+        Loaded += (_, _) =>
+        {
+            if (listening) return;
+            listening = true;
+            Theme.Changed += Repaint;
+            Paint(animate: false);
+        };
+        Unloaded += (_, _) => { listening = false; Theme.Changed -= Repaint; };
         Build();
     }
 
-    private bool pointer;
+    private bool pointer, listening;
+
+    private void Repaint(object? sender, EventArgs e) => Paint(animate: false);
+
+    /// <summary>
+    /// Like a row in iOS Settings, each mode keeps its own colored icon tile even when off, so
+    /// the pair never reads as two identical grey pills. "On" fills the tile and tints the whole
+    /// capsule in the mode's color; the switch is what says on or off.
+    /// </summary>
+    private Palette PaletteFor(bool on)
+    {
+        var dark = Theme.IsDark;
+        var mode = ThemePalette.ModeColor(Kind, dark);
+        var card = Theme.ColorOf("CardBg");
+        if (!on)
+            return new(ThemePalette.Mix(Theme.ColorOf("FillSubtle"), mode, 0.03), ThemePalette.Mix(Theme.ColorOf("GroupBorder"), mode, 0.1),
+                ThemePalette.Mix(card, mode, dark ? 0.5 : 0.55), Theme.ColorOf("Ink"), Theme.ColorOf("SwitchOff"),
+                ThemePalette.Mix(Theme.ColorOf("Tertiary"), mode, 0.14));
+        return new(ThemePalette.Mix(card, mode, dark ? 0.16 : 0.1), ThemePalette.Mix(card, mode, dark ? 0.34 : 0.24), mode,
+            dark ? ThemePalette.Mix(mode, Colors.White, 0.3) : ThemePalette.Mix(mode, Colors.Black, 0.2),
+            mode, dark ? ThemePalette.Mix(mode, Colors.White, 0.15) : ThemePalette.Mix(mode, Colors.Black, 0.08));
+    }
 
     public bool IsOn { get => (bool)GetValue(IsOnProperty); set => SetValue(IsOnProperty, value); }
     public ModeKind Kind { get => (ModeKind)GetValue(KindProperty); set => SetValue(KindProperty, value); }
@@ -158,12 +181,11 @@ public sealed class ModeCapsule : Border, IModeSwitch
     private void Paint(bool animate)
     {
         var on = IsOn;
-        var privacy = Kind == ModeKind.Privacy;
-        var colors = privacy ? on ? PrivacyOn : PrivacyOff : on ? ReminderOn : ReminderOff;
+        var colors = PaletteFor(on);
         var focused = toggle.IsKeyboardFocused && !pointer;
         var duration = animate && SystemParameters.ClientAreaAnimation && IsLoaded ? Motion : TimeSpan.Zero;
         To(fill, colors.Fill, duration);
-        To(edge, focused ? (Color)ColorConverter.ConvertFromString("#0B8F66") : colors.Edge, duration);
+        To(edge, focused ? Theme.ColorOf("Accent") : colors.Edge, duration);
         To(tileFill, colors.Tile, duration);
         To(label, colors.Label, duration);
         To(track, colors.Track, duration);
@@ -219,22 +241,18 @@ public sealed class ModeCapsule : Border, IModeSwitch
         dots.SetValue(VerticalAlignmentProperty, VerticalAlignment.Center);
         surface.AppendChild(dots);
         var template = new ControlTemplate(typeof(Button)) { VisualTree = surface };
+        // Theme resources, so the hover veil lightens in dark mode instead of vanishing.
         var hover = new Trigger { Property = IsMouseOverProperty, Value = true };
-        hover.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromArgb(0x14, 0, 0, 0)), "Surface"));
+        hover.Setters.Add(new Setter(BackgroundProperty, new DynamicResourceExtension("Veil"), "Surface"));
         var pressed = new Trigger { Property = ButtonBase.IsPressedProperty, Value = true };
-        pressed.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromArgb(0x24, 0, 0, 0)), "Surface"));
+        pressed.Setters.Add(new Setter(BackgroundProperty, new DynamicResourceExtension("VeilStrong"), "Surface"));
         var focus = new Trigger { Property = IsKeyboardFocusedProperty, Value = true };
-        focus.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromArgb(0x1C, 0x0B, 0x8F, 0x66)), "Surface"));
+        focus.Setters.Add(new Setter(BackgroundProperty, new DynamicResourceExtension("AccentSoft"), "Surface"));
         template.Triggers.Add(hover);
         template.Triggers.Add(pressed);
         template.Triggers.Add(focus);
         return template;
     }
 
-    private sealed record Palette(Color Fill, Color Edge, Color Tile, Color Label, Color Track, Color Dots)
-    {
-        public Palette(string fill, string edge, string tile, string label, string track, string dots)
-            : this(Parse(fill), Parse(edge), Parse(tile), Parse(label), Parse(track), Parse(dots)) { }
-        private static Color Parse(string value) => (Color)ColorConverter.ConvertFromString(value);
-    }
+    private sealed record Palette(Color Fill, Color Edge, Color Tile, Color Label, Color Track, Color Dots);
 }

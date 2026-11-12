@@ -65,6 +65,8 @@ internal sealed record LocalSettings
     /// cleaned as soon as it grows past this size.
     /// </summary>
     public long CacheLimitBytes { get; init; } = CacheLimits.DefaultBytes;
+    /// <summary>设置 → 外观. Applied at startup by <see cref="Theme"/>, before the first window.</summary>
+    public AppearanceSettings Appearance { get; init; } = new();
 
     public static LocalSettings Load()
     {

@@ -151,7 +151,7 @@ internal static class Disclosure
           <Setter Property="Template">
             <Setter.Value>
               <ControlTemplate>
-                <Border Margin="-6,-1,-6,-1" CornerRadius="7" BorderThickness="1.5" BorderBrush="#7FC3A8"/>
+                <Border Margin="-6,-1,-6,-1" CornerRadius="7" BorderThickness="1.5" BorderBrush="{DynamicResource AccentBorderStrong}"/>
               </ControlTemplate>
             </Setter.Value>
           </Setter>
@@ -167,19 +167,19 @@ internal static class Disclosure
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock x:Name="Title" Text="{{SecurityElement.Escape(title)}}" FontSize="13" Foreground="#6E7673" VerticalAlignment="Center"/>
-            <Path x:Name="Chevron" Grid.Column="1" Data="M 0 0 L 4.5 4.5 L 9 0" Stroke="#6E7673" StrokeThickness="1.4"
+            <TextBlock x:Name="Title" Text="{{SecurityElement.Escape(title)}}" FontSize="13" Foreground="{DynamicResource Secondary}" VerticalAlignment="Center"/>
+            <Path x:Name="Chevron" Grid.Column="1" Data="M 0 0 L 4.5 4.5 L 9 0" Stroke="{DynamicResource Secondary}" StrokeThickness="1.4"
                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                   Width="9" Height="4.5" Margin="8,1,0,0" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
               <Path.RenderTransform><RotateTransform x:Name="Turn" Angle="0"/></Path.RenderTransform>
             </Path>
-            <Border x:Name="Rule" Grid.Column="2" Height="1" Background="#E6EBE9" Margin="12,1,0,0" VerticalAlignment="Center"/>
+            <Border x:Name="Rule" Grid.Column="2" Height="1" Background="{DynamicResource Separator}" Margin="12,1,0,0" VerticalAlignment="Center"/>
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Title" Property="Foreground" Value="#1D1D1F"/>
-              <Setter TargetName="Chevron" Property="Stroke" Value="#1D1D1F"/>
-              <Setter TargetName="Rule" Property="Background" Value="#D5DDD9"/>
+              <Setter TargetName="Title" Property="Foreground" Value="{DynamicResource Label}"/>
+              <Setter TargetName="Chevron" Property="Stroke" Value="{DynamicResource Label}"/>
+              <Setter TargetName="Rule" Property="Background" Value="{DynamicResource ControlBorderStrong}"/>
             </Trigger>
             <Trigger Property="IsChecked" Value="True">
               <Trigger.EnterActions>
