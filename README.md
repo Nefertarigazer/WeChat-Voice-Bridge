@@ -1,77 +1,130 @@
-# WeChat Voice Bridge V1.2 · 微信语音桥
+<div align="center">
 
-Windows x64 单会话朗读器。支持微信 **4.2.0.13**：把指定联系人新发来的文字交给 Fish Audio 克隆音色合成，并用 Windows 默认输出设备播放。
+<img src="src/VoiceBridge.App/app-icon.png" width="96" alt="微信语音桥">
 
-> **📄 完整项目介绍与交接文档：[`docs/PROJECT-HANDOVER.md`](docs/PROJECT-HANDOVER.md)**
-> 含背景、技术选型与理由、系统架构、代码结构、发布形态、安全姿态、当前状态、代码位置速查、已知坑清单、验证方法与遗留项。新接手本项目请先读这一份。
+# 微信语音桥
 
-## 立即运行
+**让电脑微信的消息，用你熟悉的声音读出来。**
 
-界面左侧栏分四页：**首页 / 音效 / 词库 / 高级**。
+[![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D4)](#下载)
+[![电脑微信 4.1.11 – 4.2.0.13](https://img.shields.io/badge/%E7%94%B5%E8%84%91%E5%BE%AE%E4%BF%A1-4.1.11%20%E2%80%93%204.2.0.13-07C160)](#下载)
+[![版本 1.8.0](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.8.0-007AFF)](#下载)
 
-1. 安装下文的单文件安装包，或完整解压实机版 ZIP 后运行其中的 `WeChatVoiceBridge.exe`。解压版需要保留同目录的文件、`worker` 和 `runtime`。发布版自带 .NET 8、Python 3.12 x64 和 SQLCipher。
-2. 「高级」页配置：**Fish API Key**、**微信数据目录**（点「浏览…」选文件夹）。应用会自动发现数据根目录；**账号目录也自动填好，只有一个账号时这一整行不显示**，有多个账号时才出现下拉框让你选。
-3. 回「首页」在「对方」区搜索昵称、备注或微信号，或直接粘贴对方的微信号后按回车。结果里第二行显示的是**微信号**（没有微信号时才显示 wxid）。
-4. 点「开始」，等待状态变成「正在监听」。此后对方发来的新文字会自动朗读。点「结束」停止当次监听。
-5. 「试听最后一条消息」会读取该会话最新一条可读的入站消息并朗读，用来验证整条链路是否通畅。
+[下载](#下载) · [三步开始](#三步开始) · [使用说明](docs/user-guide.md) · [隐私与安全](#隐私与安全) · [English](#english)
 
-「音效」页调音色、模型、音量与输出设备；「词库」页一张表管所有自定义读法——每行是「原文 → 读作」，加一档「出现方式」（单独出现时 / 句中出现时 / 单独 + 句中）。**行内不能直接改，点「编辑」才进入编辑态**（按钮变成「完成」），底部居中的「＋」加一条空记录，没填完就点「完成」会自动删掉。符号和词不再分开两处。
+</div>
 
-「高级」页还有**缓存大小上限**（默认 4 GB）：缓存超过上限会自动清掉最旧的会话，退出应用时也会清空，所以不会把 C 盘撑爆。
+微信语音桥是一款 Windows 桌面软件。选好联系人，给每个人挑一个声音，他们在电脑微信上发来的新文字消息就会被自动读出来。手和眼睛在忙别的，也不会漏掉要紧的消息。
 
-音色、模型、音量、输出设备、联系人和自定义读法都会自动保存，**下次打开就是上次的选择**。运行中切换音色，下一条消息即用新音色。
+- **只读，不碰微信**：只读取本机微信数据库的只读副本，只查你选中的联系人。不注入微信、不改微信，也不替你发消息。
+- **声音由你来选**：接入 19 种语音服务，包括 13 家主流厂商、2 种通用协议和 4 种在自己电脑上运行的模型。微软 Edge 朗读免费，不用 Key；也可以用克隆的声音。
+- **装上就能用**：一个安装包，自带 .NET、Python 和 SQLCipher。按用户安装，不需要管理员权限。
 
-停止与退出：点「结束」停止当次监听；**最小化只缩到任务栏，任务栏按钮保留**；托盘可「显示窗口 / 结束监听 / 退出程序」；关闭窗口等价于退出，会做完整清理（停止播放、回收 Worker、删除会话缓存副本）。
+<p align="center"><img src="docs/images/home.png" width="860" alt="微信语音桥首页：两位联系人各用一个声音，小林开着提醒模式"></p>
 
-合成模型默认使用免费模型 `s2.1-pro-free`，可在「合成模型」手动切换到按量付费的 Drama 3；付费额度不足时不会自动回退或充值，需要你手动处理。文字会发送到 Fish Audio 云端合成，声音克隆需要声音本人的同意。[Fish Audio 计价](https://docs.fish.audio/developer-guide/models-pricing/pricing-and-rate-limits) · [隐私政策](https://fish.audio/privacy/)
+## 适合这些时候
 
-## 分发与安装包
+- 在电脑前写东西、画图、打游戏时，家人和同事的消息不用切窗口也能听到。
+- 给每个人配一个声音，一听就知道是谁发来的。
+- 看屏幕吃力时，用耳朵代替眼睛。
 
-给别人用，直接转 **`artifacts/WeChat-Voice-Bridge-V1.4.1-Setup.exe`**。双击即可打开中文安装向导，安装包内已包含运行时。
+## 功能
 
-安装是**按用户安装**：装到 `%LOCALAPPDATA%\Programs\微信语音桥`，不需要管理员权限、不弹 UAC，双击一路点「下一步」即可。安装向导是中文的，装完会：
+- **多人朗读**：最多 8 人，各用各的声音；几条消息同时到，排队依次读。
+- **提示词**：先报名字再读内容，比如“小林说：……”。
+- **隐私模式**：身边有人时，只说“微信来消息了”或一句只有你懂的暗语，不读内容。
+- **提醒模式**：消息没回，就按你设的间隔再提醒；回复了或点「✓ 已读」就停。
+- **词库**：改某个词的读法，比如把缩写读成全称、把表情读成文字。
+- **外观**：浅色、深色或跟随系统；主题色有默认、浅绿、浅粉、浅蓝。
+- **自动更新**：新版本下载后先核对大小和 SHA-256 再安装；新版本启动失败会自动换回旧版本。
 
-- 自动打开应用（也可以在最后一步取消勾选「启动 微信语音桥」）；
-- 在桌面和开始菜单建快捷方式，并在「设置 → 应用 → 卸载程序」里留一个卸载入口。
+<p align="center"><img src="docs/images/themes.png" width="860" alt="四种外观：浅色浅粉、浅色浅蓝、深色默认、深色浅绿"></p>
 
-应用左侧最后一项是「使用说明」。监听时保存词条或切换 Fish API Key，下一条开始合成时使用新设置。
+## 下载
 
-升级后首次打开会显示一次更新说明，关闭后登记已读。说明内容位于 `ReleaseNotesDialog.xaml`，发布新版本时同步维护。
+| 文件 | 说明 |
+| --- | --- |
+| [**安装包** WeChat-Voice-Bridge-V1.8.0-Setup.exe](https://iceland.de5.net/voice-bridge/WeChat-Voice-Bridge-V1.8.0-Setup.exe) | 推荐。中文安装向导，装好后在桌面和开始菜单建快捷方式 |
+| [免安装版 WeChat-Voice-Bridge-V1.8.0-win-x64.zip](https://iceland.de5.net/voice-bridge/WeChat-Voice-Bridge-V1.8.0-win-x64.zip) | 完整解压后运行 `WeChatVoiceBridge.exe` |
 
-卸载时可以选择是否一并删除本机设置和 API Key，默认保留。重装后可继续使用这些设置。
+- **系统**：Windows 10 或 11，64 位。
+- **微信**：电脑微信 4.1.11 至 4.2.0.13，其中 4.2.0.13 已实测。不在这个范围内的版本，打开软件时会提示。
+- 安装到 `%LOCALAPPDATA%\Programs\微信语音桥`，不弹管理员确认。安装包没有代码签名，Windows 可能提示「未知发布者」。
+- 装好以后，软件会自己检查更新。
 
-> 安装包没做代码签名，转发后 Windows SmartScreen 可能提示「未知发布者」。
+## 三步开始
 
-`artifacts/WeChat-Voice-Bridge-V1.3.3-win-x64.zip` 是免安装的完整包，解压后直接跑 `WeChatVoiceBridge.exe`，适合不便安装的场景。
+1. **打开电脑微信，确认版本**：版本号在微信左下角「≡ → 设置 → 关于微信」里。微信的数据目录软件会自己找到。
+2. **添加语音服务和音色**：在「设置 → 语音服务」添加一家，填入它的 API Key，每家都附有获取链接。想先试试，就选「微软 Edge 朗读」，不用 Key。然后到「音效」添加一个音色，试听一句。
+3. **添加联系人，开始监听**：在「首页」点「＋ 添加」，选中联系人并给他选一个音色，再点「开始」。左下角显示「正在监听」以后，对方新发来的文字消息就会被读出来。
 
-## 开发与发布
+更多说明见 [使用说明](docs/user-guide.md)，软件左侧的「使用说明」页也是同样的内容。
 
-需要 Windows x64、.NET 8 SDK。开发 Worker 需要 Python 3.12 x64 和 `py` 启动器。真实模式还需要发布脚本安装的 SQLCipher。PowerShell 在项目根目录运行：
+## 支持的语音服务
 
-```powershell
-.\scripts\New-WorkerVenv.ps1
-.\scripts\Run.ps1 -Development
-.\scripts\Test.ps1 -Benchmark -AudioDevice
-.\scripts\Publish.ps1
-.\scripts\Build-Installer.ps1
-powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File scripts\Smoke-Published.ps1
-.\scripts\Verify-Source.ps1
+| 类别 | 包括 |
+| --- | --- |
+| 主流厂商，填 Key 就能用 | Fish Audio（免费 · 🌐）、OpenAI（🌐）、ElevenLabs（🌐）、Azure 语音服务（免费）、Google Gemini（免费 · 🌐）、火山引擎 · 豆包语音、阿里云百炼、MiniMax（国内）、MiniMax（国际）、硅基流动 SiliconFlow、阶跃星辰、智谱 GLM-TTS、微软 Edge 朗读（免费，不用 Key） |
+| 通用协议，接其他厂商或网关 | OpenAI 兼容接口、自定义 HTTP 接口 |
+| 自建模型，在自己电脑上运行 | GPT-SoVITS、fish-speech / OpenAudio、Kokoro-FastAPI、LocalAI |
+
+🌐 表示在中国大陆需要海外网络；「免费」表示有免费额度，或者完全免费。各家的配置方法见 [语音服务说明](docs/providers.md)。
+
+## 工作原理
+
+```text
+电脑微信的本机数据库 ──只读副本──▶ 读取进程（Python）──新消息──▶ 微信语音桥（WPF）
+                                                                  │
+                                         你选的语音服务或本机模型 ◀─┘ ──声音──▶ 扬声器
 ```
 
-测试脚本优先使用 `.venv`，也支持发布包自带的 Python。省略 `-AudioDevice` 时跳过需要 Windows 音频设备的测试。省略 `-Benchmark` 时跳过基准测试。可给脚本传入 `-Dotnet` 指向独立安装的 `dotnet.exe`。
+- 点「开始」后，读取进程从正在运行的电脑微信里取得本机数据库的密钥（只读内存），把加密的数据库复制成临时副本，只查询你选中的联系人新发来的文字。点「结束」或退出时，副本会被删掉。
+- 主程序把文字交给你选的语音服务合成，再用 Windows 的音频设备播放。
+- 读取微信内存的代码只在一个经过审计的文件里（`worker/audited_wechat_keys.py`）。`scripts/Verify-Source.ps1` 会检查整个仓库，不允许出现写内存、注入或钩子调用。
 
-`Verify-Source.ps1` 是安全边界守卫：它会拦截写内存/注入/钩子调用与疑似密钥，并强制 `ReadProcessMemory` 只能出现在 `worker/audited_wechat_keys.py` 一个文件里。交付前请务必跑通。
+## 隐私与安全
 
-## 文档索引
+- 聊天内容只在这台电脑上读取。软件不收集、不上传你的聊天，也没有任何统计。
+- 软件只在三种情况下联网：把要读的文字发给你选的语音服务（用自建模型则不出本机）；从微信官方的头像服务器下载联系人头像；检查更新。
+- API Key 用你的 Windows 账户加密保存在本机，不写进配置文件。安装包里不带任何服务、密钥或音色，打包脚本会拒绝含有设置、密钥或数据库的安装包。
+- 请只添加同意被朗读的联系人；克隆某个人的声音之前，请先取得他本人的同意。
 
-- [**项目介绍与交接文档**](docs/PROJECT-HANDOVER.md) — 背景、技术选型、架构、交接要点（**入口文档**）
-- [会话生命周期与 IPC](docs/architecture.md)
-- [微信 4.2 兼容性](docs/compatibility.md)
-- [本机微信单会话实测](docs/wechat-live-test.md)
-- [上游源码安全审计](docs/security-review.md)
-- [测试结果与覆盖范围](docs/test-report.md)
-- [模拟性能基准](docs/benchmark.md)
-- [排障与已知限制](docs/troubleshooting.md)
-- [首次配置与声音授权](docs/setup.md)
+## 从源码构建
 
-> `docs/` 下除本 README 外其余文档写于项目早期版本，个别界面描述（页签、授权勾选、模拟模式）与当前版本不一致，以 `docs/PROJECT-HANDOVER.md` 为准。
+需要 Windows x64 和 .NET 8 SDK；开发读取进程还需要 Python 3.12 x64 和 `py` 启动器。在仓库根目录用 PowerShell 运行：
+
+```powershell
+.\scripts\New-WorkerVenv.ps1      # 准备读取进程的 Python 环境
+.\scripts\Run.ps1 -Development    # 开发模式运行
+.\scripts\Test.ps1                # .NET 与 Python 测试
+.\scripts\Verify-Source.ps1       # 安全边界检查，提交前必跑
+.\scripts\Publish.ps1             # 生成带运行时的发布目录和 ZIP
+.\scripts\Build-Installer.ps1     # 生成安装包（需要 Inno Setup 6）
+```
+
+| 目录 | 内容 |
+| --- | --- |
+| `src/VoiceBridge.App` | 界面（WPF） |
+| `src/VoiceBridge.Core` | 会话、设置、语音服务目录、更新 |
+| `src/VoiceBridge.FishAudio` | 各家语音服务的合成客户端 |
+| `src/VoiceBridge.WeChat` | 微信目录识别、读取进程管理 |
+| `src/VoiceBridge.Audio` | 音频播放 |
+| `worker/` | 读取进程（Python） |
+| `tests/` | .NET 与 Python 测试 |
+| `scripts/` | 运行、测试、打包脚本 |
+
+更多资料：[语音服务说明](docs/providers.md) · [会话与进程间通信](docs/architecture.md) · [读取组件安全审计](docs/security-review.md)
+
+## 免责声明
+
+- 本项目是个人开源项目，与腾讯公司无关，也没有得到腾讯的授权或认可。「微信」是腾讯公司的商标。
+- 本软件只用于在你自己的电脑上读取你自己登录的微信里的消息。使用前请阅读并遵守《微信软件许可及服务协议》和所在地的法律法规，使用风险由你自己承担。
+- 微信更新以后，软件可能要等适配了新版本才能继续使用。
+
+## 致谢
+
+读取微信数据库的部分参考了 [wechatauto-replica](https://github.com/fanyuantaier/wechatauto-replica)（Apache-2.0，许可证见 `worker/WECHATAUTO-LICENSE.txt`）和 [wechat4-db-decrypt](https://github.com/fangtimmy/wechat4-db-decrypt)。微软 Edge 朗读通过 [edge-tts](https://github.com/rany2/edge-tts)（LGPL-3.0）接入，音频播放用 [NAudio](https://github.com/naudio/NAudio)，加密数据库由 [SQLCipher](https://www.zetetic.net/sqlcipher/) 打开。
+
+## English
+
+WeChat Voice Bridge is a Windows desktop app that reads new text messages from the contacts you pick in PC WeChat (4.1.11 – 4.2.0.13) aloud, each in a voice you choose. It works with 19 text-to-speech options: 13 cloud vendors, 2 generic protocols, 4 models that run on your own machine, and free Microsoft Edge read-aloud. It reads a read-only copy of the local WeChat database, queries only the contacts you selected, and never injects into or modifies WeChat. The interface is in Chinese.
