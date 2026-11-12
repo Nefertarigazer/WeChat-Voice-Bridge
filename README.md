@@ -132,6 +132,14 @@
 
 本项目以 [Apache License 2.0](LICENSE) 开源。读取微信数据库的部分参考了 wechatauto-replica，它同样以 Apache-2.0 发布，原许可证保留在 `worker/WECHATAUTO-LICENSE.txt`。安装包里带的 edge-tts 以 LGPL-3.0 发布，作为单独的 Python 组件运行。
 
+## 相关搜索词
+
+这个项目也常被这样找：微信消息朗读、微信朗读、微信语音播报、微信消息提醒、微信提醒、电脑微信自动朗读、新消息语音提醒、消息朗读助手、文字转语音（TTS）聚合、多厂商语音 API 统一接入、语音合成接口融合、声音克隆朗读、克隆音色、本地 TTS、无障碍读屏、视障辅助。
+
+可复用的部分：19 种语音服务的统一接入层——云端厂商、OpenAI 兼容与自定义 HTTP 协议、本地模型三类接口收成同一套配置，可切换 Fish Audio、OpenAI、ElevenLabs、Azure 语音、Google Gemini、火山引擎、阿里云百炼、MiniMax、硅基流动、阶跃星辰、智谱 GLM-TTS、微软 Edge 朗读，以及 GPT-SoVITS、fish-speech / OpenAudio、Kokoro-FastAPI、LocalAI 等本地模型。
+
 ## English
 
 WeChat Voice Bridge is a Windows desktop app that reads new text messages from the contacts you pick in PC WeChat (4.1.11 – 4.2.0.13) aloud, each in a voice you choose. It works with 19 text-to-speech options: 13 cloud vendors, 2 generic protocols, 4 models that run on your own machine, and free Microsoft Edge read-aloud. It reads a read-only copy of the local WeChat database, queries only the contacts you selected, and never injects into or modifies WeChat. The interface is in Chinese. Licensed under the [Apache License 2.0](LICENSE).
+
+Keywords: WeChat message reader, read aloud WeChat messages, WeChat voice notification, message reminder, voice broadcast, text-to-speech aggregator, unified TTS API, multi-provider speech synthesis, voice cloning, local TTS, screen reader companion, accessibility, Windows desktop app.
