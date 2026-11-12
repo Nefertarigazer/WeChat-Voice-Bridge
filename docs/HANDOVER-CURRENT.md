@@ -1,4 +1,4 @@
-# 微信语音桥 · 当前交接（2026-11-12，源码与线上均为 v1.8.0）
+# 微信语音桥 · 当前交接（2026-11-12，源码与线上均为 v1.8.0；GitHub 仓库已公开）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录在本机的 `.workbuddy/memory/`（2026-11-12 起不入库）。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
@@ -18,8 +18,8 @@
   3. 节 15 **已完成**：「设置 → 软件更新」下面新增「外观」。第一层浅色 / 深色 / 跟随系统，第二层主题色默认 / 浅绿 / 浅粉 / 浅蓝；默认是浅色 + 默认（新的中性主题，苹果式浅灰底 + 系统蓝），浅绿是 1.8 之前的样子。存在 `settings.json` 的 `Appearance`，启动时在第一个窗口出现前应用。
      - **颜色约定（节 15 起）**：所有颜色都是 `Theme.cs` 生成的应用资源，XAML 一律用 `DynamicResource`；代码里上色用 `Theme.Brush/ColorOf` 或 `SetResourceReference`，长期存在的控件在 `Theme.Changed` 时重画。**不要再写死颜色**，也不要给模板里的渐变色标做绑定（找不到模板父级，色块会变空白）。警示色和隐私 / 提醒的颜色固定，不随主题色变。新加颜色就在 `ThemePalette.Build` 里加一个键。
      - `tools/DialogPreview` 必须先套主题（`--theme Dark/Pink` 这样指定，默认浅色 + 默认），因为新键不在 `App.xaml` 里。
-  4. 节 16 **已完成**：`README.md` 重写（定位、功能、下载、三步开始、语音服务、工作原理、隐私与安全、构建、免责声明、致谢、English）。截图 `docs/images/` 用的是演示数据，不含用户的联系人。**许可证一节还空着**，等用户选。README 里的下载链接写的是 1.8.0，以后每次发版要跟着改。
-  5. 升版本（1.8.0）、打包、经 Muse 发布；请 Muse 把 GitHub 仓库从私有改为公开；推送 README。**改公开之前，先给用户看仓库历史的隐私/密钥审计结果，用户确认后再请 Muse 改**（历史里有 `.workbuddy/memory`、交接文档里的本机路径和服务器信息等）。
+  4. 节 16 **已完成**：`README.md` 重写（定位、功能、下载、三步开始、语音服务、工作原理、隐私与安全、构建、免责声明、致谢、许可、English）。截图 `docs/images/` 用的是演示数据，不含用户的联系人。README 里的下载链接写的是 1.8.0，**以后每次发版要跟着改**。
+  5. 升版本（1.8.0）、打包、经 Muse 发布；清理历史后公开 GitHub 仓库；推送 README。**全部已完成**（节 17–23）。
   - 节 17 **已完成**：源码版本 **1.8.0**（`Directory.Build.props`），`ReleaseHistory.cs` 有 1.8.0 条目。
   - 节 18 **已完成**：1.8.0 已打包（源码 `5c3ad2e`，payload `1.8.0+5c3ad2e896f063c2cdc09c9617232f0ecbc97caa`）。ZIP `artifacts\WeChat-Voice-Bridge-V1.8.0-win-x64.zip` = 92,188,901 字节 / `3548a75646c6fc05bef293426e43b3cfc444681e1eb0a0e5422ac8776d55bb10`；Setup `artifacts\WeChat-Voice-Bridge-V1.8.0-Setup.exe` = 67,120,906 字节 / `de8532a06f1015e94ea6f1d7255694b8ffa922abc5cd3b19278d003c857cb551`；payload `artifacts\win-x64-v1.8.0\`（1993 文件）。
   - 节 19 **已完成**：**1.8.0 已上线**。Muse 发布单 `codex_20261112_020446_0bf7a9` 先 `info` 后 `ok`，`publishedAt=2026-11-12T01:07:29Z`，旧清单备份 `latest.json.bak-1.7.0`。本助手独立公网复核：清单 200、六字段齐全、notes 164 字正常；ZIP / Setup HEAD 200 且长度一致；完整下载 ZIP 重算 SHA-256 一致。桌面快捷方式未动。
@@ -30,12 +30,12 @@
     - 原始历史完整备份：`D:\USERNAME\CodexScratch\wvb-rewrite\original-history.bundle`（`git bundle --all`），新旧提交号对照 `wvb-rewrite\commit-map.txt`；GitHub 上另有改名后的私有仓库（见下）。
     - 改写用的克隆：`D:\USERNAME\CodexScratch\wvb-rewrite\repo`，工具 git-filter-repo 2.47.0 装在 `wvb-rewrite\gfr`。替换清单 `wvb-rewrite\replacements.txt` 含个人信息，**不要提交进仓库**。
     - 文档里的 `USERNAME` 是本机用户名的占位，`服务器IP`、`wxid_本人账号`、`wxid_联系人`、`（联系人昵称）`、`（联系人微信号）` 也是占位。**公开仓库里不要再写真实的用户名、wxid、微信号或服务器 IP。**
-    - 提交作者已统一成 `Nefertarigazer <97020488+Nefertarigazer@users.noreply.github.com>`。本机 git 配置里的作者还是原来的名字和邮箱，**新提交要么请用户把仓库的 `user.name` / `user.email` 改成上面这个，要么提交时加 `git -c user.name=… -c user.email=…`**，否则真实邮箱会再次出现在公开历史里。
-  - **已发 Muse 任务单 `codex_20261112_033119_f7b681`**（2026-11-12 03:31，改名旧仓库 + 新建公开空仓库）。Muse 先回 `info`，最终回 **`needs-user`**：GitHub 仓库改名、新建、改可见性不在桥白名单里，Codex 发的单不能直接执行，**要用户本人在和 Muse 的主聊天里确认**；Muse 什么都没动，也提醒推送前要先核对清理证据。**不要重发这张单。**
-  - 清理后的历史已推到旧的私有仓库的 `clean-history` 分支（只是保存和供核对，不影响 `master`）；核对证据（只有计数，没有个人信息）在 `D:\USERNAME\CodexScratch\wvb-rewrite\evidence-for-muse.txt`。
-  - **等用户**：用户在主聊天里让 Muse 执行（或自己在 GitHub 网页上改名、新建），完成后告诉 Codex，再做下面的节 23。
-  - **续跑点（节 23）**：GitHub 一侧**不强推**。请 Muse：把 `Nefertarigazer/WeChat-Voice-Bridge` 改名为 `WeChat-Voice-Bridge-private-history` 并保持私有（原始历史的备份，不公开、不删除）；用原名新建一个**空的公开**仓库（不勾选 README / LICENSE / .gitignore），设好简介和话题。回执后从改写用的克隆推 `master` 和两个标签，核对远端；公网（不登录）打开仓库页、README、LICENSE，确认旧提交号打不开。
-    - 推送后，本机这个仓库要切到新历史：`git fetch origin`（地址不变），`git reset --mixed origin/master`，再 `git restore --source=HEAD --worktree -- .`，`git fetch --force --tags origin`。不要 `reset --hard`，不要删本机那些已忽略的内部文件。
+    - 提交作者已统一成 `Nefertarigazer <97020488+Nefertarigazer@users.noreply.github.com>`。Muse 已把本机项目的 git 身份（项目级 `user.name` / `user.email`）改成这个匿名地址，新提交不会再带真实姓名和邮箱；在别的机器或别的克隆里提交时，也要用这个身份。
+  - 节 23 **已完成：仓库已公开**（详见 WORKLOG 节 23）。
+    - 公开仓库：<https://github.com/Nefertarigazer/WeChat-Voice-Bridge>（公开，默认分支 `master`，许可证识别为 Apache-2.0）。原始历史在私有仓库 `Nefertarigazer/WeChat-Voice-Bridge-private-history`（114 个提交，另有 `clean-history` 分支），**不要公开、不要删除**。
+    - 本机这个仓库已切到新历史，`origin` 地址不变，`master` 与 `origin/master` 同点。已忽略的内部文件留在本机。本机还有别的工具留下的 `refs/codex/…`、`refs/t3/…` 检查点引用，指向旧历史，**只推 `master` 和标签，不要用 `--mirror` 或 `--all` 推送**。
+    - 有旧历史的克隆（改写之前的任何副本）都不要再往公开仓库推，否则清理掉的内容会被带回来；要用就重新克隆。
+  - **续跑点**：回 Muse 任务单 `codex_20261112_033119_f7b681`，告诉他已推送，请他做最后的公网复核并补上 GitHub 话题（topics 现在是空的）；收到 `ok` 后记一笔，第三轮结束。
   - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
 - **界面检查**：`tools/DialogPreview` 加了 `--realclick`（真实鼠标点击，鼠标不动，确认最上层是自己的窗口才点）。
   - **还要用户实测的**：开始监听后，对方发消息时「✓ 已读」与角标出现、提醒按时播报（先响提醒音）；手机上回一条后提醒停下、角标消失；开隐私后朗读与记录都不出现内容；「选择本机音频」打开文件框（离屏没测）。

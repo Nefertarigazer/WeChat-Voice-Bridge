@@ -4,6 +4,21 @@
 
 ---
 
+## 第三轮 · 节 23：仓库公开（2026-11-12）
+
+- **放行**：用户在主聊天里向 Muse 确认后，Muse 在任务单 `codex_20261112_033119_f7b681` 上回 `info`「放行推送」。他先独立抽查了改写用的克隆：HEAD `e24892c` 与报告一致，全部作者、提交者和两个标签的标注人都是匿名地址，全对象扫描里原作者邮箱和姓名、服务器 IP、本机用户目录路径、OpenAI key、GitHub token 都是 0，被删路径命中 0。他宽口径正则多查到的 6 处 `wxid_` 是 `tools/DialogPreview/Program.cs` 里的示例串 `wxid_preview`，不是真实 wxid。
+- **GitHub 一侧**（Muse 办）：旧仓库改名为 `Nefertarigazer/WeChat-Voice-Bridge-private-history`，仍是私有，114 个提交原样保留；用原名新建 `Nefertarigazer/WeChat-Voice-Bridge`，公开、空仓库，简介已填。Muse 还把本机项目的 git 身份改成了匿名地址（项目级 `user.name` / `user.email`），以后本机的提交不会再带真实姓名和邮箱。
+- **推送**：从改写用的克隆推 `master`（`e24892c`）和标签 `v1.5.3`、`pre-multi-provider`，远端三个引用和本地逐一相同；GitHub 把默认分支设成了 `master`。
+- **公网核对**（不登录）：
+  - 仓库页 200；API 显示公开，默认分支 `master`，许可证识别为 Apache-2.0，简介正确。
+  - README、LICENSE 和提交里的内容逐字节相同（工作区是 CRLF，所以要和提交里的内容比，不能和工作区文件比）；首页图、外观图、应用图标逐字节相同。
+  - 旧历史的提交 `5c3ad2e`、`dd263df` 在公开仓库里打不开（404）；私有备份仓库不登录打不开（404）。
+- **本机仓库切到新历史**：`git fetch origin`（`origin/master` 强制更新到 `e24892c`）、`git fetch --force --tags origin`、`git reset --mixed origin/master`、`git restore -- .`。工作区干净；已忽略的内部文件（`.workbuddy` 等）和 `artifacts` 都还在；跟踪的文件里没有本机用户名。本机还留着别的工具的检查点引用（`refs/codex/…`、`refs/t3/…`），指向旧历史，只在本机，**不要推送它们**。
+- **还没做**：GitHub 话题（topics）是空的，任务单里列了，要请 Muse 补上。
+- **下一节**：回 Muse 这张单，请他做最后的公网复核、补话题，闭环。
+
+---
+
 ## 第三轮 · 节 22：改写历史，清掉个人信息和内部文件（2026-11-12）
 
 - **备份在先**：原始历史 `git bundle create --all`（46 个引用，含本机的检查点引用），`git bundle verify` 通过，放在 OneDrive 外的 `D:\USERNAME\CodexScratch\wvb-rewrite\original-history.bundle`。
