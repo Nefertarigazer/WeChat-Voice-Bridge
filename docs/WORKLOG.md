@@ -4,6 +4,24 @@
 
 ---
 
+## 第三轮 · 节 22：改写历史，清掉个人信息和内部文件（2026-11-12）
+
+- **备份在先**：原始历史 `git bundle create --all`（46 个引用，含本机的检查点引用），`git bundle verify` 通过，放在 OneDrive 外的 `D:\USERNAME\CodexScratch\wvb-rewrite\original-history.bundle`。
+- **做法**：从本机仓库 `git clone --no-local` 出一份干净克隆（只有 `master` 和两个标签），用 git-filter-repo 2.47.0 一次完成：
+  - 从所有版本里删掉 `.workbuddy/`、`CONTINUE-1.4.txt`、`pelican-cycling.html`、`temp/`、`wx-multi-handoff/`、`artifacts/`（两张历史截图，含真实名单那张）、`docs/HANDOVER-FROM-MUSE.md`。
+  - 在所有版本里把个人信息换成占位：用户自己的 wxid（两种写法）、一位联系人的 wxid、昵称和微信号，本机用户名换成 `USERNAME`，服务器 IP 换成 `服务器IP`。替换清单是从本机 `settings.json` 里取出、在历史里逐个确认出现过的值；只在常用词里出现的两字名字、旧的出厂预置音色名和音色 ID 是公开信息，没有动。
+  - 提交作者、提交者和两个标签的标注人统一换成 GitHub 匿名地址 `Nefertarigazer <97020488+Nefertarigazer@users.noreply.github.com>`（账号没有公开真实姓名）。
+- **结果**：`master` 从 114 个提交变成 110 个（4 个只改了被删文件的提交变空，被去掉了）；两个标签跟着改写。新旧对照：1.8.0 的构建提交 `5c3ad2e` → `2a6642b`，1.7.0 `dd263df` → `a58c46c`，1.6.0 `f279d5e` → `de3a280`，标签 `v1.5.3` `67a74f0` → `a34d419`，`pre-multi-provider` `d608aca` → `d4da05b`。已发布安装包里写的提交号（如 `1.8.0+5c3ad2e`）指的是旧历史，只能在私有备份里查到。
+- **复查**（改写后的克隆，先 `reflog expire` + `gc --prune=now`）：
+  - 全部对象 30.6 MB 里：上面每个个人信息值 0 处，本机用户名 0、服务器 IP 0、原作者姓名和邮箱 0、任何长 wxid 0、私钥块 / `sk-` / GitHub token 0。用 DPAPI 解出的真实 Key 0 处（脚本只比对、不打印）。
+  - 历史里出现过的路径 199 个，被删的路径 0 个；历史里的图片只剩 `docs/images` 两张演示截图和应用图标；没有 ZIP。
+  - 当前文件和改写前逐个比对：都是 198 个文件，内容不同的只有 7 个，正好是做过替换的文档和 `tools/probes/outgoing_probe.py`。
+  - 门禁在克隆里重跑：.NET **277/277**，Python 55（42 跳过），`Verify-Source` PASS，58 项密钥自检 PASS。
+- **顺手修的**：`tools/probes/outgoing_probe.py` 的临时目录原来写死成本机路径，替换后成了不存在的 `D:\USERNAME\…`；改成优先用环境变量 `WVB_SCRATCH`，否则用系统临时目录（仍在 OneDrive 外）。
+- **下一节**：节 23，请 Muse 改名旧仓库、建新仓库，推送并公开核对，然后把本机仓库切到新历史。
+
+---
+
 ## 第三轮 · 节 21：开源准备：Apache-2.0、README 许可一节、内部文件移出仓库（2026-11-12）
 
 - **用户决定**：「A + Apache-2.0」，即先清理历史再公开，许可证用 Apache-2.0。

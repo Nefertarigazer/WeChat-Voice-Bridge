@@ -36,7 +36,8 @@ sys.path.insert(0, str(DEPS))
 
 from wechat_adapter import WeChatStore  # noqa: E402
 
-SCRATCH = Path(r"D:\USERNAME\CodexScratch\Temp")
+# The local scratch drive outside OneDrive: WVB_SCRATCH if set, otherwise the user's temp folder.
+SCRATCH = Path(os.environ.get("WVB_SCRATCH") or tempfile.gettempdir())
 ROWS_PER_SHARD = 400
 METADATA = ("status", "origin_source", "upload_status", "server_seq")
 

@@ -26,11 +26,13 @@
   - **1.8.0 发布闭环已完成**：回 Muse 的确认 `codex_20261112_021009_019491`（带记录提交 `b93682f`）收到 `ok`，无进一步动作。
   - 节 20 **已完成**：改公开前的历史审计（详见 WORKLOG 节 20）。真实 Key 在整个历史里 0 处；但历史里有用户和一位联系人的 wxid / 微信号、一张真实名单截图、本机路径、服务器 IP 和内部文件。
   - **用户已拍板**：A（清理历史后公开）+ Apache-2.0。节 21 **已完成**：`LICENSE`、README 许可一节、内部文件移出仓库（文件仍在本机，已加进 `.gitignore`）。
-  - **进行中：节 22 改写历史**。做法与位置：
-    - 原始历史完整备份：`D:\USERNAME\CodexScratch\wvb-rewrite\original-history.bundle`（`git bundle --all`），另有 GitHub 上改名后的私有仓库（见下）。
-    - 改写在 OneDrive 外的干净克隆里做：`D:\USERNAME\CodexScratch\wvb-rewrite\repo`，工具 git-filter-repo 装在 `D:\USERNAME\CodexScratch\wvb-rewrite\gfr`。替换清单在 `wvb-rewrite\` 里，含个人信息，**不要提交进仓库**。
-    - GitHub 一侧**不强推**：请 Muse 把 `Nefertarigazer/WeChat-Voice-Bridge` 改名为 `WeChat-Voice-Bridge-private-history` 并保持私有，再用原名新建一个空仓库；我把清理后的 `master` 和两个标签推进新仓库，核对后公开。原因见 WORKLOG 节 21。
-    - 推送后，本机这个仓库要切到新历史：`git fetch` 后 `git reset --mixed origin/master`，再 `git restore --source=HEAD --worktree -- .`，不要 `reset --hard`，不要删本机那些已忽略的内部文件。旧历史的提交号在新仓库里不存在，要查旧提交去私有备份仓库或 bundle。
+  - 节 22 **已完成**：历史已在 OneDrive 外的干净克隆里改写并复查（详见 WORKLOG 节 22）。**这份历史就是公开仓库的历史**，提交号和 2026-11-12 之前的记录对不上：要查旧提交，去私有备份仓库或 bundle。
+    - 原始历史完整备份：`D:\USERNAME\CodexScratch\wvb-rewrite\original-history.bundle`（`git bundle --all`），新旧提交号对照 `wvb-rewrite\commit-map.txt`；GitHub 上另有改名后的私有仓库（见下）。
+    - 改写用的克隆：`D:\USERNAME\CodexScratch\wvb-rewrite\repo`，工具 git-filter-repo 2.47.0 装在 `wvb-rewrite\gfr`。替换清单 `wvb-rewrite\replacements.txt` 含个人信息，**不要提交进仓库**。
+    - 文档里的 `USERNAME` 是本机用户名的占位，`服务器IP`、`wxid_本人账号`、`wxid_联系人`、`（联系人昵称）`、`（联系人微信号）` 也是占位。**公开仓库里不要再写真实的用户名、wxid、微信号或服务器 IP。**
+    - 提交作者已统一成 `Nefertarigazer <97020488+Nefertarigazer@users.noreply.github.com>`。本机 git 配置里的作者还是原来的名字和邮箱，**新提交要么请用户把仓库的 `user.name` / `user.email` 改成上面这个，要么提交时加 `git -c user.name=… -c user.email=…`**，否则真实邮箱会再次出现在公开历史里。
+  - **续跑点（节 23）**：GitHub 一侧**不强推**。请 Muse：把 `Nefertarigazer/WeChat-Voice-Bridge` 改名为 `WeChat-Voice-Bridge-private-history` 并保持私有（原始历史的备份，不公开、不删除）；用原名新建一个**空的公开**仓库（不勾选 README / LICENSE / .gitignore），设好简介和话题。回执后从改写用的克隆推 `master` 和两个标签，核对远端；公网（不登录）打开仓库页、README、LICENSE，确认旧提交号打不开。
+    - 推送后，本机这个仓库要切到新历史：`git fetch origin`（地址不变），`git reset --mixed origin/master`，再 `git restore --source=HEAD --worktree -- .`，`git fetch --force --tags origin`。不要 `reset --hard`，不要删本机那些已忽略的内部文件。
   - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
 - **界面检查**：`tools/DialogPreview` 加了 `--realclick`（真实鼠标点击，鼠标不动，确认最上层是自己的窗口才点）。
   - **还要用户实测的**：开始监听后，对方发消息时「✓ 已读」与角标出现、提醒按时播报（先响提醒音）；手机上回一条后提醒停下、角标消失；开隐私后朗读与记录都不出现内容；「选择本机音频」打开文件框（离屏没测）。
