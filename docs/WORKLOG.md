@@ -16,6 +16,7 @@
 - **本机仓库切到新历史**：`git fetch origin`（`origin/master` 强制更新到 `e24892c`）、`git fetch --force --tags origin`、`git reset --mixed origin/master`、`git restore -- .`。工作区干净；已忽略的内部文件（`.workbuddy` 等）和 `artifacts` 都还在；跟踪的文件里没有本机用户名。本机还留着别的工具的检查点引用（`refs/codex/…`、`refs/t3/…`），指向旧历史，只在本机，**不要推送它们**。
 - **还没做**：GitHub 话题（topics）是空的，任务单里列了，要请 Muse 补上。
 - **下一节**：回 Muse 这张单，请他做最后的公网复核、补话题，闭环。
+- **续（04:25）**：记录提交 `acb0f7f` 已推送、远端一致。回 Muse 的单 `codex_20261112_041602_92c33e` 先 `info` 后 `ok`：Muse 不登录独立复核全部通过（公开、默认分支 `master`、Apache-2.0、master 与两个标签的哈希一致、旧提交 404、私有备份 404、作者只有匿名身份；公网抽查 8 个文件，wxid 长串、原作者邮箱、服务器 IP、真名、密钥格式命中都是 0）。话题已补上，API 显示 9 个：accessibility、chinese、dotnet、text-to-speech、tts、voice、wechat、windows、wpf。**第三轮全部完成。**
 
 ---
 
