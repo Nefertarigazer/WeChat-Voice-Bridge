@@ -106,10 +106,13 @@
       <Setter Property="Foreground" Value="{DynamicResource Secondary}"/>
       <Setter Property="TextWrapping" Value="Wrap"/>
     </Style>
-    <!-- 昵称里的生僻符号靠 Segoe UI Symbol 兜底，请保留 -->
+    <!-- 昵称里的生僻符号靠 Segoe UI Symbol 兜底，请保留。
+         显式样式不会叠加上面的隐式 TextBlock 样式，所以颜色要在这里写明，
+         否则会退回系统默认的黑色，深色模式下看不清。 -->
     <Style x:Key="ContactName" TargetType="TextBlock">
       <Setter Property="FontFamily" Value="Segoe UI Symbol, Microsoft YaHei UI"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource Label}"/>
     </Style>
 
     <!-- ============ 容器 ============ -->

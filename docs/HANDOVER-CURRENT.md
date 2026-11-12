@@ -35,7 +35,10 @@
     - 公开仓库：<https://github.com/Nefertarigazer/WeChat-Voice-Bridge>（公开，默认分支 `master`，许可证识别为 Apache-2.0）。原始历史在私有仓库 `Nefertarigazer/WeChat-Voice-Bridge-private-history`（114 个提交，另有 `clean-history` 分支），**不要公开、不要删除**。
     - 本机这个仓库已切到新历史，`origin` 地址不变，`master` 与 `origin/master` 同点。已忽略的内部文件留在本机。本机还有别的工具留下的 `refs/codex/…`、`refs/t3/…` 检查点引用，指向旧历史，**只推 `master` 和标签，不要用 `--mirror` 或 `--all` 推送**。
     - 有旧历史的克隆（改写之前的任何副本）都不要再往公开仓库推，否则清理掉的内容会被带回来；要用就重新克隆。
-  - **公开闭环已完成**：回 Muse 的单 `codex_20261112_041602_92c33e`（带记录提交 `acb0f7f`）收到 `ok`，Muse 独立公网复核全部通过；GitHub 话题已补上（9 个）。**第三轮全部完成，没有待办。**
+  - **公开闭环已完成**：回 Muse 的单 `codex_20261112_041602_92c33e`（带记录提交 `acb0f7f`）收到 `ok`，Muse 独立公网复核全部通过；GitHub 话题已补上（9 个）。第三轮完成。
+- **1.8.1（2026-11-12，进行中）**：用户反馈深色模式下联系人卡片的昵称看不清。
+  - 节 24 **已完成**：`ContactName` 样式加了正文色（显式样式不叠加隐式 TextBlock 样式，原来退回了黑色）；README 的 `home.png`、`themes.png` 用演示数据重截。**以后新建 TextBlock 的显式样式，一定要写 `Foreground`，或者 `BasedOn` 隐式样式。**
+  - **续跑点**：节 25 升 1.8.1、写更新说明；节 26 门禁打包；节 27 发 Muse、公网复核；之后把 README 的版本徽章和两个下载链接改成 1.8.1 并推送。
   - **以后发版**：除了原来的流程，还要把 README 里两个下载链接的版本号改成新版本。
   - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
 - **界面检查**：`tools/DialogPreview` 加了 `--realclick`（真实鼠标点击，鼠标不动，确认最上层是自己的窗口才点）。
