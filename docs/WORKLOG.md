@@ -4,6 +4,20 @@
 
 ---
 
+## 第三轮 · 节 21：开源准备：Apache-2.0、README 许可一节、内部文件移出仓库（2026-11-12）
+
+- **用户决定**：「A + Apache-2.0」，即先清理历史再公开，许可证用 Apache-2.0。
+- **做了什么**：
+  - 新增 `LICENSE`：apache.org 的 LICENSE-2.0 原文（11,358 字节），和 `worker/WECHATAUTO-LICENSE.txt` 的正文逐字一致（只差换行符）。
+  - README 加许可证徽章和「许可」一节（本项目 Apache-2.0；参考的 wechatauto-replica 同为 Apache-2.0，原许可证留在 `worker/`；edge-tts 是 LGPL-3.0，作为单独的 Python 组件运行），English 一段也加了一句。
+  - `.gitignore` 加 `.workbuddy/`、`CONTINUE-1.4.txt`、`pelican-cycling.html`、`temp/`、`wx-multi-handoff/`，并从索引里移除（`git rm --cached`，文件都还在本机）。
+  - PROJECT-BRIEF、HANDOVER 里提到 `.workbuddy/memory` 和 `wx-multi-handoff` 的地方改成「只在本机，不入库」。
+- **公开方式的调整**（为什么不直接强推）：GitHub 文档写明，改写历史并强推以后，旧提交仍然可以凭 SHA 在 GitHub 的缓存视图里打开，要找 GitHub 客服才能清掉，而且客服只在泄露的是凭据这类敏感数据时才协助（[Removing sensitive data from a repository](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)）。WORKLOG 里记着大量旧提交号，改成公开以后等于给出了查看旧内容的路径。所以改成：请 Muse 把现在的仓库**改名并保持私有**（作为原始历史的备份），再用原来的名字新建一个仓库，推入清理后的历史再公开。这样不强推、不删除任何东西，公开的地址不变，旧提交在公开仓库里不存在。
+- **验证**：`Verify-Source` 见下一节一起跑。
+- **下一节**：节 22，在 OneDrive 外的干净克隆里用 git-filter-repo 改写历史（删内部文件和截图；把 wxid、微信号、昵称、本机用户名、服务器 IP 换成占位；提交作者换成 GitHub 匿名地址），全面复查后再交给 Muse。
+
+---
+
 ## 第三轮 · 节 20：仓库改公开前的历史审计（2026-11-12）
 
 - **为什么**：改公开以后，所有提交的所有版本都能被看到和复制，删不回来。所以先查整个历史，再请用户决定。只读检查，没有改动任何提交。

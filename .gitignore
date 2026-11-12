@@ -8,3 +8,9 @@ TestResults/
 *.user
 *.env
 *.sqlite*
+# Local working notes and other tools' scratch: kept on this machine, never in the public repository
+.workbuddy/
+CONTINUE-1.4.txt
+pelican-cycling.html
+temp/
+wx-multi-handoff/

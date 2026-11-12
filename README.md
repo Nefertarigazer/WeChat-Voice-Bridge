@@ -9,6 +9,7 @@
 [![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D4)](#下载)
 [![电脑微信 4.1.11 – 4.2.0.13](https://img.shields.io/badge/%E7%94%B5%E8%84%91%E5%BE%AE%E4%BF%A1-4.1.11%20%E2%80%93%204.2.0.13-07C160)](#下载)
 [![版本 1.8.0](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.8.0-007AFF)](#下载)
+[![许可证 Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue)](LICENSE)
 
 [下载](#下载) · [三步开始](#三步开始) · [使用说明](docs/user-guide.md) · [隐私与安全](#隐私与安全) · [English](#english)
 
@@ -125,6 +126,10 @@
 
 读取微信数据库的部分参考了 [wechatauto-replica](https://github.com/fanyuantaier/wechatauto-replica)（Apache-2.0，许可证见 `worker/WECHATAUTO-LICENSE.txt`）和 [wechat4-db-decrypt](https://github.com/fangtimmy/wechat4-db-decrypt)。微软 Edge 朗读通过 [edge-tts](https://github.com/rany2/edge-tts)（LGPL-3.0）接入，音频播放用 [NAudio](https://github.com/naudio/NAudio)，加密数据库由 [SQLCipher](https://www.zetetic.net/sqlcipher/) 打开。
 
+## 许可
+
+本项目以 [Apache License 2.0](LICENSE) 开源。读取微信数据库的部分参考了 wechatauto-replica，它同样以 Apache-2.0 发布，原许可证保留在 `worker/WECHATAUTO-LICENSE.txt`。安装包里带的 edge-tts 以 LGPL-3.0 发布，作为单独的 Python 组件运行。
+
 ## English
 
-WeChat Voice Bridge is a Windows desktop app that reads new text messages from the contacts you pick in PC WeChat (4.1.11 – 4.2.0.13) aloud, each in a voice you choose. It works with 19 text-to-speech options: 13 cloud vendors, 2 generic protocols, 4 models that run on your own machine, and free Microsoft Edge read-aloud. It reads a read-only copy of the local WeChat database, queries only the contacts you selected, and never injects into or modifies WeChat. The interface is in Chinese.
+WeChat Voice Bridge is a Windows desktop app that reads new text messages from the contacts you pick in PC WeChat (4.1.11 – 4.2.0.13) aloud, each in a voice you choose. It works with 19 text-to-speech options: 13 cloud vendors, 2 generic protocols, 4 models that run on your own machine, and free Microsoft Edge read-aloud. It reads a read-only copy of the local WeChat database, queries only the contacts you selected, and never injects into or modifies WeChat. The interface is in Chinese. Licensed under the [Apache License 2.0](LICENSE).

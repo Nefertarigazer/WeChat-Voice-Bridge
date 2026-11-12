@@ -1,7 +1,7 @@
 # 微信语音桥 · 项目总览（给没有聊天记录的接手者）
 
 > **这是新模型的第一入口。** 本文自包含：不读任何聊天记录，仅凭本文 + 仓库代码 + `docs/` 就能理解项目、约束、发布纪律与当前任务。
-> 最新细节见 [HANDOVER-CURRENT.md](HANDOVER-CURRENT.md)，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录见 `.workbuddy/memory/YYYY-MM-DD.md`。
+> 最新细节见 [HANDOVER-CURRENT.md](HANDOVER-CURRENT.md)，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录在本机的 `.workbuddy/memory/YYYY-MM-DD.md`（2026-11-12 起不入库）。
 > 本文由 2026-11-10 的合并任务建立，之后每次完成一段工作都要回写这三处。
 
 ---
@@ -100,7 +100,7 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 
 ### A. 合并微信多版本适配（wx-multi）
 
-- 成果包：`wx-multi-handoff\package-v1\`（已由 Muse 提交进仓库，commit `c917c6c`）。
+- 成果包：`wx-multi-handoff\package-v1\`（当时由 Muse 提交进仓库；2026-11-12 仓库公开前移出，只留在本机）。
 - 合并入口：包内 `README.md`；**合并清单以 `docs/review-crouton.md` §4 为准绳**（R1–R8 + 复验）；修复说明看 `docs/fix-round1.md`（R1/R2/R3/R4 已修，自检 49+9=58 项）；`merge-notes-for-workbuddy.md` 是用户亲定的两条 UX 要求。
 - 硬要求：
   1. 支持范围严格 **4.1.11 ≤ v ≤ 4.2.0.13**；范围外必须走包内已实现的 `unsupported_version` 通道（中文报错文案已备好），不许静默失败或乱读数据。
@@ -128,6 +128,6 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 
 1. `git status` 是否干净、`master` 是否与 `origin/master` 同步。
 2. 读 `docs/HANDOVER-CURRENT.md` 第 1 节与第 7 节（当前状态与下一步）、`docs/WORKLOG.md` 最新段。
-3. 读 `.workbuddy/memory/` 最近两天的日志（append-only，按日期）。
+3. 本机有 `.workbuddy/memory/` 的话，读最近两天的日志（append-only，按日期；不入库）。
 4. 按第 2 节命令跑一次 `Test.ps1` 建立基线；改动后重跑。
 5. **每完成一部分立刻回写** `HANDOVER-CURRENT.md` / `WORKLOG.md` / 当日 memory，并 `git commit`，保证中断后新模型能接上。

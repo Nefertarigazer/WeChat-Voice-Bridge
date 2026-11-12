@@ -1,6 +1,6 @@
 # 微信语音桥 · 当前交接（2026-11-12，源码与线上均为 v1.8.0）
 
-> **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录见 `.workbuddy/memory/2026-11-10.md`。
+> **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录在本机的 `.workbuddy/memory/`（2026-11-12 起不入库）。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
@@ -25,7 +25,12 @@
   - 节 19 **已完成**：**1.8.0 已上线**。Muse 发布单 `codex_20261112_020446_0bf7a9` 先 `info` 后 `ok`，`publishedAt=2026-11-12T01:07:29Z`，旧清单备份 `latest.json.bak-1.7.0`。本助手独立公网复核：清单 200、六字段齐全、notes 164 字正常；ZIP / Setup HEAD 200 且长度一致；完整下载 ZIP 重算 SHA-256 一致。桌面快捷方式未动。
   - **1.8.0 发布闭环已完成**：回 Muse 的确认 `codex_20261112_021009_019491`（带记录提交 `b93682f`）收到 `ok`，无进一步动作。
   - 节 20 **已完成**：改公开前的历史审计（详见 WORKLOG 节 20）。真实 Key 在整个历史里 0 处；但历史里有用户和一位联系人的 wxid / 微信号、一张真实名单截图、本机路径、服务器 IP 和内部文件。
-  - **续跑点（等用户拍板）**：① 公开方式 A（改写历史后强推再公开，推荐）/ B（新建干净的公开仓库）/ C（原样公开）；② 许可证（建议 Apache-2.0）。用户定了以后：选 A 先 `git bundle create` 备份原历史到 OneDrive 外，再改写、强推 `master` 和两个标签，核对远端；补 `LICENSE` 和 README 许可证一节；最后发 Muse 一张单请他把仓库改公开，回执后公网打开仓库页核对 README。**在用户确认之前，不要请 Muse 改公开，也不要强推。**
+  - **用户已拍板**：A（清理历史后公开）+ Apache-2.0。节 21 **已完成**：`LICENSE`、README 许可一节、内部文件移出仓库（文件仍在本机，已加进 `.gitignore`）。
+  - **进行中：节 22 改写历史**。做法与位置：
+    - 原始历史完整备份：`D:\USERNAME\CodexScratch\wvb-rewrite\original-history.bundle`（`git bundle --all`），另有 GitHub 上改名后的私有仓库（见下）。
+    - 改写在 OneDrive 外的干净克隆里做：`D:\USERNAME\CodexScratch\wvb-rewrite\repo`，工具 git-filter-repo 装在 `D:\USERNAME\CodexScratch\wvb-rewrite\gfr`。替换清单在 `wvb-rewrite\` 里，含个人信息，**不要提交进仓库**。
+    - GitHub 一侧**不强推**：请 Muse 把 `Nefertarigazer/WeChat-Voice-Bridge` 改名为 `WeChat-Voice-Bridge-private-history` 并保持私有，再用原名新建一个空仓库；我把清理后的 `master` 和两个标签推进新仓库，核对后公开。原因见 WORKLOG 节 21。
+    - 推送后，本机这个仓库要切到新历史：`git fetch` 后 `git reset --mixed origin/master`，再 `git restore --source=HEAD --worktree -- .`，不要 `reset --hard`，不要删本机那些已忽略的内部文件。旧历史的提交号在新仓库里不存在，要查旧提交去私有备份仓库或 bundle。
   - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
 - **界面检查**：`tools/DialogPreview` 加了 `--realclick`（真实鼠标点击，鼠标不动，确认最上层是自己的窗口才点）。
   - **还要用户实测的**：开始监听后，对方发消息时「✓ 已读」与角标出现、提醒按时播报（先响提醒音）；手机上回一条后提醒停下、角标消失；开隐私后朗读与记录都不出现内容；「选择本机音频」打开文件框（离屏没测）。
