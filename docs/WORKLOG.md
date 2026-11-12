@@ -4,6 +4,19 @@
 
 ---
 
+## 1.8.0 · 节 19：经 Muse 发布上线，公网复核通过（2026-11-12）
+
+- **发布单** `codex_20261112_020446_0bf7a9`：02:04 发出，约 1 分钟后回 `info`（常驻流水线接手），02:07 回 `status=ok`。只发了这一张。
+- **Muse 回执**：ZIP sha256 `3548a7…bb10`、size 92,188,901，哈希链三方一致（申报 = PC 实测 = A1 落地）；Setup 一并发布（`de8532…b551`，67,120,906）；`latest.json` 更新为 1.8.0，旧版备份 `latest.json.bak-1.7.0`；Muse 侧公网复核清单和两个下载链接都是 200、大小一致。
+- **本助手独立公网复核**：
+  - `latest.json` HTTP 200，六字段齐全：version `1.8.0`，publishedAt `2026-11-12T01:07:29Z`，url 指向 V1.8.0 ZIP，size 与 sha256 和本地一致，notes 164 字中文正常。
+  - HEAD：ZIP 200、长度 92,188,901；Setup 200、长度 67,120,906，都与本地一致。README 里的两个下载链接因此可用。
+  - 完整下载 ZIP（放在 OneDrive 外的 `D:\USERNAME\CodexScratch\Temp`），重算 SHA-256 与清单一致，下载文件已删除。
+- 桌面快捷方式未动（仍指向 1.4.7 r3）。PROJECT-BRIEF §4、§7 与 HANDOVER 已同步。
+- **下一节**：提交推送这份记录，用 `muse-call -Type message` 回 Muse 确认（带这次的文档提交号）。
+
+---
+
 ## 1.8.0 · 节 18：门禁与打包（2026-11-12）
 
 - **门禁**（在 `5c3ad2e` 上）：应用 Release 0 警告 0 错误；.NET **277/277**；Python 55（42 跳过）；`Verify-Source` PASS；wx-multi **58/58**；`DialogPreview 1.8.0 1.7.0` 全过。

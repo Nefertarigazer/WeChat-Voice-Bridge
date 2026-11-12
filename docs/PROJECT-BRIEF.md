@@ -58,19 +58,19 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 6. **干完活自己 `git commit`**（用户采纳的 Muse 习惯）。仓库有 remote `origin = https://github.com/Nefertarigazer/WeChat-Voice-Bridge.git`，`master` 跟踪 `origin/master`。
 7. 用户偏好：中文交流；Muse 的恶作剧/吓唬内容要清掉，但**工作、发布、工程记录一律保留**。
 
-## 4. 当前版本与线上状态（2026-11-11 21:40 GMT+1）
+## 4. 当前版本与线上状态（2026-11-12 02:10 GMT+1）
 
 | 项 | 值 |
 | --- | --- |
-| 线上正式版 | **1.7.0**（发布单 `codex_20261111_211423_9ceb57`，`status=ok`，`publishedAt=2026-11-11T20:37:01Z`，旧清单备份 `latest.json.bak-1.6.0`） |
-| 源码版本 | `Directory.Build.props` = **1.7.0**（程序集 1.7.0.0，`1.7.0+dd263df`） |
-| 1.7.0 ZIP | 92,186,434 字节 / `2a0940984d95bc72fb05ca4f69ad3fa9e9a422fe75121832db171b8af166029a` |
-| 1.7.0 Setup | 67,123,954 字节 / `763909e1c9814277112b945a627b042f19fbd31dbc09ed7c9979ca1b7dac5114` |
-| 公网复核 | 清单 200（六字段齐全、notes 177 字正常 UTF-8 中文）、ZIP 与 Setup HEAD 200 且长度一致、**完整下载 ZIP 重算 SHA-256 一致** |
+| 线上正式版 | **1.8.0**（发布单 `codex_20261112_020446_0bf7a9`，先 `info` 后 `ok`，`publishedAt=2026-11-12T01:07:29Z`，旧清单备份 `latest.json.bak-1.7.0`） |
+| 源码版本 | `Directory.Build.props` = **1.8.0**（程序集 1.8.0.0，`1.8.0+5c3ad2e`） |
+| 1.8.0 ZIP | 92,188,901 字节 / `3548a75646c6fc05bef293426e43b3cfc444681e1eb0a0e5422ac8776d55bb10` |
+| 1.8.0 Setup | 67,120,906 字节 / `de8532a06f1015e94ea6f1d7255694b8ffa922abc5cd3b19278d003c857cb551` |
+| 公网复核 | 清单 200（六字段齐全、notes 164 字正常 UTF-8 中文）、ZIP 与 Setup HEAD 200 且长度一致、**完整下载 ZIP 重算 SHA-256 一致** |
 | 桌面快捷方式 | `D:\OneDrive\桌面\微信语音桥.lnk` → `artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`，**仍刻意保持 1.4.7**，让线上版本严格大于桌面版，用户能亲自点一次更新实测 |
-| 上一版 1.6.0 ZIP | 92,137,109 字节 / `f58cdf57605d692e15619b87584c0da03ed92ed4b6ea1cd7e553e2d0c44a6d7d`（发布单 `codex_20261111_111550_686f2b`） |
-| 上一版 1.6.0 Setup | 67,090,008 字节 / `d96a0cff6b4d74202704723dbdf91555bd289ae13b8d7a3a6c5cf66eaf5f1378` |
-| Git | `master` 与 `origin/master` 同点；1.7.0 的包由 `dd263df` 构建，1.6.0 的由 `f279d5e`；标签 `v1.5.3`、`pre-multi-provider` 是多厂商改动前的存档点 |
+| 上一版 1.7.0 ZIP | 92,186,434 字节 / `2a0940984d95bc72fb05ca4f69ad3fa9e9a422fe75121832db171b8af166029a`（发布单 `codex_20261111_211423_9ceb57`） |
+| 上一版 1.7.0 Setup | 67,123,954 字节 / `763909e1c9814277112b945a627b042f19fbd31dbc09ed7c9979ca1b7dac5114` |
+| Git | `master` 与 `origin/master` 同点；1.8.0 的包由 `5c3ad2e` 构建，1.7.0 的由 `dd263df`，1.6.0 的由 `f279d5e`；标签 `v1.5.3`、`pre-multi-provider` 是多厂商改动前的存档点 |
 
 历史（1.5.2、1.5.3 的发布记录见 WORKLOG）：1.4.6 上线；1.4.7 发布单 `codex_20261109_230425_438f4b` 因公网 `public_verify` 403 被拒并回滚，旧包不再使用；公网 `latest.json` 曾 403（Caddy）已恢复；1.5.0 于 2026-11-10 12:09 UTC 由 Muse 流水线上线（发布单 `codex_20261110_130657_f72a7b`，旧清单备份 `latest.json.bak-1.4.8`）；**1.5.1 于 2026-11-10 13:21 UTC 由 Muse 流水线上线（发布单 `codex_20261110_141758_3cb004`，旧清单备份 `latest.json.bak-1.5.0`），本助手独立公网复核通过**；A1 服务器 22:13:01 UTC 有一次流水线之外的手工翻版，来源未指认（日志有 `sudo cp`/`sudo mv`，非流水线文件名），**不是本助手所为**，本助手无 A1 登录/sudo 能力。
 
@@ -92,6 +92,8 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 
 ## 7. 当前进行中的任务
 
+> **2026-11-12 现状**：第三轮（外观主题、使用说明重写、三处修复、README）**随 1.8.0 上线**；剩下的只有「GitHub 仓库改公开」，要等用户看过历史隐私审计、选好开源许可证再做，见 HANDOVER 第 00 节。
+>
 > **2026-11-11 起的现行任务**：任务一「多厂商语音 API 融合」已完成，随 1.6.0 上线；任务二「隐私模式 / 提醒模式」（每位联系人各自设置）已完成两轮打磨，**随 1.7.0 上线**，监听中的已读、角标、提醒播报和手机回复后停下仍等用户实测。准绳是 [tts-integration.md](tts-integration.md)，现状与续跑点看 [HANDOVER-CURRENT.md](HANDOVER-CURRENT.md) 第 00 节。下面 A–C 是 2026-11-10 的旧任务，**已在 1.4.9–1.5.3 完成并上线**，仅作历史参考。
 
 ### 已完成的旧任务（2026-11-10）
