@@ -4,6 +4,20 @@
 
 ---
 
+## 1.8.0 · 节 18：门禁与打包（2026-11-12）
+
+- **门禁**（在 `5c3ad2e` 上）：应用 Release 0 警告 0 错误；.NET **277/277**；Python 55（42 跳过）；`Verify-Source` PASS；wx-multi **58/58**；`DialogPreview 1.8.0 1.7.0` 全过。
+- **打包**：`wvb-package.ps1 -Version 1.8.0`，即 `Publish.ps1 -OutputDirectory artifacts\win-x64-v1.8.0 -ZipPath …`，再 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.8.0`。Clean-payload 两次都是 PASS（1993 文件，没有本机设置，没有真实 Key，比对了 1 个本机凭据）。
+- **台账**：
+  - payload ProductVersion `1.8.0+5c3ad2e896f063c2cdc09c9617232f0ecbc97caa`，与 HEAD 一致。
+  - ZIP `artifacts\WeChat-Voice-Bridge-V1.8.0-win-x64.zip` = **92,188,901** 字节 / `3548a75646c6fc05bef293426e43b3cfc444681e1eb0a0e5422ac8776d55bb10`。共 1996 项，6 个应用程序集与 payload 逐字节相同，没有设置、凭据或数据库文件。
+  - Setup `artifacts\WeChat-Voice-Bridge-V1.8.0-Setup.exe` = **67,120,906** 字节 / `de8532a06f1015e94ea6f1d7255694b8ffa922abc5cd3b19278d003c857cb551`。
+- **打包产物实跑**（这次开发版目录没被占用，可以另起一份）：用用户真实设置启动 `artifacts\win-x64-v1.8.0\WeChatVoiceBridge.exe`，主窗口是新的默认主题，「更新说明」对话框（544×554，属于主窗口）弹出 v1.8.0 的说明。没有点「知道了」，直接结束进程；前后都备份并复原了 5 个设置文件，`release-notes-seen.json` 仍是 `"1.7.0"`，用户自己更新时会看到说明。
+- 桌面快捷方式未动。
+- **下一节**：发布前四项自查，然后发一张 Muse 发布单。
+
+---
+
 ## 1.8.0 · 节 17：升版本号，写更新说明（2026-11-12）
 
 - **做了什么**：
