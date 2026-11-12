@@ -268,9 +268,11 @@
 | 问题 | 根因 | 修复位置 |
 | --- | --- | --- |
 | 旧版本升级后已选联系人不显示头像 | `ContactProfile.AvatarUrl` 是 1.4 新增字段，`LocalSettings.Load` 无迁移；老数据为 null 时 `AvatarCache.GetAsync` 直接短路。启动索引虽构建，但结果从不回填卡片 | `ContactSearchCache.TryFind`（新增，按会话 ID 精确查、不受搜索 60 条上限影响）、`MainWindow.ContactIndexing.BuildContactIndexAsync` 索引就绪后 `RestoreMissingAvatars`、`ContactCard.UpdateAvatar`（只更新 URL 不改名字，借既有 `changed` 落盘） |
+| 电脑微信外呼时微信秒退 | 见 `security-review.md` 的「2026-11-09 补充」。最强链条：`ContactSearchCache.Fingerprint` 含 `contact.db-wal` → 微信写库即索引失效 → 新 browse Worker → 重新全地址空间扫描微信进程内存；另有每秒 `CheckRunning()` 持续打开微信进程句柄 | `Fingerprint` 去掉 WAL；IDLE 索引 watcher 只看 `contact.db`、重建间隔 15 秒→5 分钟；`PythonFixtureSource.CheckWeChatOccasionally()` 把微信进程检查降到最多每 10 秒一次 |
 | 重启更新时任务栏多一个图标 | 更新助手从 staging 启动、新版从安装目录启动，Windows 视作不同应用；助手窗口 `ShowInTaskbar=true` | `App.xaml.cs` 在窗口创建前调用 `SetCurrentProcessExplicitAppUserModelID("WeChatVoiceBridge")`，三个进程归到同一任务栏按钮；保留任务栏进度与「更新完成」窗口 |
 | 词库点「编辑」不出现光标 | `FocusReading` 用 `presenter.ContentTemplate.FindName`，但模板由 `ListBox.ItemTemplate` 提供，该属性常为 null → 静默 return；且未等 `Collapsed→Visible` 布局完成 | `FocusReading` 改在容器可视化树按名字找 TextBox，用 `Keyboard.Focus` + `IsVisibleChanged` 等待可见，最多重试 3 次；编辑仍聚焦「读作」并把光标放在末尾 |
 
+**微信通话冲突要特别说明**：以上是**降低接触频率的缓解**，不是确证修复。没有实机复现条件，不能宣称已解决。验证步骤写在 `security-review.md` 末尾（使用说明在 2026-11-12 精简后不再写这一段）。不要为了"彻底解决"去重写 `audited_wechat_keys.py` 的密钥扫描算法——那是红线。
 
 ## 3. 前几轮成果（1.4.3 及更早，详见 WORKLOG）
 
@@ -332,7 +334,7 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64\runtime\python
 - **产物内容核验**：ZIP 内 `WeChatVoiceBridge.dll` / `VoiceBridge.Core.dll` / `WeChatVoiceBridge.exe` 与发布目录逐字节一致；EXE `ProductVersion=1.4.8+<commit>`、`FileVersion=1.4.8.0`，Setup `ProductVersion=1.4.8`；出厂 DLL 含 `--await-handoff` / `UpdateHandoff` / `ShouldShowMainWindow` / `SignalGo` / `AwaitInstallationConfirmation` 与 1.4.8 版本说明，旧的「新版本已启动，可以关闭此窗口」文案已消失，`VoicePresets`/`LegacyPresetProviderId`/`SyncDefaultFish`/`DefaultFishId` 仍未回流。
 - **静态行为链复核**：握手目录 `%LOCALAPPDATA%\WeChatVoiceBridge\updates` 在 helper 与新版进程间一致；7 参数 `--update-result … --await-handoff <ticket>` 可 round-trip；`FindProcess` 用 PID + 启动时间 ticks 校验；安装窗口「完成」按钮 `Click => Close()` 与叉都汇入 `OnClosing`。⚠️ **跨进程 WPF 窗口隐藏的实机目视验证未做**，需等 1.4.8 上线后由用户点更新实测。
 - 历史专项：1.4.5 隔离 WPF 工程 7 组自定义提示词场景通过；1.4.6 三态按钮截图确认三色/尺寸/居中；1.4.7 r3 的 XAML 绑定与 `DataTemplate.Triggers` 静态结构核查通过。
-- 未做：实机全新安装目视确认、真实跨机器升级（含 `fish-default` 的旧 `settings.json`）、同厂商多 Key 的实机点击；以及此前遗留的头像 CDN 实测、任务栏分组目视、词库焦点实机点击。都需要用户在桌面确认。
+- 未做：实机全新安装目视确认、真实跨机器升级（含 `fish-default` 的旧 `settings.json`）、同厂商多 Key 的实机点击；以及此前遗留的微信通话复现、头像 CDN 实测、任务栏分组目视、词库焦点实机点击。都需要用户在桌面确认。
 - **上线后独立公网友核**：`GET latest.json` 200 / 1093 字节，六字段齐全，`version=1.4.8`、`publishedAt=2026-11-09T22:59:27Z`、`url=…/WeChat-Voice-Bridge-V1.4.8-win-x64.zip`、`sha256=a4ca75b3…`、`size=89464301`，与本地实算一致，中文 notes 无乱码；ZIP / Setup 均 `HEAD 200`，`Content-Length` = 89,464,301 / 65,302,086。**下载级终验**：两个产物完整下载后重算 SHA-256 与字节数，与本地产物逐项一致。Muse 正式 `ok` 回执亦确认 ZIP 哈希链「申报=PC 实测=A1 落地」三方一致。
 - 本机 `C:\Program Files\dotnet` 曾只剩运行时、无 SDK，已从微软下载 8.0.427 解压到 `%LOCALAPPDATA%\Temp\wvb-sdk\sdk` 用于构建，详见第 5 节。系统 `dotnet` 无 SDK 时，跑 `Test.ps1` / `Publish.ps1` 必须传 `-Dotnet $sdk`。
 
@@ -342,7 +344,7 @@ $py  = 'D:\OneDrive\文档\ChatGPT\微信语音\artifacts\win-x64\runtime\python
 2. ✅ **上线后公网复核（已完成）**：见第 6 节末条，`version=1.4.8`、六字段、`sha256`/`size` 与本地一致，ZIP/Setup 均 200 且长度一致。
 3. **用户实机验证新引导窗口（唯一剩余重点）**：桌面快捷方式保持 1.4.7 r3，线上 1.4.8 严格大于桌面版 → 客户端应出现更新按钮 → 点更新，观察进度到 100% 后**新版主窗口不自动出现**；点「完成」或叉后安装引导消失、新版窗口打开。这是本轮唯一未做实机目视验证的部分，需用户本人确认。
 4. `README.md` 仍偏旧（1.2 文案），需同步 1.4.7/1.4.8 的多人/多 API/多 Key/指南/受审计微信版本说明。
-5. 其余遗留实机确认：头像升级恢复、词库编辑光标、更新窗口任务栏合并、同厂商多 Key 的实机点击。
+5. 其余遗留实机确认：微信通话冲突（`security-review.md` 的 3 步 A/B）、头像升级恢复、词库编辑光标、更新窗口任务栏合并、同厂商多 Key 的实机点击。
 6. ✅ 手工翻版来源：Muse 已给最终结论（A1 `auth.log` 的 `sudo cp`/`sudo mv`、文件名非流水线所用、现有日志无法指认操作者），已记入 WORKLOG 与第 1 节；不再追问，不来回翻清单。若用户想继续追查操作者，需另行授权。
 
 > 1.4.6 **已上线**（发布单 `codex_20261109_023128_ac2ff2` 的更正回执 `status=ok`）。1.4.7 发布单 `codex_20261109_230425_438f4b` 因公网 `public_verify` 403 被拒并回滚，旧包**不再使用**；那份手工翻的 1.4.7 清单也已被 1.4.8 取代。**当前线上正式版 = 1.4.8**（发布单 `codex_20261109_235238_857190`，`status=ok`）。完整流水见 `WORKLOG.md`。
