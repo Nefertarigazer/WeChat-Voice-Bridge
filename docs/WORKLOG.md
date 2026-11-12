@@ -19,6 +19,7 @@
   - 门禁在克隆里重跑：.NET **277/277**，Python 55（42 跳过），`Verify-Source` PASS，58 项密钥自检 PASS。
 - **顺手修的**：`tools/probes/outgoing_probe.py` 的临时目录原来写死成本机路径，替换后成了不存在的 `D:\USERNAME\…`；改成优先用环境变量 `WVB_SCRATCH`，否则用系统临时目录（仍在 OneDrive 外）。
 - **下一节**：节 23，请 Muse 改名旧仓库、建新仓库，推送并公开核对，然后把本机仓库切到新历史。
+- **续（03:32）**：Muse 任务单 `codex_20261112_033119_f7b681` 最终回 `needs-user`：仓库改名、新建、改可见性不在桥白名单里，要用户本人在主聊天里确认，Muse 没有动任何东西。为了让清理后的历史有一份在 GitHub 上、也方便 Muse 核对，把它推到了旧私有仓库的 `clean-history` 分支（`master` 不变）。核对证据写在 `wvb-rewrite\evidence-for-muse.txt`。等用户确认。
 
 ---
 
