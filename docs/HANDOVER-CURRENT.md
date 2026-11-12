@@ -20,7 +20,8 @@
      - `tools/DialogPreview` 必须先套主题（`--theme Dark/Pink` 这样指定，默认浅色 + 默认），因为新键不在 `App.xaml` 里。
   4. 节 16 **已完成**：`README.md` 重写（定位、功能、下载、三步开始、语音服务、工作原理、隐私与安全、构建、免责声明、致谢、English）。截图 `docs/images/` 用的是演示数据，不含用户的联系人。**许可证一节还空着**，等用户选。README 里的下载链接写的是 1.8.0，以后每次发版要跟着改。
   5. 升版本（1.8.0）、打包、经 Muse 发布；请 Muse 把 GitHub 仓库从私有改为公开；推送 README。**改公开之前，先给用户看仓库历史的隐私/密钥审计结果，用户确认后再请 Muse 改**（历史里有 `.workbuddy/memory`、交接文档里的本机路径和服务器信息等）。
-  - **续跑点**：第 5 项，节 17：`Directory.Build.props` 升到 1.8.0，`ReleaseHistory.cs` 加 1.8.0 条目，提交后跑门禁、用 `wvb-package.ps1 -Version 1.8.0` 打包。
+  - 节 17 **已完成**：源码版本 **1.8.0**（`Directory.Build.props`），`ReleaseHistory.cs` 有 1.8.0 条目。
+  - **续跑点**：第 5 项，节 18：用 `D:\USERNAME\CodexScratch\Temp\wvb-package.ps1 -Version 1.8.0` 打包（产物 `artifacts\win-x64-v1.8.0`、`WeChat-Voice-Bridge-V1.8.0-win-x64.zip`、`-Setup.exe`），核对 ProductVersion 是 `1.8.0+<提交号>`，记台账，再发 Muse。
   - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
 - **界面检查**：`tools/DialogPreview` 加了 `--realclick`（真实鼠标点击，鼠标不动，确认最上层是自己的窗口才点）。
   - **还要用户实测的**：开始监听后，对方发消息时「✓ 已读」与角标出现、提醒按时播报（先响提醒音）；手机上回一条后提醒停下、角标消失；开隐私后朗读与记录都不出现内容；「选择本机音频」打开文件框（离屏没测）。

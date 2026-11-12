@@ -203,7 +203,11 @@ void ReleaseNotes(Window owner, string version)
     }
     Check(bar.Opacity < 0.01, $"[{version}] scrollbar hidden before scrolling (opacity {bar.Opacity:0.##})");
 
-    scroller.ScrollToVerticalOffset(90);
+    // Stay inside the middle of the scroll range, however long the notes are: the frame-by-frame
+    // part below must end with text both above and below the box.
+    var start = Math.Min(90, scroller.ScrollableHeight * 0.4);
+    var stride = Math.Min(6, scroller.ScrollableHeight * 0.4 / 12);
+    scroller.ScrollToVerticalOffset(start);
     Pump(200);
     Check(bar.Opacity > 0.99, $"[{version}] scrollbar shown while scrolling (opacity {bar.Opacity:0.##})");
     Save(dialog, Path.Combine(output, tag + "-2-scrolling.png"));
@@ -213,7 +217,7 @@ void ReleaseNotes(Window owner, string version)
     // The app's smooth wheel scrolling moves the notes a little on every frame.
     for (var step = 1; step <= 12; step++)
     {
-        scroller.ScrollToVerticalOffset(90 + step * 6);
+        scroller.ScrollToVerticalOffset(start + step * stride);
         Pump(16);
     }
     Check(bar.Opacity > 0.99, $"[{version}] scrollbar fully shown while scrolling frame by frame (opacity {bar.Opacity:0.##})");
