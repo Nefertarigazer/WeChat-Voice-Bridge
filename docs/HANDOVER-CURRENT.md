@@ -22,7 +22,8 @@
   5. 升版本（1.8.0）、打包、经 Muse 发布；请 Muse 把 GitHub 仓库从私有改为公开；推送 README。**改公开之前，先给用户看仓库历史的隐私/密钥审计结果，用户确认后再请 Muse 改**（历史里有 `.workbuddy/memory`、交接文档里的本机路径和服务器信息等）。
   - 节 17 **已完成**：源码版本 **1.8.0**（`Directory.Build.props`），`ReleaseHistory.cs` 有 1.8.0 条目。
   - 节 18 **已完成**：1.8.0 已打包（源码 `5c3ad2e`，payload `1.8.0+5c3ad2e896f063c2cdc09c9617232f0ecbc97caa`）。ZIP `artifacts\WeChat-Voice-Bridge-V1.8.0-win-x64.zip` = 92,188,901 字节 / `3548a75646c6fc05bef293426e43b3cfc444681e1eb0a0e5422ac8776d55bb10`；Setup `artifacts\WeChat-Voice-Bridge-V1.8.0-Setup.exe` = 67,120,906 字节 / `de8532a06f1015e94ea6f1d7255694b8ffa922abc5cd3b19278d003c857cb551`；payload `artifacts\win-x64-v1.8.0\`（1993 文件）。
-  - **续跑点**：第 5 项，节 19：四项自查后发**一张** Muse 发布单（`wvb-muse-publish.ps1 -Version 1.8.0`），回执在 `C:\Users\USERNAME\es-tool\muse-bridge\outbox\<单号>.reply.json`；`ok` 后用 `wvb-public-check.ps1` 公网复核，记录、提交推送，再回 Muse 确认。
+  - **已发 Muse 发布单 `codex_20261112_020446_0bf7a9`**（2026-11-12 02:04，version 1.8.0）。**不要重发**。
+  - **续跑点**：第 5 项，节 19：等回执，直接读 `C:\Users\USERNAME\es-tool\muse-bridge\outbox\codex_20261112_020446_0bf7a9.reply.json`；`ok` 后用 `wvb-public-check.ps1` 公网复核，记录、提交推送，再回 Muse 确认。
   - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
 - **界面检查**：`tools/DialogPreview` 加了 `--realclick`（真实鼠标点击，鼠标不动，确认最上层是自己的窗口才点）。
   - **还要用户实测的**：开始监听后，对方发消息时「✓ 已读」与角标出现、提醒按时播报（先响提醒音）；手机上回一条后提醒停下、角标消失；开隐私后朗读与记录都不出现内容；「选择本机音频」打开文件框（离屏没测）。
