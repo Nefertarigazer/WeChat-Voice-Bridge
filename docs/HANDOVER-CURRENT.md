@@ -23,7 +23,7 @@
   - 节 17 **已完成**：源码版本 **1.8.0**（`Directory.Build.props`），`ReleaseHistory.cs` 有 1.8.0 条目。
   - 节 18 **已完成**：1.8.0 已打包（源码 `5c3ad2e`，payload `1.8.0+5c3ad2e896f063c2cdc09c9617232f0ecbc97caa`）。ZIP `artifacts\WeChat-Voice-Bridge-V1.8.0-win-x64.zip` = 92,188,901 字节 / `3548a75646c6fc05bef293426e43b3cfc444681e1eb0a0e5422ac8776d55bb10`；Setup `artifacts\WeChat-Voice-Bridge-V1.8.0-Setup.exe` = 67,120,906 字节 / `de8532a06f1015e94ea6f1d7255694b8ffa922abc5cd3b19278d003c857cb551`；payload `artifacts\win-x64-v1.8.0\`（1993 文件）。
   - 节 19 **已完成**：**1.8.0 已上线**。Muse 发布单 `codex_20261112_020446_0bf7a9` 先 `info` 后 `ok`，`publishedAt=2026-11-12T01:07:29Z`，旧清单备份 `latest.json.bak-1.7.0`。本助手独立公网复核：清单 200、六字段齐全、notes 164 字正常；ZIP / Setup HEAD 200 且长度一致；完整下载 ZIP 重算 SHA-256 一致。桌面快捷方式未动。
-  - 回 Muse 的发布确认已发（`codex_20261112_021009_019491`，带记录提交 `b93682f`）。
+  - **1.8.0 发布闭环已完成**：回 Muse 的确认 `codex_20261112_021009_019491`（带记录提交 `b93682f`）收到 `ok`，无进一步动作。
   - 节 20 **已完成**：改公开前的历史审计（详见 WORKLOG 节 20）。真实 Key 在整个历史里 0 处；但历史里有用户和一位联系人的 wxid / 微信号、一张真实名单截图、本机路径、服务器 IP 和内部文件。
   - **续跑点（等用户拍板）**：① 公开方式 A（改写历史后强推再公开，推荐）/ B（新建干净的公开仓库）/ C（原样公开）；② 许可证（建议 Apache-2.0）。用户定了以后：选 A 先 `git bundle create` 备份原历史到 OneDrive 外，再改写、强推 `master` 和两个标签，核对远端；补 `LICENSE` 和 README 许可证一节；最后发 Muse 一张单请他把仓库改公开，回执后公网打开仓库页核对 README。**在用户确认之前，不要请 Muse 改公开，也不要强推。**
   - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
