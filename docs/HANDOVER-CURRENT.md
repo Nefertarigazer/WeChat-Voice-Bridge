@@ -41,7 +41,7 @@
   - 节 25 **已完成**：源码版本 **1.8.1**，`ReleaseHistory.cs` 有 1.8.1 条目（含对 1.8.0 外观的简要提示，因为弹窗只显示当前版本）。
   - 节 26 **已完成**：1.8.1 已打包（源码 `92e96e9`，payload `1.8.1+92e96e95a0e283017fad3cde7112b137ba675482`）。ZIP `artifacts\WeChat-Voice-Bridge-V1.8.1-win-x64.zip` = 92,189,272 字节 / `ca2b07fea5d8d619bd12b5412fad315d29536ec60d1fac5af775e2b92e24fbd0`；Setup `artifacts\WeChat-Voice-Bridge-V1.8.1-Setup.exe` = 67,121,299 字节 / `d8ce0b7c61edcfffe09a0b44d6d1e1be2a9321f7055c268070ffa9b4b4025ef2`；payload `artifacts\win-x64-v1.8.1\`（1993 文件）。
   - 节 27 **已完成**：**1.8.1 已上线**。Muse 发布单 `codex_20261112_045808_d8a56a` 先 `info` 后 `ok`，`publishedAt=2026-11-12T04:00:25Z`，旧清单备份 `latest.json.bak-1.8.0`。本助手独立公网复核：清单 200、六字段齐全、notes 109 字正常；ZIP / Setup HEAD 200 且长度一致；完整下载 ZIP 重算 SHA-256 一致。README 的版本徽章和下载链接已改成 1.8.1。桌面快捷方式未动。
-  - **续跑点**：回 Muse 确认（带这次的记录提交号）；收到 `ok` 后记一笔，1.8.1 闭环。
+  - **1.8.1 发布闭环已完成**：回 Muse 的确认 `codex_20261112_050354_96b122`（带记录提交 `a344870`）收到 `ok`，无进一步动作。**没有待办。**
   - **以后发版**：除了原来的流程，还要把 README 里两个下载链接的版本号改成新版本。
   - **用户自己那份**是 `artifacts\win-x64-v1.5.1`，已在 2026-11-11 23:40 用软件内更新升到 1.7.0。开发版目录（`bin\Release\net8.0-windows`）现在没人占用，可以编译和实机巡检；巡检前照 WORKLOG 节 15 的做法备份并在结束后复原 5 个设置文件。
 - **界面检查**：`tools/DialogPreview` 加了 `--realclick`（真实鼠标点击，鼠标不动，确认最上层是自己的窗口才点）。
