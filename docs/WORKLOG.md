@@ -4,6 +4,24 @@
 
 ---
 
+## 1.8.3 · 节 2：门禁自救改造（异步启动、框内一键更新、点叉即退出）（2026-11-15）
+
+- **启动不阻塞、先查自己再拦人**：`src/VoiceBridge.App/App.xaml.cs` 的 `ContentRendered` 只挂一个 `ShowStartupDialogs`，依次做「门禁 → 更新说明」。门禁走 `VersionGate.TryShowOnStartupAsync`：`Task.Run` 读微信版本 → 不支持才 `await` 更新通道的结论（`MainWindow.ProbeUpdateForGateAsync`）→ 再弹框。主窗口不等它，弹框允许晚到（实测：主窗口 2.36 s 出现，门禁在更新检查返回后弹出）。门禁占用弹窗位时**本次不弹更新说明**，避免两个模态框叠在一起。
+- **复用而不是另写下载器**：`UpdateProcess.CreateUpdateHttp()` 统一 HTTP 配置（不跟随重定向、无 Cookie、无总超时），`MainWindow.Updates` 与门禁框共用；`MainWindow.ProbeUpdateForGateAsync` 优先 `await` 已在跑的启动检查（`updateWork`），其次若 `updateChecked` 仍为 false 才走一次 `RunUpdateAsync(CheckUpdateAsync)`——启动一次运行只会有一个网络往返（`CheckUpdateAsync` 加了 `updateChecked` 标记）。框内「更新语音桥」点下后：`UpdateClient.CheckAsync` → `DownloadAsync`（带进度与 SHA-256 校验）→ `UpdateInstaller.Prepare` → `UpdateProcess.ValidatePackageVersion` → `UpdateProcess.StartAsync` 交接安装助手，与设置页同一套；无新版、下载失败、权限错误、助手超时均在框内写明确状态文字（不静默）。
+- **按钮与文案**：主按钮「更新语音桥」（有新版时带版本号「更新语音桥到 vX」）；「更新微信」**仅**在微信低于 `MinSupportedVersion` 时出现（高于上限一律不给，避免误导）；「退出应用」保留。文案分三档：清单声明支持当前微信（“更新语音桥即可解决”）、已发布但仍不支持（“已发布 vX，但目前仍不支持微信 X”）、已是最新（“语音桥已是最新（vX），暂时还不支持微信 X”）；支持范围文字仍取自 `WeChatSession.Min/MaxSupportedVersion`。
+- **点叉即退出**：`VersionGateDialog.OnClosing` 统一调 `VersionGatePolicy.OnDialogClosed(remediationChosen, installStarted)`——未选任何补救动作关闭（×、Alt+F4）= `Application.Shutdown`；点过「更新语音桥」或「更新微信」（且网页确实打开）后的关闭保留应用；安装交接已启动则必须退出以便替换文件。
+- **测试专用入口**：环境变量 `WVB_TEST_WECHAT_VERSION`（形如 `9.9.9.9`）非空时，`VersionGate` 的启动检测直接用它冒充检测到的微信版本，**只影响门禁判断**（`WeChatSession.Bind` 与 worker 仍读真实版本）。用法：`$env:WVB_TEST_WECHAT_VERSION='9.9.9.9'; .\WeChatVoiceBridge.exe`，然后看门禁是否弹出、按钮与文案是否对应。**此变量只记在这里，不写进用户文档。**
+- **真机实测**（开发版 `bin\Release\net8.0-windows`，微信 4.2.0.52 真在运行；测前备份了 `settings.json`/`app.log`/`worker.log`/`release-notes-seen.json`，测后逐字比对**全部未变**）：
+  - `9.9.9.9`（过新）+ 线上 1.8.2 无新版：框内文案“语音桥已是最新（v1.8.2），暂时还不支持微信 Windows 9.9.9.9”，按钮为「退出应用 / 更新语音桥」；点「更新语音桥」后框内出现“正在检查更新…”→“语音桥已是最新（v1.8.2），暂时没有可安装的更新。…”，且此后关闭框**应用继续运行**。
+  - `9.9.9.9` 直接关框：**应用退出**（进程在 8 s 内结束）。
+  - `4.1.10.99`（过旧）：三个按钮「退出应用 / 更新微信 / 更新语音桥」，文案说“低于支持范围，需要更新微信”；关框**应用退出**。
+  - `4.2.0.52`（支持）：8 s 后进程只有主窗口一个可见窗口，**门禁未弹**。
+- **工具**：`tools/DialogPreview` 新增 `--gate`（离屏渲染五种决策情形并断言按钮个数/名称，本轮全部 PASS）；`tools/UiSmokeTest` 新增 `gate <pid> <前缀> [update]`（等门禁窗口 → PrintWindow 截图 → 可选点「更新语音桥」等状态文字 → 点× → 报应用是否退出）。均不入产品代码。
+- **验证**：`scripts/Test.ps1` 构建 0 警告 0 错误、.NET **322/322**、Python **55**（42 跳过）；`Verify-Source.ps1` PASS。
+- **下一节**：升 1.8.3 + `ReleaseHistory` 条目 + `docs/compatibility.md`、`docs/user-guide.md` 同步。
+
+---
+
 ## 1.8.3 · 节 1：门禁决策抽成纯函数 + 清单可选 wechatSupport（2026-11-15）
 
 - **背景**：1.8.2 的门禁框只给「退出应用」「更新微信」两个按钮——被拦住的用户真正需要的是更新**语音桥**；「更新微信」对高于上限的版本是误导；模态框也挡住了侧栏的更新提示。用户已拍板改造方案，本版按条执行。

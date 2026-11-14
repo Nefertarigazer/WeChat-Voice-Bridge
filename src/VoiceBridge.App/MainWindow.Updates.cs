@@ -15,18 +15,14 @@ namespace VoiceBridge.App;
 
 public partial class MainWindow
 {
-    private readonly HttpClient updateHttp = new(new HttpClientHandler
-    {
-        AllowAutoRedirect = false,
-        UseCookies = false,
-        UseDefaultCredentials = false
-    }) { Timeout = Timeout.InfiniteTimeSpan };
+    private readonly HttpClient updateHttp = UpdateProcess.CreateUpdateHttp();
 
     private UpdateManifest? availableUpdate;
     private string? verifiedUpdate;
     private string? stagedUpdate;
     private CancellationTokenSource? updateCancel;
     private Task? updateWork;
+    private bool updateChecked;
     private bool restartConfirmed;
     private bool updateHandoff;
 
@@ -65,7 +61,6 @@ public partial class MainWindow
     {
         if (closing || updateCancel != null)
             return;
-
         using var cancellation = new CancellationTokenSource();
         updateCancel = cancellation;
         UpdateAction.IsEnabled = false;
@@ -102,7 +97,36 @@ public partial class MainWindow
         }
     }
 
+    /// <summary>
+    /// The version gate has to know whether a newer bridge exists before it can say
+    /// "updating the bridge fixes this", and it must not open a second download path
+    /// or block the UI thread. It therefore reuses the startup check when that is
+    /// still running, and otherwise runs the ordinary check once.
+    /// </summary>
+    internal async Task<UpdateManifest?> ProbeUpdateForGateAsync()
+    {
+        if (updateWork is { } running)
+        {
+            try { await running; }
+            catch (Exception) { /* No verdict then: the gate still explains the refusal. */ }
+        }
+        else if (!updateChecked && !closing)
+        {
+            await RunUpdateAsync(CheckUpdateAsync);
+        }
+        return availableUpdate;
+    }
+
     private async Task CheckUpdateAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await CheckUpdateCoreAsync(cancellationToken);
+        }
+        finally { updateChecked = true; }
+    }
+
+    private async Task CheckUpdateCoreAsync(CancellationToken cancellationToken)
     {
         UpdateStatus.Text = "正在检查更新…";
         var client = new UpdateClient(updateHttp, UpdateProcess.CurrentVersion);

@@ -77,6 +77,14 @@ if (args.Length > 0 && string.Equals(args[0], "print", StringComparison.Ordinal)
     return 0;
 }
 
+// gate <pid> <out-prefix> [update]: waits for the version gate dialog, screenshots it,
+// optionally presses 更新语音桥 and reports the status text it settles on, then closes the
+// box with its ×. Closing is meant to quit the app unless a remediation was chosen, so the
+// caller passes "update" to check the exception and nothing to check the exit.
+if (args.Length > 0 && string.Equals(args[0], "gate", StringComparison.Ordinal))
+    return GateCheck(args.Length > 1 ? args[1] : "", args.Length > 2 ? args[2] : "gate",
+        args.Length > 3 && args[3] == "update");
+
 // pick <pid> <automationId> [navId]: opens the nav page if given, scrolls the element into
 // view and selects it (radio buttons, such as 外观's ThemeDark or TintPink). Selecting a
 // theme option CHANGES settings.json: the caller backs it up first and restores it afterwards.
@@ -738,6 +746,76 @@ static int Pick(string pidText, string id, string navId)
 }
 
 // PrintWindow renders the window itself, so another window on top cannot spoil the shot.
+// The version gate is a modal box of its own window, so it is found by title rather than
+// through the main window's UIA tree.
+static int GateCheck(string given, string prefix, bool pressUpdate)
+{
+    var pid = int.TryParse(given, out var parsed) && parsed > 0 ? parsed
+        : Process.GetProcessesByName("WeChatVoiceBridge").FirstOrDefault()?.Id ?? 0;
+    if (pid == 0) { Console.WriteLine("FATAL: WeChatVoiceBridge is not running"); return 4; }
+    using var process = Process.GetProcessById(pid);
+    AutomationElement? dialog = null;
+    for (var i = 0; i < 100 && dialog is null; i++)
+    {
+        foreach (var hWnd in Native.Windows(pid))
+        {
+            try
+            {
+                var element = AutomationElement.FromHandle(hWnd);
+                if (element.Current.Name.Contains("微信版本不受支持", StringComparison.Ordinal)) { dialog = element; break; }
+            }
+            catch (Exception) { }
+        }
+        if (dialog is null) Thread.Sleep(300);
+    }
+    if (dialog is null) { Console.WriteLine("FATAL: the version gate never appeared"); return 4; }
+    var handle = new IntPtr(dialog.Current.NativeWindowHandle);
+    Thread.Sleep(800);
+    Capture(handle, $"{prefix}-1-gate.png");
+    var buttons = dialog.FindAll(TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button))
+        .Cast<AutomationElement>().Where(button => button.Current.Name.Length > 0).ToArray();
+    // The dialog's own close button is a button too; the action row is what matters.
+    var actions = buttons.Where(button => !button.Current.Name.StartsWith("关闭", StringComparison.Ordinal)).ToArray();
+    Console.WriteLine("actions: " + string.Join(" | ", actions.Select(button => button.Current.Name)));
+    // 退出应用 + 更新语音桥, plus 更新微信 only for a client below the supported band.
+    var expected = actions.Any(button => button.Current.Name == "更新微信") ? 3 : 2;
+    Console.WriteLine(actions.Length == expected ? $"PASS {expected} actions" : $"FAIL {actions.Length} actions, expected {expected}");
+
+    if (pressUpdate)
+    {
+        var update = buttons.FirstOrDefault(button => button.Current.Name.StartsWith("更新语音桥", StringComparison.Ordinal));
+        if (update is null) { Console.WriteLine("FATAL: 更新语音桥 not found"); return 4; }
+        (update.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();
+        var settled = "";
+        for (var i = 0; i < 90; i++)
+        {
+            Thread.Sleep(500);
+            var texts = dialog.FindAll(TreeScope.Descendants,
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text))
+                .Cast<AutomationElement>().Select(text => text.Current.Name).ToArray();
+            // Only the status line counts: the paragraphs above already say 已是最新.
+            settled = texts.FirstOrDefault(text => text.Contains("暂时没有可安装的更新", StringComparison.Ordinal) ||
+                text.Contains("正在下载", StringComparison.Ordinal) || text.Contains("更新服务返回", StringComparison.Ordinal) ||
+                text.Contains("更新未完成", StringComparison.Ordinal) || text.Contains("无法写入", StringComparison.Ordinal) ||
+                text.Contains("暂时连不上", StringComparison.Ordinal)) ?? "";
+            if (settled.Length > 0) break;
+        }
+        Console.WriteLine(settled.Length > 0 ? $"status: {settled}" : "status: (no verdict within 45 s)");
+        Capture(handle, $"{prefix}-2-after-update.png");
+    }
+
+    var close = buttons.FirstOrDefault(button => button.Current.Name.StartsWith("关闭", StringComparison.Ordinal));
+    if (close is null) { Console.WriteLine("FATAL: the × close button not found"); return 4; }
+    (close.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern)!.Invoke();
+    var exited = process.WaitForExit(8000);
+    Console.WriteLine(exited ? "closed: the application exited" : "closed: the application is still running");
+    var expectedExit = !pressUpdate;
+    Console.WriteLine(exited == expectedExit ? "PASS closing behaves as decided" : "FAIL closing did not behave as decided");
+    if (!exited) { process.Kill(true); }
+    return exited == expectedExit ? 0 : 7;
+}
+
 static void Capture(IntPtr handle, string path)
 {
     Native.Bounds(handle, out var left, out var top, out var right, out var bottom);

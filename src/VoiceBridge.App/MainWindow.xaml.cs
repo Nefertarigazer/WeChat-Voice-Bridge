@@ -545,8 +545,9 @@ public partial class MainWindow : Window
         catch (BridgeException error) when (VersionGate.IsUnsupported(error.Message))
         {
             // A client started after the app (or upgraded meanwhile) must also get
-            // the visible gate, not just a line of status text.
-            VersionGate.ShowFor(this, error.Message);
+            // the visible gate, not just a line of status text. The box opens once
+            // the update channel has answered, so it can offer the bridge update.
+            _ = VersionGate.ShowForAsync(this, error.Message, ProbeUpdateForGateAsync);
             throw;
         }
     }
@@ -723,7 +724,8 @@ public partial class MainWindow : Window
         catch (BridgeException error)
         {
             notice = error.Message;
-            if (VersionGate.IsUnsupported(error.Message)) VersionGate.ShowFor(this, error.Message);
+            if (VersionGate.IsUnsupported(error.Message))
+                _ = VersionGate.ShowForAsync(this, error.Message, ProbeUpdateForGateAsync);
         }
         catch (Exception) { notice = "无法开始，请检查高级设置。"; }
         Render();

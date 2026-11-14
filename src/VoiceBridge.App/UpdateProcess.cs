@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,6 +20,18 @@ internal static class UpdateProcess
 
     internal static readonly string DirectoryPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WeChatVoiceBridge", "updates");
+
+    /// <summary>
+    /// The one HTTP configuration of the update channel: never follow a redirect (the
+    /// manifest points at a fixed HTTPS path) and keep the timeout per request, so a
+    /// stalled download idles out instead of being killed mid-transfer.
+    /// </summary>
+    internal static HttpClient CreateUpdateHttp() => new(new HttpClientHandler
+    {
+        AllowAutoRedirect = false,
+        UseCookies = false,
+        UseDefaultCredentials = false
+    }) { Timeout = Timeout.InfiniteTimeSpan };
 
     private sealed record HelperStatus(bool Ready, string? Error);
 

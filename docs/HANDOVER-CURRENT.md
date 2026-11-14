@@ -8,7 +8,8 @@
 
 - **用户已拍板的方案（不要另起方案）**：启动不再被门禁/网络拖慢；先异步查语音桥有没有更新，再决定弹不弹门禁；门禁框主按钮改成「更新语音桥」，在框内走现有应用内更新流程；「更新微信」只在微信低于下限时出现；点叉关闭 = 退出应用（已选「更新语音桥」或「更新微信」之后的关闭除外）。
 - **节 1 已完成**（纯函数 + 清单字段）：新增 `src/VoiceBridge.Core/VersionGatePolicy.cs`（`WeChatSupportRange`、`VersionGatePolicy.Decide`、`VersionGatePolicy.OnDialogClosed`）；`UpdateManifest` 增加可选第 7 字段 `wechatSupport`（六字段仍必需、未知额外字段仍拒绝、非字符串按缺失）；新增 `tests/VoiceBridge.Tests/VersionGateTests.cs` 45 项。`Test.ps1` 构建 0/0、.NET **322/322**、Python 55（42 跳过）。
-- **待做**：节 2 改 `src/VoiceBridge.App/VersionGate.cs` 与 `VersionGateDialog`（异步启动流程、框内更新、点叉退出、`WVB_TEST_WECHAT_VERSION`）；节 3 升 1.8.3 + `ReleaseHistory` + `docs/compatibility.md`/`docs/user-guide.md`；节 4 全量验证；节 5 打包。
+- **节 2 已完成**（门禁框自救）：`App.xaml.cs` 改为单入口「门禁 → 更新说明」（门禁占位时本次不弹更新说明）；`VersionGate.TryShowOnStartupAsync` 先检测再 `await` 更新通道结论（`MainWindow.ProbeUpdateForGateAsync`，复用启动检查、只发一次请求）。`VersionGateDialog`：主按钮「更新语音桥」在框内走 `UpdateClient`→`UpdateInstaller.Prepare`→`UpdateProcess.StartAsync`；“更新微信”仅在微信低于下限时出现；点叉/Alt+F4 关闭未选补救动作就 `Application.Shutdown`，选过则不退出；安装交接启动后必退出。测试入口 `WVB_TEST_WECHAT_VERSION` 只影响门禁判断。真机四种情形已实测（见 WORKLOG 节 2）。`Test.ps1` 322/322、Python 55、`Verify-Source` PASS。
+- **待做**：节 3 升 1.8.3 + `ReleaseHistory` + `docs/compatibility.md`/`docs/user-guide.md`；节 4 全量验证；节 5 打包。
 - **不做的事**：不发布、不上传、不碰线上 `latest.json`、不改 README 版本徽章与下载链接、不 `git push`（由 Muse 在真机复验后统一执行）；不动提取参数、不扩微信支持范围（仍 4.1.11–4.2.0.52）、不碰 Fish key 与 `.workbuddy`。
 
 ---

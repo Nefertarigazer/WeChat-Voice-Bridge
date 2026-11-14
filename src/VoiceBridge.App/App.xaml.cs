@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,20 +66,34 @@ public partial class App : Application
         }) { Timeout = System.Threading.Timeout.InfiniteTimeSpan });
         host = builder.Build();
         host.Start();
-        MainWindow = new MainWindow(host.Services.GetRequiredService<HttpClient>(), updateNotice);
-        MainWindow.ContentRendered += ShowReleaseNotes;
+        var window = new MainWindow(host.Services.GetRequiredService<HttpClient>(), updateNotice);
+        MainWindow = window;
         // Only runs once the main window is actually visible. During the 1.4.8
-        // update handoff the window stays hidden, so no gate can reveal it.
-        MainWindow.ContentRendered += (_, _) => VersionGate.TryShow(MainWindow);
+        // update handoff the window stays hidden, so no gate can reveal it. The
+        // gate runs asynchronously: it waits for the update channel's verdict
+        // before it decides what to promise, and a gate that took over owns the
+        // dialog slot, so the release notes wait for the next launch.
+        window.ContentRendered += ShowStartupDialogs;
         var handoff = UpdateHandoff.FromArguments(UpdateProcess.DirectoryPath, e.Args);
         if (handoff is null)
             MainWindow.Show();
         else
             AwaitInstallationConfirmation(handoff, e.Args);
 
-        void ShowReleaseNotes(object? sender, EventArgs args)
+        void ShowStartupDialogs(object? sender, EventArgs args)
         {
-            MainWindow.ContentRendered -= ShowReleaseNotes;
+            window.ContentRendered -= ShowStartupDialogs;
+            _ = RunStartupDialogsAsync(window);
+        }
+
+        async Task RunStartupDialogsAsync(MainWindow main)
+        {
+            if (await VersionGate.TryShowOnStartupAsync(main, main.ProbeUpdateForGateAsync)) return;
+            ShowReleaseNotes();
+        }
+
+        void ShowReleaseNotes()
+        {
             try
             {
                 using var state = ReleaseNotesState.TryAcquire(dataDirectory);

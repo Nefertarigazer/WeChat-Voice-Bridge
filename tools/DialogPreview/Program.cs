@@ -32,6 +32,10 @@ if (Array.IndexOf(args, "--theme") is var themeAt and >= 0 && themeAt + 1 < args
 }
 var realClick = args.Length > 0 && args[0] == "--realclick";
 if (realClick) args = args[1..];
+// --gate renders the version gate in each decision case; it never clicks the
+// update button, so no network or user data is touched.
+var gate = args.Length > 0 && args[0] == "--gate";
+if (gate) args = args[1..];
 var output = Path.GetFullPath(args.Length > 0 ? args[0] : "dialog-preview");
 var versions = args.Length > 1 ? args[1..] : ["1.6.0"];
 Directory.CreateDirectory(output);
@@ -89,10 +93,14 @@ var thread = new Thread(() =>
     }
     else
     {
-        foreach (var version in versions) Centring(version);
-        foreach (var version in versions) ReleaseNotes(owner, version);
-        Settings(owner);
-        Guide();
+        if (gate) Gates(owner);
+        else
+        {
+            foreach (var version in versions) Centring(version);
+            foreach (var version in versions) ReleaseNotes(owner, version);
+            Settings(owner);
+            Guide();
+        }
     }
 
     owner.Close();
@@ -443,6 +451,49 @@ void Settings(Window owner, (string Choice, string Text)? probe = null)
     Check(!choices.Contains("复述消息内容"), "[wording] privacy on: no 复述消息内容");
     Save(again, Path.Combine(output, "settings-6-reminder-privacy-on.png"));
     again.Close();
+}
+
+// The version gate in every decision case: which paragraph it leads with, which
+// buttons it shows, and whether the support band comes from WeChatSession.
+void Gates(Window owner)
+{
+    var type = typeof(ReleaseNotesDialog).Assembly.GetType("VoiceBridge.App.VersionGateDialog", true)!;
+    var min = VoiceBridge.WeChat.WeChatSession.MinSupportedVersion;
+    var max = VoiceBridge.WeChat.WeChatSession.MaxSupportedVersion;
+    var cases = new (string Name, string Raw, string? Published, string? Support)[]
+    {
+        ("newer-bridge-covers", "4.2.0.60", "1.8.4", "4.1.11-4.2.0.60"),
+        ("newer-bridge-not-yet", "4.2.0.60", "1.8.4", "4.1.11-4.2.0.52"),
+        ("latest-too-new", "4.2.0.60", null, null),
+        ("too-old", "4.1.10.99", null, null),
+        ("unreadable", "4.2.0.beta", null, null)
+    };
+    foreach (var item in cases)
+    {
+        Version.TryParse(item.Raw, out var parsed);
+        var decision = VersionGatePolicy.Decide(item.Raw, parsed, min, max, item.Support, "1.8.3", item.Published);
+        var dialog = (Window)Activator.CreateInstance(type,
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
+            new object?[] { decision, null }, null)!;
+        dialog.Owner = owner;
+        dialog.Show();
+        Pump(400);
+        var buttons = Descendants(dialog).OfType<Button>().Select(button => button.Content as string)
+            .Where(text => !string.IsNullOrEmpty(text)).ToArray();
+        var lines = Descendants(dialog).OfType<TextBlock>().Select(block => block.Text)
+            .Where(text => !string.IsNullOrWhiteSpace(text)).ToArray();
+        Console.WriteLine($"[gate {item.Name}] buttons: {string.Join(" | ", buttons)}");
+        Console.WriteLine($"[gate {item.Name}] text: {string.Join(" ¶ ", lines)}");
+        Check(buttons.Length == (decision.OffersWeChatUpdate ? 3 : 2),
+            $"[gate {item.Name}] {(decision.OffersWeChatUpdate ? "three" : "two")} buttons");
+        Check(buttons.Contains("退出应用") && buttons.Any(text => text!.StartsWith("更新语音桥")),
+            $"[gate {item.Name}] 退出应用 and 更新语音桥 are both present");
+        Check(!decision.OffersWeChatUpdate || buttons.Contains("更新微信"),
+            $"[gate {item.Name}] 更新微信 only for a client below the lower bound");
+        Save(dialog, Path.Combine(output, "gate-" + item.Name + ".png"));
+        dialog.Close();
+        Pump(100);
+    }
 }
 
 static ResourceDictionary AppResources()
