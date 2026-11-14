@@ -14,6 +14,12 @@ internal static class ReleaseHistory
 {
     public static IReadOnlyList<ReleaseEntry> Entries { get; } = Array.AsReadOnly(new[]
     {
+        new ReleaseEntry("1.8.2", "适配微信 4.2.0.52", new[]
+        {
+            "真实微信模式的支持范围扩到微信 Windows 4.1.11 至 4.2.0.52，微信升到 4.2.0.52 也能直接用，不必等适配。",
+            "4.2.0.52 已在真机实测：密钥提取对本机账号的 26 个数据库全部通过 page1 HMAC 校验；它的加密布局、密钥掩码与各项偏移与 4.2.0.13 一致。",
+            "已有的朗读、隐私模式、提醒模式、词库等内容不改动；微信版本在范围外时，仍会明确提示不支持。"
+        }),
         new ReleaseEntry("1.8.1", "深色模式下的昵称更清楚", new[]
         {
             "深色模式下，首页联系人卡片和「添加」列表里的昵称改为白色，不再是黑字压在深色卡片上；浅色模式不变。",

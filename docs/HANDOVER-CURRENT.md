@@ -8,7 +8,11 @@
 
 - **目标**：把真实微信模式的支持上限从 4.2.0.13 放到 **4.2.0.52**，应用版本定为 1.8.2；只放行版本，**不动任何提取参数**。
 - **证据**：用户本机微信已是 4.2.0.52。Muse 用现行 4.2.0.13 profile 参数对运行中的 4.2.0.52 主进程做过只读实测：70 个候选密钥、当前账号 **26/26 数据库**通过 page1 HMAC → Config.Cipher 布局、XOR 掩码、各偏移与 4.2.0.13 完全一致。GitHub 上没有 4.2.0.52 的现成适配（上游停在 2026-11-09），不用再找。
-- **节 1 已完成**：`WeChatSession.MaxSupportedVersion` → `4.2.0.52`；`worker/audited_wechat_keys.py` 的 `PROFILES` / `MASTER_CFG_PROFILES` 上限、`profile_for()` 的 `high` 与中文报错同步；`wechat_adapter.py` 注释同步；`tests/wx-multi` 边界样本改为 4.2.0.52 / 4.2.0.53（仍 58 项）。`git diff` 核对：`CONFIG_CIPHER_NAME`、`CONFIG_XOR_MASK`、各偏移、`PAGE_SZ`/`RESERVE_SZ`、PBKDF2 参数一处未动。`dotnet build` 0/0，wx-multi 58/58。
+- **节 1–3 已完成**（提交 `61aad13` / `a2ace74` / 本节）：
+  - 节 1：`WeChatSession.MaxSupportedVersion` → `4.2.0.52`；`worker/audited_wechat_keys.py` 的 `PROFILES` / `MASTER_CFG_PROFILES` 上限、`profile_for()` 的 `high` 与中文报错同步；`wechat_adapter.py` 注释同步；`tests/wx-multi` 边界样本改为 4.2.0.52 / 4.2.0.53（仍 58 项）。`git diff` 核对：`CONFIG_CIPHER_NAME`、`CONFIG_XOR_MASK`、各偏移、`PAGE_SZ`/`RESERVE_SZ`、PBKDF2 参数一处未动。`dotnet build` 0/0，wx-multi 58/58。
+  - 节 2：用户可见范围统一为「4.1.11 至 4.2.0.52」（两个 `unsupported_version` 文案、README 徽章与正文、`docs/user-guide.md` 版本表、`docs/compatibility.md`、`docs/troubleshooting.md`、本文风险段）。`ReleaseHistory` 里 1.8.1 及更早的历史条目原文未动。
+  - 节 3：`Directory.Build.props` → **1.8.2**（程序集 1.8.2.0），`ReleaseHistory` 新增 1.8.2 条目「适配微信 4.2.0.52」。
+- **待做**：节 4 全量验证（`Test.ps1` + `Verify-Source` + wx-multi）；节 5 打包 1.8.2 ZIP / Setup 并记台账。**发布与推送由 Muse 执行**；README 的版本徽章与两个下载链接待发布后再改（现在改会指向不存在的文件）。
 - **不做的事**：不发布、不上传、不碰线上 `latest.json`、不建 GitHub Release、不 git push（发布与推送由 Muse 统一执行）；不做真机消息实测（Muse 负责）；不动 Fish key、不重构无关代码、不改 `.workbuddy`。
 - **续跑点**：看本文件与 WORKLOG 顶部 1.8.2 段落的最新一节。
 
