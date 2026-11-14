@@ -21,8 +21,8 @@ What this test does (read-only, no WeChat, no Windows):
     must authenticate the expected keys through page1 HMAC (standard form and
     plaintext-header form);
   * checks strict version dispatch for every boundary value (4.1.11 /
-    4.1.10.x / 4.2.0.13 / 4.2.0.14 / 4.0.x / unknown) and that refused versions
-    never reach OpenProcess (no guessing, no force-fitting).
+    4.1.10.x / 4.2.0.13 / 4.2.0.52 / 4.2.0.53 / 4.0.x / unknown) and that refused
+    versions never reach OpenProcess (no guessing, no force-fitting).
 """
 
 import ctypes
@@ -87,9 +87,11 @@ check('MASTER_DLL_VERIFY matches upstream',
 check('no legacy scan branch left',
       not hasattr(adapted, 'LegacyProfile')
       and not hasattr(adapted.WeChatDB, '_collect_legacy_candidates'))
-check('support range is exactly 4.1.11 - 4.2.0.13',
+check('support range is exactly 4.1.11 - 4.2.0.52',
       adapted.PROFILES[0].min_version == (4, 1, 11, 0)
-      and adapted.PROFILES[0].max_version == (4, 2, 0, 13)
+      and adapted.PROFILES[0].max_version == (4, 2, 0, 52)
+      and adapted.MASTER_CFG_PROFILES[0].max_version == (4, 2, 0, 52)
+      and adapted.profile_for('4.2.0.52').name == 'wcdb-config-cipher-4.1.11+'
       and len(adapted.PROFILES) == 1)
 
 # ---------------------------------------------------------------- version dispatch
@@ -97,7 +99,7 @@ for good in ['4.1.11', '4.1.11.0', '4.1.12', '4.1.13.12', '4.1.15.99', '4.1.15.1
              '4.2.0.11', '4.2.0.13']:
     check('profile_for accepts %s' % good,
           adapted.profile_for(good).name == 'wcdb-config-cipher-4.1.11+')
-for bad in ['4.1.10', '4.1.10.24', '4.1.10.31', '4.0.3', '4.1.9.57', '4.2.0.14',
+for bad in ['4.1.10', '4.1.10.24', '4.1.10.31', '4.0.3', '4.1.9.57', '4.2.0.53',
             '4.2.1.0', '5.0.0.1', '4.1', '', 'garbage', '4.1.11 alpha']:
     try:
         adapted.profile_for(bad)
@@ -110,15 +112,16 @@ try:
 except (adapted.UnsupportedVersionError, TypeError):
     check('profile_for rejects None', True)
 
-_q = adapted.profile_for('4.2.0.13').to_xcipher_params()
+_q = adapted.profile_for('4.2.0.52').to_xcipher_params()
 check('profile offsets == canonical layout',
       _q.needle == adapted.CONFIG_CIPHER_NAME and _q.node_back == 0x10
       and _q.config_ptr_offset == 0x28 and _q.blob_object_offset == 0x88
       and _q.blob_ptr_offset == 0x08 and _q.blob_len_offset == 0x10
       and _q.blob_max == 1024)
-check('master-cfg band exists (4.1.12-4.2.0.13)',
+check('master-cfg band exists (4.1.12-4.2.0.52)',
       adapted.master_cfg_profile_for('4.1.12') is not None
-      and adapted.master_cfg_profile_for('4.2.0.13') is not None)
+      and adapted.master_cfg_profile_for('4.2.0.13') is not None
+      and adapted.master_cfg_profile_for('4.2.0.52') is not None)
 
 # R2: the candidate mask is exactly the slice baseline (no empty-mask candidate)
 check('R2: masks == slice CONFIG_XOR_MASK (no empty-mask branch)',
@@ -281,7 +284,7 @@ with tempfile.TemporaryDirectory() as tmp:
 # ---------------------------------------------------------------- refusal discipline
 adapt_k32 = adapted._k32
 adapt_k32.OpenProcess.reset_mock()
-for bad_version in ['4.0.3', '4.1.10.24', '4.1.10.31', '4.2.0.14', '5.0.0.1']:
+for bad_version in ['4.0.3', '4.1.10.24', '4.1.10.31', '4.2.0.53', '5.0.0.1']:
     reader = adapted.WeChatDB(version=bad_version)
     try:
         reader._collect_key_candidates(4242, set())

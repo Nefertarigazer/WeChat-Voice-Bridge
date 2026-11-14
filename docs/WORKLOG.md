@@ -4,6 +4,19 @@
 
 ---
 
+## 1.8.2 · 节 1：放行上限改到微信 Windows 4.2.0.52（2026-11-14）
+
+- **背景**：用户本机微信已升到 4.2.0.52（`D:\Weixin\Weixin.exe`）。Muse 已用现行 `audited_wechat_keys.py`（4.2.0.13 profile 参数）对运行中的 4.2.0.52 主进程做过只读实测：70 个候选密钥，当前账号 26 个数据库全部通过 page1 HMAC（26/26）。结论是 Config.Cipher 布局、XOR 掩码、各偏移与 4.2.0.13 完全一致，**提取参数一个都不用改**，本次只放行新版本。
+- **改动**：
+  - `src/VoiceBridge.WeChat/WeChatSession.cs`：`MaxSupportedVersion` → `4.2.0.52`；上限注释改为「与 4.2.0.13 逐字节同一布局、已在真机验证」，区间注释与拒绝文案的范围随之更新。`MinSupportedVersion` 仍为 4.1.11。
+  - `worker/audited_wechat_keys.py`：`PROFILES[0].max_version` 与 `MASTER_CFG_PROFILES[0].max_version` → `(4, 2, 0, 52)`；`profile_for()` 的 `high` → `(4, 2, 0, 52)`；文件头/版本表/函数 docstring 里的上限说法同步；`unsupported_version` 中文报错改为「4.1.11 至 4.2.0.52」。**红线核对**：`git diff` 逐行看过，`CONFIG_CIPHER_NAME`、`CONFIG_XOR_MASK`、`node_back`、`config_ptr_offset`、`blob_object_offset/ptr/len`、`blob_max`、`cfg_ptr_back`、`cfg_offset`、`PAGE_SZ`、`RESERVE_SZ`、PBKDF2/SQLCipher 参数**一处未动**。
+  - `worker/wechat_adapter.py`：仅两处注释里的区间说法同步。
+  - `tests/wx-multi/test_audited_wechat_keys.py`：范围检查改为上限 `(4, 2, 0, 52)`（同时校验 `MASTER_CFG_PROFILES` 上限与 `profile_for('4.2.0.52')` 命中），越界样本 `4.2.0.14` 改为 `4.2.0.53`（4.2.0.14 现在落在支持区间内），master-cfg 断言补 4.2.0.52。**检查项仍是 58 项**（新断言并在既有检查里，没有新增项，保住 58 项等价性基线）。
+- **验证**：`dotnet build -c Release` **0 警告 0 错误**；wx-multi 自检 `ALL SELF-CHECKS PASSED (58 checks)`。
+- **下一节**：用户可见文案里的支持范围（`PythonFixtureSource.cs`、`WeChatDirectory.cs`、README、`docs/user-guide.md`、`docs/compatibility.md`）。
+
+---
+
 ## 1.8.1 · 节 27：经 Muse 发布上线，公网复核通过，README 下载链接改为 1.8.1（2026-11-12）
 
 - **发布单** `codex_20261112_045808_d8a56a`：04:58 发出，约半分钟后回 `info`（流水线接手），05:00 回 `status=ok`。只发了这一张。

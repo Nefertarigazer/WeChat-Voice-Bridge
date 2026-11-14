@@ -7,11 +7,15 @@
 # are unchanged from the original file. Nothing in that path is re-guessed.
 #
 # Supported version range (decided by the user, enforced here and in
-# WeChatSession.Bind): WeChat Windows 4.1.11 <= version <= 4.2.0.13.
+# WeChatSession.Bind): WeChat Windows 4.1.11 <= version <= 4.2.0.52.
 #   * 4.1.11 and 4.1.15.99 are 区间覆盖·待实测 (covered by the value range, not
 #     individually tested by us yet; the user will verify on a real client).
-#   * 4.2.0.13 is the currently verified latest version (existing behaviour).
-#   * Versions outside the range (< 4.1.11, 4.1.10.x, > 4.2.0.13) are refused
+#   * 4.2.0.52 is the currently verified latest version (verified on a real
+#     client on 2026-11-14: the running main process yielded 70 candidates and
+#     every one of the account's 26 databases passed page1 HMAC). 4.2.0.13 was
+#     verified earlier; the two share the same layout, so its behaviour is
+#     unchanged.
+#   * Versions outside the range (< 4.1.11, 4.1.10.x, > 4.2.0.52) are refused
 #     with "不支持此版本"; no parameters are invented or force-fitted.
 #
 # Parameter organisation follows the ConfigCipherProfile schema of
@@ -86,7 +90,7 @@ class ConfigCipherProfile:
     Offsets may change between Tencent releases; every value lives in its own
     profile row so a new layout needs a new row, not an edit of the scanner.
     Profile selection is strict range membership (see profile_for): versions
-    outside 4.1.11 - 4.2.0.13 are refused, never force-fitted. No candidate is
+    outside 4.1.11 - 4.2.0.52 are refused, never force-fitted. No candidate is
     trusted merely because it was found at an offset: every candidate is finally
     validated with the database page1 HMAC.
     """
@@ -203,28 +207,32 @@ class MasterCfgProfile:
 # ---------------------------------------------------------------------------
 # Version distribution table.
 #
-# Current membership: exactly one supported band, 4.1.11 - 4.2.0.13, served by
+# Current membership: exactly one supported band, 4.1.11 - 4.2.0.52, served by
 # the Config.Cipher layout below (the layout audited upstream across 4.1.13,
-# 4.1.15.x and 4.2.0.11/4.2.0.13; our live implementation has always targeted
-# this same layout). Bands outside this range do not exist: nothing in any
-# audited upstream publishes different offsets/masks inside it, so there is no
-# version-specific parameter to switch on - the range check itself is the
-# dispatch. When Tencent ships a layout change, add a NEW profile row with its
-# own provenance and shrink this band; do not edit the constants in place.
+# 4.1.15.x and 4.2.0.11/4.2.0.13, and re-verified on a real 4.2.0.52 client on
+# 2026-11-14: 70 candidates, all 26 account databases passed page1 HMAC - the
+# layout is byte-identical, no parameter changed for 4.2.0.52; our live
+# implementation has always targeted this same layout). Bands outside this
+# range do not exist: nothing in any audited upstream publishes different
+# offsets/masks inside it, so there is no version-specific parameter to switch
+# on - the range check itself is the dispatch. When Tencent ships a layout
+# change, add a NEW profile row with its own provenance and shrink this band;
+# do not edit the constants in place.
 # ---------------------------------------------------------------------------
 
 PROFILES: Tuple[ConfigCipherProfile, ...] = (
     ConfigCipherProfile(
         name='wcdb-config-cipher-4.1.11+',
-        # Supported range: 4.1.11 through 4.2.0.13 inclusive (user decision;
-        # 4.2.0.13 is the latest version on the 4.2.x line).
+        # Supported range: 4.1.11 through 4.2.0.52 inclusive (user decision;
+        # 4.2.0.52 is the latest version on the 4.2.x line, verified on a real
+        # client - its layout equals 4.2.0.13's, so only the bound moved).
         # 4.1.11 and 4.1.15.99: 区间覆盖·待实测 (range coverage, not yet
         # individually device-tested by us - kept on the single layout
         # below, to be confirmed by the user).
-        # >4.2.0.13: refused (no layout data found anywhere; new layout would
+        # >4.2.0.52: refused (no layout data found anywhere; new layout would
         # need a new profile row, not a force-fit).
         min_version=(4, 1, 11, 0),
-        max_version=(4, 2, 0, 13),
+        max_version=(4, 2, 0, 52),
         node_back=0x10,
         config_ptr_offset=0x28,
         blob_object_offset=0x88,
@@ -233,11 +241,12 @@ PROFILES: Tuple[ConfigCipherProfile, ...] = (
         blob_max=1024,
         # Single XOR mask, byte-identical to the slice baseline: every blob is
         # decoded with CONFIG_XOR_MASK exactly as the original 4.2.0.13 scanner
-        # did, so 4.2.0.13 candidate sets are unchanged. The field stays a
-        # tuple so a future layout can add extra masks without editing the
-        # engine; no empty mask is used (an empty mask would pass the raw blob
-        # through and diverge from the audited baseline). Every candidate is
-        # still gated by the per-database page1 HMAC.
+        # did, so 4.2.0.13 candidate sets are unchanged, and 4.2.0.52 uses that
+        # same single mask. The field stays a tuple so a future layout can add
+        # extra masks without editing the engine; no empty mask is used (an
+        # empty mask would pass the raw blob through and diverge from the
+        # audited baseline). Every candidate is still gated by the per-database
+        # page1 HMAC.
         masks=(CONFIG_XOR_MASK,),
     ),
 )
@@ -251,7 +260,7 @@ MASTER_CFG_PROFILES: Tuple[MasterCfgProfile, ...] = (
     MasterCfgProfile(
         name='master-cfg-4.1.12+',
         min_version=(4, 1, 12, 0),
-        max_version=(4, 2, 0, 13),
+        max_version=(4, 2, 0, 52),
         cfg_ptr_back=0x138,
         cfg_offset=0x68,
     ),
@@ -263,7 +272,7 @@ MASTER_CFG_PROFILES: Tuple[MasterCfgProfile, ...] = (
 # ---------------------------------------------------------------------------
 
 def parse_version(value: str) -> Tuple[int, ...]:
-    """Parse '4.2.0.13' -> (4, 2, 0, 13), or () for anything unparsable.
+    """Parse '4.2.0.52' -> (4, 2, 0, 52), or () for anything unparsable.
 
     Strict, to match System.Version.TryParse on the C# side: every
     dot-separated segment must be a plain decimal integer and at most four
@@ -294,11 +303,11 @@ class UnsupportedVersionError(RuntimeError):
 def profile_for(version: str) -> ConfigCipherProfile:
     """Return the profile that applies to a WeChat version string.
 
-    Strict membership: 4.1.11 <= v <= 4.2.0.13 returns the single supported
+    Strict membership: 4.1.11 <= v <= 4.2.0.52 returns the single supported
     profile. Anything outside the range - including 4.1.10.x (zero-resident
     key cache since 2025-05, passive scan provably ineffective per
     NinjaSln-labs/wxlocal Issues #125/#152 and scout-lead gap 1), anything
-    below 4.1.11 and anything above 4.2.0.13 - raises UnsupportedVersionError.
+    below 4.1.11 and anything above 4.2.0.52 - raises UnsupportedVersionError.
     Unknown/unparsable versions are refused the same way; there is no
     best-effort fallback (no guessing, no force-fitting).
     """
@@ -308,7 +317,7 @@ def profile_for(version: str) -> ConfigCipherProfile:
             version,
             '不支持此版本：无法确定微信版本，拒绝按未知/无法解析的版本扫描。')
     low = (4, 1, 11) + (0,) * 1
-    high = (4, 2, 0, 13)
+    high = (4, 2, 0, 52)
     width = max(len(parsed), len(low), len(high))
     value = parsed + (0,) * (width - len(parsed))
     low_p = low + (0,) * (width - len(low))
@@ -316,7 +325,7 @@ def profile_for(version: str) -> ConfigCipherProfile:
     if not low_p <= value <= high_p:
         raise UnsupportedVersionError(
             version,
-            '不支持此版本：微信 Windows 版当前仅支持 4.1.11 至 4.2.0.13（含两端及其间'
+            '不支持此版本：微信 Windows 版当前仅支持 4.1.11 至 4.2.0.52（含两端及其间'
             '全部小版本，4.1.11/4.1.15.99 为区间覆盖·待实测）。检测到 %s。' % version)
     for profile in PROFILES:
         if profile.supports(parsed):
@@ -357,11 +366,11 @@ class WeChatDB:
 
     def __init__(self, version: Optional[str] = None) -> None:
         # Version string as reported by the client's file version
-        # (e.g. '4.2.0.13'); validated by profile_for() before every scan.
+        # (e.g. '4.2.0.52'); validated by profile_for() before every scan.
         self.version = version
         self._db_files: List[Tuple[str, str, int]] = []
 
-    # ---------------- strict-range Config.Cipher scan (4.1.11 - 4.2.0.13) ----------------
+    # ---------------- strict-range Config.Cipher scan (4.1.11 - 4.2.0.52) ----------------
 
     def _collect_key_candidates(self, pid: int, seen: set) -> set:
         """Collect candidate key material (no account validation): {(cand, salt_or_None)}

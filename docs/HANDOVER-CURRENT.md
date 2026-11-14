@@ -4,6 +4,16 @@
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
+## 1.8.2 · 微信 Windows 4.2.0.52 适配（2026-11-14，进行中）
+
+- **目标**：把真实微信模式的支持上限从 4.2.0.13 放到 **4.2.0.52**，应用版本定为 1.8.2；只放行版本，**不动任何提取参数**。
+- **证据**：用户本机微信已是 4.2.0.52。Muse 用现行 4.2.0.13 profile 参数对运行中的 4.2.0.52 主进程做过只读实测：70 个候选密钥、当前账号 **26/26 数据库**通过 page1 HMAC → Config.Cipher 布局、XOR 掩码、各偏移与 4.2.0.13 完全一致。GitHub 上没有 4.2.0.52 的现成适配（上游停在 2026-11-09），不用再找。
+- **节 1 已完成**：`WeChatSession.MaxSupportedVersion` → `4.2.0.52`；`worker/audited_wechat_keys.py` 的 `PROFILES` / `MASTER_CFG_PROFILES` 上限、`profile_for()` 的 `high` 与中文报错同步；`wechat_adapter.py` 注释同步；`tests/wx-multi` 边界样本改为 4.2.0.52 / 4.2.0.53（仍 58 项）。`git diff` 核对：`CONFIG_CIPHER_NAME`、`CONFIG_XOR_MASK`、各偏移、`PAGE_SZ`/`RESERVE_SZ`、PBKDF2 参数一处未动。`dotnet build` 0/0，wx-multi 58/58。
+- **不做的事**：不发布、不上传、不碰线上 `latest.json`、不建 GitHub Release、不 git push（发布与推送由 Muse 统一执行）；不做真机消息实测（Muse 负责）；不动 Fish key、不重构无关代码、不改 `.workbuddy`。
+- **续跑点**：看本文件与 WORKLOG 顶部 1.8.2 段落的最新一节。
+
+---
+
 ## 00. 任务一 · 多厂商语音 API 融合（2026-11-11，已完成；1.6.0 已发布上线）
 
 - **一句话现状**：源码与线上同为 **1.6.0**（源码 commit `f279d5e`，payload `1.6.0+f279d5e…`）。Muse 发布单 `codex_20261111_111550_686f2b` 先 `info` 后 `ok`（`publishedAt=2026-11-11T10:19:18Z`，哈希链三方一致，旧清单备份 `latest.json.bak-1.5.3`）。本助手已独立公网复核：清单 200、六字段齐全、notes 321 字中文正常；ZIP / Setup HEAD 200，长度 92,137,109 / 67,090,008；完整下载 ZIP 重算 SHA-256 与清单一致。桌面快捷方式未动（仍指向 1.4.7 r3）。

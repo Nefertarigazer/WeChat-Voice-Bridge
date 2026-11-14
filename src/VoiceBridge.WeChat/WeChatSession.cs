@@ -21,15 +21,17 @@ public sealed record WeChatSession(string Root, string Account, string Directory
     public static readonly System.Version MinSupportedVersion = new Version(4, 1, 11);
 
     /// <summary>
-    /// Upper bound (inclusive). 4.2.0.13 is the current latest client and shares the
-    /// same Config.Cipher layout; beyond it no layout is published, so nothing is
+    /// Upper bound (inclusive). 4.2.0.52 is the current latest client; it shares the
+    /// byte-identical Config.Cipher layout, XOR mask and offsets with 4.2.0.13
+    /// (verified on a real 4.2.0.52 client: every one of the account's databases
+    /// passed page1 HMAC). Beyond it no layout is published, so nothing is
     /// force-fitted.
     /// </summary>
-    public static readonly System.Version MaxSupportedVersion = new Version(4, 2, 0, 13);
+    public static readonly System.Version MaxSupportedVersion = new Version(4, 2, 0, 52);
 
     /// <summary>
     /// Whether a parsed file version lies inside the supported passive range
-    /// (4.1.11&nbsp;&lt;=&nbsp;v&nbsp;&lt;=&nbsp;4.2.0.13). Parsing must succeed; an
+    /// (4.1.11&nbsp;&lt;=&nbsp;v&nbsp;&lt;=&nbsp;4.2.0.52). Parsing must succeed; an
     /// empty or malformed version is not supported.
     /// </summary>
     public static bool IsSupportedVersion(System.Version? version)
