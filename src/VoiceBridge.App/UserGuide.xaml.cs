@@ -95,7 +95,11 @@ internal static class GuideContent
     public static IReadOnlyList<GuideQuestion> Questions { get; } = new GuideQuestion[]
     {
         new("没有朗读", "先看左下角是不是「正在监听」。软件只读开始以后、所选联系人新发来的消息，你自己发的不读。", First: true),
-        new("提示版本不支持", "电脑微信的版本不在上面的表里。换成表里的版本，再重新打开软件。"),
+        // The lower bound quoted in this answer comes from the same field the gate
+        // enforces, so the two cannot drift apart.
+        new("提示版本不支持", "电脑微信的版本不在上面的表里，软件打开后会弹一个提示框。框里主按钮是「更新语音桥」：点它就在框里检查、下载并重启安装，装完再重新开始监听。" +
+            "点提示框右上角的 × 是退出应用；如果已经点了「更新语音桥」或「更新微信」，关闭则不会退出。" +
+            $"「更新微信」只在微信低于 {WeChatSession.MinSupportedVersion} 时出现；微信版本比支持范围新时不会出现，那说明语音桥还在适配，等新版本发布即可。"),
         new("合成失败", "401、403：Key 填错了或没有权限。402 或「余额不足」：去服务商那里充值。429：请求太快，稍等再试。带地球图标的厂商要在海外网络下使用。"),
         new("听不到声音", "检查「音效」里的输出设备和音量，再看看 Windows 的音量和音量合成器有没有把它静音。"),
     };

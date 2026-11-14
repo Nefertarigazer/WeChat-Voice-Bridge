@@ -4,6 +4,21 @@
 
 ---
 
+## 1.8.3 · 节 3：升版本到 1.8.3，写更新说明，同步文档（2026-11-15）
+
+- `Directory.Build.props` 升到 **1.8.3**（实测 `FileVersion 1.8.3.0`、`ProductVersion 1.8.3+fe61dab…`）。
+- `ReleaseHistory.cs` 在首位新增 1.8.3 条目「版本不受支持时，先提示更新语音桥」五条：框内一键更新、点叉即退出（已选补救动作除外）、「更新微信」只在低于下限时出现、启动不再被版本检查拖慢、本版不扩大支持范围（仍 4.1.11–4.2.0.52）。**1.8.2 及更早的条目一字未改**（`git diff` 只有 +8 行）。
+- 文档同步（只改描述门禁行为的段落）：
+  - `docs/compatibility.md`：新增「版本不受支持时的提示」一行，写清异步启动、主按钮更新语音桥、三种文案、「更新微信」的条件、点叉退出语义，以及清单可选字段 `wechatSupport`（缺失时按“有新版本就提供更新入口”）。
+  - `docs/user-guide.md`：版本表最后一行改为「不支持，打开时会提示更新语音桥」；「提示版本不支持」一条重写为新行为。
+  - `src/VoiceBridge.App/UserGuide.xaml` 表格芯片同步；`UserGuide.xaml.cs` 的同一条问答重写，其中下界用 `WeChatSession.MinSupportedVersion` 拼接，不写死。
+  - `docs/PROJECT-BRIEF.md` §4 源码版本行改为 1.8.3。
+- **未改**：README 的版本徽章与两个下载链接（按约定由 Muse 发布后再改）。
+- **验证**：`dotnet build -c Release` **0 警告 0 错误**；`tools/DialogPreview` 离屏渲染 1.8.3 更新说明全部 PASS（居中、半行渐隐、滚动条），`使用说明` 页检查通过；构建出的 `WeChatVoiceBridge.exe` 版本 1.8.3。
+- **下一节**：全量验证（`Test.ps1`、`Verify-Source`、wx-multi）。
+
+---
+
 ## 1.8.3 · 节 2：门禁自救改造（异步启动、框内一键更新、点叉即退出）（2026-11-15）
 
 - **启动不阻塞、先查自己再拦人**：`src/VoiceBridge.App/App.xaml.cs` 的 `ContentRendered` 只挂一个 `ShowStartupDialogs`，依次做「门禁 → 更新说明」。门禁走 `VersionGate.TryShowOnStartupAsync`：`Task.Run` 读微信版本 → 不支持才 `await` 更新通道的结论（`MainWindow.ProbeUpdateForGateAsync`）→ 再弹框。主窗口不等它，弹框允许晚到（实测：主窗口 2.36 s 出现，门禁在更新检查返回后弹出）。门禁占用弹窗位时**本次不弹更新说明**，避免两个模态框叠在一起。
