@@ -4,6 +4,15 @@
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
+## 1.8.3 · 版本门禁自救（2026-11-15，进行中）
+
+- **用户已拍板的方案（不要另起方案）**：启动不再被门禁/网络拖慢；先异步查语音桥有没有更新，再决定弹不弹门禁；门禁框主按钮改成「更新语音桥」，在框内走现有应用内更新流程；「更新微信」只在微信低于下限时出现；点叉关闭 = 退出应用（已选「更新语音桥」或「更新微信」之后的关闭除外）。
+- **节 1 已完成**（纯函数 + 清单字段）：新增 `src/VoiceBridge.Core/VersionGatePolicy.cs`（`WeChatSupportRange`、`VersionGatePolicy.Decide`、`VersionGatePolicy.OnDialogClosed`）；`UpdateManifest` 增加可选第 7 字段 `wechatSupport`（六字段仍必需、未知额外字段仍拒绝、非字符串按缺失）；新增 `tests/VoiceBridge.Tests/VersionGateTests.cs` 45 项。`Test.ps1` 构建 0/0、.NET **322/322**、Python 55（42 跳过）。
+- **待做**：节 2 改 `src/VoiceBridge.App/VersionGate.cs` 与 `VersionGateDialog`（异步启动流程、框内更新、点叉退出、`WVB_TEST_WECHAT_VERSION`）；节 3 升 1.8.3 + `ReleaseHistory` + `docs/compatibility.md`/`docs/user-guide.md`；节 4 全量验证；节 5 打包。
+- **不做的事**：不发布、不上传、不碰线上 `latest.json`、不改 README 版本徽章与下载链接、不 `git push`（由 Muse 在真机复验后统一执行）；不动提取参数、不扩微信支持范围（仍 4.1.11–4.2.0.52）、不碰 Fish key 与 `.workbuddy`。
+
+---
+
 ## 1.8.2 · 微信 Windows 4.2.0.52 适配（2026-11-14，进行中）
 
 - **目标**：把真实微信模式的支持上限从 4.2.0.13 放到 **4.2.0.52**，应用版本定为 1.8.2；只放行版本，**不动任何提取参数**。

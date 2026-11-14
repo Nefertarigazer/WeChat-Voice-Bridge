@@ -4,6 +4,21 @@
 
 ---
 
+## 1.8.3 · 节 1：门禁决策抽成纯函数 + 清单可选 wechatSupport（2026-11-15）
+
+- **背景**：1.8.2 的门禁框只给「退出应用」「更新微信」两个按钮——被拦住的用户真正需要的是更新**语音桥**；「更新微信」对高于上限的版本是误导；模态框也挡住了侧栏的更新提示。用户已拍板改造方案，本版按条执行。
+- **改动**：
+  - 新增 `src/VoiceBridge.Core/VersionGatePolicy.cs`（无 WPF 依赖，可单测）：
+    - `WeChatSupportRange.TryParse`：解析清单里的 `wechatSupport`（形如 `4.1.11-4.2.0.52`）。只认「两段、各至少 major.minor.build、min ≤ max」；兼容半角/全角/长横线；任何不合格文本一律返回 false（**不得抛异常**，按字段缺失处理）。
+    - `VersionGatePolicy.Decide(clientRaw, client, min, max, publishedWeChatSupport, appVersion, publishedVersion)` → `VersionGateDecision`：是否弹框、`Reason`（None / WeChatTooOld / WeChatTooNew / VersionUnreadable）、主按钮是否「更新语音桥」、新版本号、`BridgeUpdateCoversWeChat`（清单声明覆盖该微信版本；字段缺失/解析失败退化为「有更新就提供入口」）、以及 `OffersWeChatUpdate`（**仅**微信低于下限时为 true）。
+    - `VersionGatePolicy.OnDialogClosed(remediationChosen, installStarted)` → 「点叉是否退出」也变成纯函数：未选任何补救动作 → 退出；选了更新语音桥/更新微信 → 保留应用；已进入安装交接 → 必须退出。
+  - `src/VoiceBridge.Core/UpdateManifest.cs`：`wechatSupport` 作为**第 7 个可选字段**加入六字段契约（`UpdateManifest` 记录新增 `string? WeChatSupport = null`）。解析规则：仍必须是六个必需字段齐全、字段名不重复、总数 6 或 7，且第 7 个必须是 `wechatSupport`；`wechatSupport` 不是字符串时按缺失处理，不让整次检查失败。
+- **单测**：新增 `tests/VoiceBridge.Tests/VersionGateTests.cs` 45 项，覆盖：区间内不弹框（含两端点 4.1.11 / 4.2.0.52）、过旧弹框且给「更新微信」、过新弹框且**不**给「更新微信」、版本不可读、有更新且清单覆盖该微信版本（应提示更新即可解决）、有更新但清单声明不覆盖（文案应说仍需适配）、已是最新（无更新可给）、线上版本不比当前新、`wechatSupport` 缺失/空/乱写/单段/反向/三段/只有 major.minor（一律退化为「提供更新入口」）、版本号非法不抛异常、区间解析的 7 种坏输入、点叉动作四种组合、清单可选字段（正常/缺失/非字符串/未知第 7 字段仍拒绝）。
+- **验证**：`scripts/Test.ps1` 构建 **0 警告 0 错误**；.NET **322/322 PASS**（1.8.2 基线 277 + 新增 45）；Python **55 项**（13 过 + 42 跳过，与基线同）。
+- **下一节**：`VersionGate.cs` / `VersionGateDialog` 改造（启动异步先查更新再拦人、框内一键更新、点叉即退出、`WVB_TEST_WECHAT_VERSION` 测试入口）。
+
+---
+
 ## 1.8.2 · 节 5：打包（2026-11-14）
 
 - **打包**：`Publish.ps1 -OutputDirectory artifacts\win-x64-v1.8.2 -ZipPath artifacts\WeChat-Voice-Bridge-V1.8.2-win-x64.zip`，再 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.8.2`。Clean-payload **PASS**（1993 文件，无本机设置、无真实 Key，比对了 1 个本机凭据）。

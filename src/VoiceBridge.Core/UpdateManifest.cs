@@ -3,7 +3,13 @@ using System.Text.RegularExpressions;
 
 namespace VoiceBridge.Core;
 
-public sealed record UpdateManifest(string Version, DateTimeOffset PublishedAt, Uri Url, string Sha256, long Size, string Notes)
+/// <param name="WeChatSupport">
+/// Optional <c>wechatSupport</c> band (for example <c>4.1.11-4.2.0.52</c>) that the
+/// published build states it covers. Absent for every release before 1.8.3, so the
+/// version gate treats it as "unknown" and falls back to offering the update.
+/// </param>
+public sealed record UpdateManifest(string Version, DateTimeOffset PublishedAt, Uri Url, string Sha256, long Size, string Notes,
+                                    string? WeChatSupport = null)
 {
     public const string Feed = "https://iceland.de5.net/voice-bridge/latest.json";
     internal const long MaxArchiveBytes = 1024L * 1024 * 1024;
@@ -14,9 +20,13 @@ public sealed record UpdateManifest(string Version, DateTimeOffset PublishedAt, 
         {
             using var document = JsonDocument.Parse(json);
             var item = document.RootElement;
+            // The six-field contract stays required and stays closed: the only extra
+            // field tolerated is the optional wechatSupport band published from 1.8.3 on.
+            var fields = item.EnumerateObject().Select(property => property.Name).ToArray();
             if (item.ValueKind != JsonValueKind.Object ||
-                item.EnumerateObject().Select(property => property.Name).Distinct().Count() != 6 ||
-                item.EnumerateObject().Count() != 6)
+                fields.Distinct().Count() != fields.Length ||
+                fields.Length is not (6 or 7) ||
+                (fields.Length == 7 && !fields.Contains("wechatSupport")))
                 throw new InvalidDataException("更新清单字段不正确。");
 
             var version = item.GetProperty("version").GetString() ?? "";
@@ -25,6 +35,10 @@ public sealed record UpdateManifest(string Version, DateTimeOffset PublishedAt, 
             var size = item.GetProperty("size").GetInt64();
             var notes = item.GetProperty("notes").GetString();
             var link = item.GetProperty("url").GetString();
+            // A malformed or non-string band degrades to "absent" instead of failing
+            // the whole check: the update must stay installable even then.
+            var support = item.TryGetProperty("wechatSupport", out var supportItem) &&
+                supportItem.ValueKind == JsonValueKind.String ? supportItem.GetString() : null;
             var feed = new Uri(Feed);
             CompareVersions(version, version);
             if (!Uri.TryCreate(link, UriKind.Absolute, out var url) ||
@@ -35,7 +49,7 @@ public sealed record UpdateManifest(string Version, DateTimeOffset PublishedAt, 
                 throw new InvalidDataException("更新包地址不在受信任的 HTTPS 发布目录。");
             if (notes is null || !Regex.IsMatch(hash, @"\A[0-9a-f]{64}\z") || size is <= 0 or > MaxArchiveBytes)
                 throw new InvalidDataException("更新清单中的大小、校验值或说明无效。");
-            return new(version, publishedAt, url, hash, size, notes);
+            return new(version, publishedAt, url, hash, size, notes, support);
         }
         catch (Exception error) when (error is JsonException or KeyNotFoundException or InvalidOperationException or FormatException)
         {
