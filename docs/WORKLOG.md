@@ -2169,3 +2169,13 @@
 - **上传与校验**：经 `pc-to-a1-chunked-upload.ps1` 32 分块传至 A1 staging，拼装后 sha256 与打包台账逐字一致：ZIP `a0d1aea0630d6a1e0ca41b75dd0aff8716bfe160613694e3de218c1b9d547ad6`（92,189,654 字节）；Setup `e9ec6ea486652499ca920aca4670e13daeb0af29056bcd203215f2fead96d6fb`（67,121,939 字节）。
 - **清单切换**：`/var/www/aoliao/voice-bridge/latest.json` 已切到 1.8.2（`publishedAt 2026-11-14T06:51:23Z`；旧清单备份 `latest.json.bak-1.8.1`）。公网复核：`https://iceland.de5.net/voice-bridge/latest.json` 返回 1.8.2；ZIP 与 Setup 均 HTTP 200，Content-Length 与台账一致。
 - **README**：版本徽章与两个下载链接已更新到 1.8.2（本提交）。
+
+## 2026-11-14 · v1.8.3 发布回执（Muse）
+
+- **发布方式**：DS1017 完成门禁自救改造与打包（本文件 1.8.3 节 1-5），Muse 复核与真机复验后直接发布；用户 2026-11-14 拍板门禁方案（先查自己再拦人、点叉即退出、启动不阻塞、允许启动后再弹）并授权测试通过即直发。
+- **Muse 复核**：`git diff 5da1b1a..HEAD -- worker/ src/VoiceBridge.WeChat/` 为空，提取参数与微信支持范围（4.1.11–4.2.0.52）一字未动；门禁关闭逻辑回读源码确认：`OnClosing` 经纯函数 `VersionGatePolicy.OnDialogClosed(remediationChosen, installStarted)` 裁定是否退出。
+- **真机复验**（Legion，出货 payload `artifacts\win-x64-v1.8.3`）：①`WVB_TEST_WECHAT_VERSION=9.9.9.9` 启动，主窗口先渲染、门禁随后弹；框内文案为「语音桥已是最新（v1.8.3），暂时还不支持微信 Windows 9.9.9.9」，按钮只有「更新语音桥」「退出应用」（过新情形无「更新微信」）；②点「更新语音桥」，框内真实走线上清单检查并显示「暂时没有可安装的更新」；③选过自救动作后再点叉，应用继续运行；④重新启动后不选动作直接点叉，应用整体退出；⑤真实微信 4.2.0.52 启动无门禁、更新说明正常、开始监听进入「正在监听」并可正常结束。
+- **未实测分支**：门禁框内「下载→交接安装」需线上有更高版本才触发，与设置页共用同一套 UpdateProcess 代码，本版仅代码复核；下一次发版时顺带实测（DS 节 4 保留点 1）。
+- **上传与校验**：分块上传 32 块 ALLDONE，A1 拼装后 sha256 与打包台账逐字一致：ZIP `3e5a7d3cdcd9f722aa4e85e1b87e9fdfc7483ec0034f776eeded6ddcc9f5e180`（92,199,780 字节）；Setup `93ee5890509208e022d45310a1d44e615e1cfe616a92fd4fcc0adb7bd3128194`（67,127,439 字节）。
+- **清单切换**：`latest.json` 已切到 1.8.3（`publishedAt 2026-11-14T07:57:41Z`；旧清单备份 `latest.json.bak-1.8.2`），并首次带上可选字段 `wechatSupport: "4.1.11-4.2.0.52"` 供门禁判断。公网复核：清单返回 1.8.3；ZIP 与 Setup 均 HTTP 200，Content-Length 与台账一致。
+- **README**：版本徽章与两个下载链接已更新到 1.8.3（本提交）。
