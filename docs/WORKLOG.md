@@ -4,6 +4,21 @@
 
 ---
 
+## 1.8.2 · 节 2：用户可见的支持范围改为「4.1.11 至 4.2.0.52」（2026-11-14）
+
+- **改动**：
+  - `src/VoiceBridge.WeChat/PythonFixtureSource.cs`、`src/VoiceBridge.WeChat/WeChatDirectory.cs`：`unsupported_version` 的中文文案改为「（4.1.11 至 4.2.0.52）」。
+  - `README.md`：微信版本徽章、下载一节的「微信」一条、英文摘要里的版本区间改为 4.2.0.52（正文保留「4.2.0.13 与 4.2.0.52 已实测」这句事实描述）。**版本徽章与两个下载链接仍是 1.8.1**，等 Muse 发布后再改（现在改会指到不存在的文件）。
+  - `docs/user-guide.md`：版本表仅改数字（4.2.0.52 已实测 / 区间 / 不支持），**仍是三行**，与软件里那张由 `MinSupportedVersion`/`MaxSupportedVersion` 生成的表结构一致。
+  - `docs/compatibility.md`：本机微信改为 4.2.0.52，并写清边界：4.2.0.52 上只实测了密钥提取（26/26 库通过 page1 HMAC，监听的完整链路是在 4.2.0.13 上做的），不把未做过的实机监听写成做过。
+  - `docs/troubleshooting.md`：「找不到真实微信会话」一条改为「版本在 4.1.11 至 4.2.0.52 之间」。
+  - `docs/HANDOVER-CURRENT.md`：风险段旧的「受审计支持版本仅 4.2.0.13（`WeChatSession.SupportedVersion`）」改为按 `MinSupportedVersion`–`MaxSupportedVersion` 表述（当前 4.1.11–4.2.0.52）。
+- **未改**：`ReleaseHistory.cs` 里 1.8.1 及更早的历史条目（1.4.9 条目里的 4.1.11–4.2.0.13 是当时的真实记录）；`docs/PROJECT-HANDOVER.md`、`docs/NEXT-AGENT-HANDOVER-1.4.md`、`docs/wechat-live-test.md` 等历史快照。
+- **验证**：`dotnet build -c Release` **0 警告 0 错误**；`grep` 确认 `src/`、`worker/`、README、使用说明、兼容性、排错里再无遗留的旧上限说法。
+- **下一节**：升到 1.8.2 并写 `ReleaseHistory` 条目。
+
+---
+
 ## 1.8.2 · 节 1：放行上限改到微信 Windows 4.2.0.52（2026-11-14）
 
 - **背景**：用户本机微信已升到 4.2.0.52（`D:\Weixin\Weixin.exe`）。Muse 已用现行 `audited_wechat_keys.py`（4.2.0.13 profile 参数）对运行中的 4.2.0.52 主进程做过只读实测：70 个候选密钥，当前账号 26 个数据库全部通过 page1 HMAC（26/26）。结论是 Config.Cipher 布局、XOR 掩码、各偏移与 4.2.0.13 完全一致，**提取参数一个都不用改**，本次只放行新版本。

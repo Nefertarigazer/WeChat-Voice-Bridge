@@ -297,7 +297,7 @@
 
 - 先读 `AGENTS.md`。所有真实 DB 探针必须 `tempfile.TemporaryDirectory()`，放在本地 scratch、OneDrive 之外；同批复用一个快照；离开上下文前关闭 SQLite/子进程；DB/WAL/SHM 不进项目、报告、发布物。
 - 不修改微信进程内存、不注入/Hook/UIA 热激活、不发微信消息、**不重写密钥扫描算法**。`scripts/Verify-Source.ps1` 会强制 `ReadProcessMemory` 只出现在 `worker/audited_wechat_keys.py`。
-- 微信受审计支持版本仅 `4.2.0.13`（`WeChatSession.SupportedVersion`），不要擅自放宽。只读访问也不保证符合微信平台规范或账号安全。
+- 微信受审计支持范围是 `WeChatSession.MinSupportedVersion`–`MaxSupportedVersion`（当前 **4.1.11–4.2.0.52**），不要擅自放宽；范围外的版本必须走 `unsupported_version` 通道拒绝。只读访问也不保证符合微信平台规范或账号安全。
 - 始终手动开始、初始 IDLE，结束取消整条链路；不自动恢复监听。
 - 用户配置与 DPAPI 密钥在 `%LOCALAPPDATA%\WeChatVoiceBridge`，不进发布包；不删用户数据库、录音、配置。
 - **不得重新引入任何出厂预置 API 服务、出厂音色、不可删条目或内置密钥**：全新安装的「语音服务」与「我的音色」两个列表都必须为空。`scripts/Verify-Source.ps1` 会拦截再次播种（`providers.Insert(` / `SyncDefaultFish` / `DefaultFishId` / `VoicePresets` / `LegacyPresetProviderId`）、迁移或孤儿绑定缺失、以及 `fish-default` 字面量扩散；`scripts/Assert-CleanPayload.ps1` 会在 ZIP / Setup 打包前拦下个人配置与真实 API Key。

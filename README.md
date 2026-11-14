@@ -7,7 +7,7 @@
 **让电脑微信的消息，用你熟悉的声音读出来。**
 
 [![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D4)](#下载)
-[![电脑微信 4.1.11 – 4.2.0.13](https://img.shields.io/badge/%E7%94%B5%E8%84%91%E5%BE%AE%E4%BF%A1-4.1.11%20%E2%80%93%204.2.0.13-07C160)](#下载)
+[![电脑微信 4.1.11 – 4.2.0.52](https://img.shields.io/badge/%E7%94%B5%E8%84%91%E5%BE%AE%E4%BF%A1-4.1.11%20%E2%80%93%204.2.0.52-07C160)](#下载)
 [![版本 1.8.1](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.8.1-007AFF)](#下载)
 [![许可证 Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue)](LICENSE)
 
@@ -51,7 +51,7 @@
 同样的两个文件也可以在本仓库的 [Releases 页面](https://github.com/Nefertarigazer/WeChat-Voice-Bridge/releases/latest) 下载。
 
 - **系统**：Windows 10 或 11，64 位。
-- **微信**：电脑微信 4.1.11 至 4.2.0.13，其中 4.2.0.13 已实测。不在这个范围内的版本，打开软件时会提示。
+- **微信**：电脑微信 4.1.11 至 4.2.0.52，其中 4.2.0.13 与 4.2.0.52 已实测。不在这个范围内的版本，打开软件时会提示。
 - 安装到 `%LOCALAPPDATA%\Programs\微信语音桥`，不弹管理员确认。安装包没有代码签名，Windows 可能提示「未知发布者」。
 - 装好以后，软件会自己检查更新。
 
@@ -140,6 +140,6 @@
 
 ## English
 
-WeChat Voice Bridge is a Windows desktop app that reads new text messages from the contacts you pick in PC WeChat (4.1.11 – 4.2.0.13) aloud, each in a voice you choose. It works with 19 text-to-speech options: 13 cloud vendors, 2 generic protocols, 4 models that run on your own machine, and free Microsoft Edge read-aloud. It reads a read-only copy of the local WeChat database, queries only the contacts you selected, and never injects into or modifies WeChat. The interface is in Chinese. Licensed under the [Apache License 2.0](LICENSE).
+WeChat Voice Bridge is a Windows desktop app that reads new text messages from the contacts you pick in PC WeChat (4.1.11 – 4.2.0.52) aloud, each in a voice you choose. It works with 19 text-to-speech options: 13 cloud vendors, 2 generic protocols, 4 models that run on your own machine, and free Microsoft Edge read-aloud. It reads a read-only copy of the local WeChat database, queries only the contacts you selected, and never injects into or modifies WeChat. The interface is in Chinese. Licensed under the [Apache License 2.0](LICENSE).
 
 Keywords: WeChat message reader, read aloud WeChat messages, WeChat voice notification, message reminder, voice broadcast, text-to-speech aggregator, unified TTS API, multi-provider speech synthesis, voice cloning, local TTS, screen reader companion, accessibility, Windows desktop app.

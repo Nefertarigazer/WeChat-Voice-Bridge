@@ -240,7 +240,7 @@ public sealed class WeChatDirectory : IAsyncDisposable
                         "identity" => "无法确认微信账号或联系人。",
                         "dependency" => "缺少消息读取依赖，请重新发布安装。",
                         "disk" => "磁盘空间不足，无法复制微信数据库。请清理磁盘后重试。",
-                        "unsupported_version" => "不支持此版本。请确认微信 Windows 版在支持范围内（4.1.11 至 4.2.0.13）。",
+                        "unsupported_version" => "不支持此版本。请确认微信 Windows 版在支持范围内（4.1.11 至 4.2.0.52）。",
                         _ => "读取微信数据失败。"
                     });
                 if (!expected.Contains(kind))
