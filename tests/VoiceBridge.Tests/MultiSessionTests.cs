@@ -84,17 +84,30 @@ public sealed class MultiSessionTests
     {
         await using var controller = new SessionController();
         var source = new ProbeSource();
-        var speech = new RoutedProbe();
+        // Hold the first synthesis: while it is blocked the consumer cannot prefetch, so
+        // the queue depth below is a fact instead of a race with the worker.
+        var hold = ProbeSource.NewSignal();
+        var speech = new RoutedProbe(async (message, text, token) =>
+        {
+            if (text == "A-one") await hold.Task.WaitAsync(token);
+            return new AudioData(Encoding.UTF8.GetBytes(message.ConversationId + "|" + text));
+        });
         var player = new SerialPlayer(holdFirst: true);
         controller.Start(Targets, true, 30, false, () => source, speech, player);
         source.Ready.SetResult();
         await Until(() => source.LateDelivery != null);
-        source.LateDelivery!(Incoming("friend-a", "1", "A-one"));
-        await player.FirstStarted.Task.WaitAsync(Limit);
+        Assert.Equal(Admission.Accepted, source.LateDelivery!(Incoming("friend-a", "1", "A-one")));
+        await Until(() => speech.Calls.Count == 1);
         source.LateDelivery(Incoming("friend-b", "1", "B-one"));
         source.LateDelivery(Incoming("friend-a", "2", "A-two"));
+        // Both new messages wait behind the one being synthesized; nothing else started.
         Assert.Equal(2, controller.Status.Pending);
         Assert.Single(speech.Calls);
+        Assert.Empty(player.Playback);
+        hold.TrySetResult();
+        await player.FirstStarted.Task.WaitAsync(Limit);
+        // One voice plays at a time; the other two wait their turn (the worker may have
+        // already synthesized the next one ahead of playback, which is by design).
         Assert.Single(player.Playback);
         player.ReleaseFirst.TrySetResult();
         await Until(() => Volatile.Read(ref player.Completed) == 3);

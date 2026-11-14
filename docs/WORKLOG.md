@@ -4,6 +4,19 @@
 
 ---
 
+## 1.8.3 · 节 4：全量验证（2026-11-15）
+
+- `scripts/Test.ps1`（Release build + C# xunit + Python unittest）：构建 **0 警告 0 错误**；.NET **322/322 PASS**（1.8.2 基线 277 + 新增门禁 45 项）；Python **55 项**（13 过 + 42 跳过，与基线同）。连跑两遍结果一致。
+- `scripts/Verify-Source.ps1`：`PASS`（exit 0）。
+- wx-multi 等价性自检（内置 Python 3.12）：`ALL SELF-CHECKS PASSED (58 checks)`。
+- **既有用例时序问题（重要）**：节 4 首次全量运行时 `MultiSessionTests.AllVoicesShareOneSerialQueueAndCannotOverlapPlayback` 失败（`Pending` 期望 2、实际 1）。
+  - **归因**：在 1.8.2 基线 `5da1b1a` 的干净 worktree 里单独跑该用例 **同样失败**（且连续 6 次均失败），证明与 1.8.3 改动无关。原因是该用例断言的“队列里正好 2 条”与原设计冲突：`SessionController` 在当前一条还在合成时就会**预取**下一条（`Prefetched`），预取时就把 `Pending` 减 1，所以 `Pending == 2` 只存在于消费者尚未被调度的窄窗口里——机器繁忙时过，空闲时必败。
+  - **修法（只改用例，不改产品代码）**：用已有能力（`RoutedProbe` 的 synthesize 回调 + `ProbeSource.NewSignal`）把第一条消息的合成**卡住**，消费者因此无法预取，队列深度变成事实而非竞态；随后释放并断言真正的不变量：两条消息都在排队等待（`Pending == 2`、此时只有一次合成、尚未开始播放）、一次只播一条、播放顺序为 A-one → B-one → A-two、`MaxActive == 1`、共完成 3 条。删掉了“播放已开始时仍只有一次合成”——它与预取设计相矛，原来能过只是碰巧。连跑 6 次全绿。
+  - 此事已在交接里标出：如有人不认可这项测试修改，可单独 revert 这个提交（产品行为不受影响）。
+- **下一节**：打包 1.8.3 ZIP 与 Setup。
+
+---
+
 ## 1.8.3 · 节 3：升版本到 1.8.3，写更新说明，同步文档（2026-11-15）
 
 - `Directory.Build.props` 升到 **1.8.3**（实测 `FileVersion 1.8.3.0`、`ProductVersion 1.8.3+fe61dab…`）。

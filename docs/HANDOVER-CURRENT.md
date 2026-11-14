@@ -12,6 +12,9 @@
 - **待做**：节 3 升 1.8.3 + `ReleaseHistory` + `docs/compatibility.md`/`docs/user-guide.md`；节 4 全量验证；节 5 打包。
 - **节 3 已完成**（版本与文档）：`Directory.Build.props` → **1.8.3**（`FileVersion 1.8.3.0`）；`ReleaseHistory` 新增 1.8.3 条目（旧条目未动）；`docs/compatibility.md` 新增门禁行为一行，`docs/user-guide.md` 版本表与「提示版本不支持」重写，`UserGuide.xaml(+.cs)` 同步（下界取 `MinSupportedVersion`），`docs/PROJECT-BRIEF.md` §4 版本行同步。README 版本徽章/下载链接**未动**（由 Muse 发布后改）。
 - **待做**：节 4 全量验证（`Test.ps1`、`Verify-Source`、wx-multi 58）；节 5 打包 1.8.3 ZIP + Setup 并记产物台账。
+- **节 4 已完成**（全量验证）：`Test.ps1` 构建 0/0、.NET **322/322**、Python **55**（42 跳过）；`Verify-Source` PASS；wx-multi **58/58**。连跑两遍一致。
+  - **既有用例时序问题（需知悉）**：`MultiSessionTests.AllVoicesShareOneSerialQueueAndCannotOverlapPlayback` 在全量里发红，已在 1.8.2 基线 `5da1b1a` 的干净 worktree 里复现（6/6 失败）——与 1.8.3 无关，是“预取会先减 Pending”与断言互矛。已按不改语义的方式修用例（卡住首条合成使队列深度可观测），产品代码未动；若所有者不认可，可单独 revert 该提交。
+- **待做**：节 5 打包 1.8.3 ZIP + Setup 并记产物台账。
 - **不做的事**：不发布、不上传、不碰线上 `latest.json`、不改 README 版本徽章与下载链接、不 `git push`（由 Muse 在真机复验后统一执行）；不动提取参数、不扩微信支持范围（仍 4.1.11–4.2.0.52）、不碰 Fish key 与 `.workbuddy`。
 
 ---
