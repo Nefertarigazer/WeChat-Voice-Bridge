@@ -15,6 +15,13 @@
 - **节 4 已完成**（全量验证）：`Test.ps1` 构建 0/0、.NET **322/322**、Python **55**（42 跳过）；`Verify-Source` PASS；wx-multi **58/58**。连跑两遍一致。
   - **既有用例时序问题（需知悉）**：`MultiSessionTests.AllVoicesShareOneSerialQueueAndCannotOverlapPlayback` 在全量里发红，已在 1.8.2 基线 `5da1b1a` 的干净 worktree 里复现（6/6 失败）——与 1.8.3 无关，是“预取会先减 Pending”与断言互矛。已按不改语义的方式修用例（卡住首条合成使队列深度可观测），产品代码未动；若所有者不认可，可单独 revert 该提交。
 - **待做**：节 5 打包 1.8.3 ZIP + Setup 并记产物台账。
+- **节 5 已完成**（**1.8.3 已打包**，源码 `24ec5f8`）：
+  - payload `artifacts\win-x64-v1.8.3\`，ProductVersion `1.8.3+24ec5f8933c4c51ce77025484649d4e6d433f9c0`，1993 文件。
+  - ZIP `artifacts\WeChat-Voice-Bridge-V1.8.3-win-x64.zip` = **92,199,780** 字节 / `3e5a7d3cdcd9f722aa4e85e1b87e9fdfc7483ec0034f776eeded6ddcc9f5e180`（1996 项）。
+  - Setup `artifacts\WeChat-Voice-Bridge-V1.8.3-Setup.exe` = **67,127,439** 字节 / `93ee5890509208e022d45310a1d44e615e1cfe616a92fd4fcc0adb7bd3128194`。
+  - Clean-payload PASS；包内 `worker\audited_wechat_keys.py` 与 `WeChatVoiceBridge.dll` 与仓库/payload 逐字节相同；`git diff 5da1b1a -- worker/ src/VoiceBridge.WeChat/` 为空（提取参数与支持范围未动）。
+- **待 Muse**：真机复验 + 发布 + 推送。**发布时必须往 `latest.json` 写新字段 `wechatSupport: "4.1.11-4.2.0.52"`**（客户端读它判“更新语音桥就能解决”；缺字段会退化为“有新版就提供更新入口”）。发布后把 README 版本徽章与两个下载链接改成 1.8.3，并回写发布回执。
+- **续跑点**：看本文件 1.8.3 段与 WORKLOG 顶部 1.8.3 节，最新一节是**节 5 打包**。
 - **不做的事**：不发布、不上传、不碰线上 `latest.json`、不改 README 版本徽章与下载链接、不 `git push`（由 Muse 在真机复验后统一执行）；不动提取参数、不扩微信支持范围（仍 4.1.11–4.2.0.52）、不碰 Fish key 与 `.workbuddy`。
 
 ---

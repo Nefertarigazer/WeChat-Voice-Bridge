@@ -4,6 +4,20 @@
 
 ---
 
+## 1.8.3 · 节 5：打包（2026-11-15）
+
+- **打包**：`Publish.ps1 -OutputDirectory artifacts\win-x64-v1.8.3 -ZipPath artifacts\WeChat-Voice-Bridge-V1.8.3-win-x64.zip`，再 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.8.3`。Clean-payload **PASS**（1993 文件，无本机设置、无真实 Key，比对了 1 个本机凭据）。
+- **台账**：
+  - payload `artifacts\win-x64-v1.8.3\`，ProductVersion `1.8.3+24ec5f8933c4c51ce77025484649d4e6d433f9c0`（与 HEAD `24ec5f8` 一致），FileVersion `1.8.3.0`，1993 文件 / 224,131,070 字节。
+  - ZIP `artifacts\WeChat-Voice-Bridge-V1.8.3-win-x64.zip` = **92,199,780** 字节 / `3e5a7d3cdcd9f722aa4e85e1b87e9fdfc7483ec0034f776eeded6ddcc9f5e180`（1996 项）。
+  - Setup `artifacts\WeChat-Voice-Bridge-V1.8.3-Setup.exe` = **67,127,439** 字节 / `93ee5890509208e022d45310a1d44e615e1cfe616a92fd4fcc0adb7bd3128194`。
+- **包内抽查**（解包到 OneDrive 外的临时目录，查完已删）：`worker\audited_wechat_keys.py` 与仓库逐字节相同（注意：该 ZIP 内这个条目用反斜杠分隔）；`WeChatVoiceBridge.dll` 与 payload 逐字节相同；包内 exe `ProductVersion 1.8.3+24ec5f8…`。
+- **没动的东西（已核对）**：`git diff 5da1b1a -- worker/ src/VoiceBridge.WeChat/` **为空**——本版没改任何提取参数，微信支持范围仍 4.1.11–4.2.0.52。
+- **未做**：不发布、不推送、不上传、不碰线上 `latest.json`、不建 GitHub Release；README 版本徽章与两个下载链接未改（发布后由 Muse 改）；未做真机监听（Muse 复验）。
+- **下一节**：等 Muse 真机复验 + 发布（发布时把 `wechatSupport: "4.1.11-4.2.0.52"` 写进线上清单）。
+
+---
+
 ## 1.8.3 · 节 4：全量验证（2026-11-15）
 
 - `scripts/Test.ps1`（Release build + C# xunit + Python unittest）：构建 **0 警告 0 错误**；.NET **322/322 PASS**（1.8.2 基线 277 + 新增门禁 45 项）；Python **55 项**（13 过 + 42 跳过，与基线同）。连跑两遍结果一致。
