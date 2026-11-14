@@ -4,6 +4,17 @@
 
 ---
 
+## 1.8.2 · 节 4：全量验证（2026-11-14）
+
+- `scripts/Test.ps1`（Release build + C# xunit + Python unittest）：构建 **0 警告 0 错误**；.NET **277/277 PASS**（与 1.8.1 基线相同，无新增/失效用例）；Python **55 项**（13 过 + 42 跳过，与基线同）→ `.NET tests: PASS` + `Python tests: PASS`。
+- `scripts/Verify-Source.ps1`：`Static boundary and obvious-secret scan: PASS`（exit 0）。
+- wx-multi 等价性自检（内置 Python 3.12）：`ALL SELF-CHECKS PASSED (58 checks)`——仍是 58 项，切片等价性、XOR 掩码、合成内存场景 A/B/C、拒绝版本零句柄全部成立。
+- 额外核对（只读）：“4.2.0.52 profile = wcdb-config-cipher-4.1.11+，参数与 4.2.0.13 **完全相同**（`to_xcipher_params` 逐字段相等）、掩码同为 `CONFIG_XOR_MASK`；`4.2.0.52` 命中 master-cfg profile；`4.2.0.53` 被拒并报「不支持此版本」”。
+- 结论：未发现 4.2.0.52 上提取参数的异常迹象；与 Muse 的真机实测结论一致。
+- **下一节**：打包 1.8.2 ZIP 与 Setup。
+
+---
+
 ## 1.8.2 · 节 3：升版本号到 1.8.2，写更新说明（2026-11-14）
 
 - `Directory.Build.props` 升到 **1.8.2**（程序集 1.8.2.0，实测 `FileVersion 1.8.2.0`）。
