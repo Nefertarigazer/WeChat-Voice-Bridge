@@ -1,4 +1,4 @@
-# 工作日志（按版本）
+﻿# 工作日志（按版本）
 
 记录本次会话中实际完成、构建与验证过的改动。用户可见的精简版在 `src/VoiceBridge.App/ReleaseHistory.cs`；接手说明见 [HANDOVER-CURRENT.md](HANDOVER-CURRENT.md)。
 
@@ -2085,3 +2085,12 @@
 ## 2026-11-12 · 文档纠错（续）：删除关于语音服务验证状态的表述
 
 应用户要求，删除 providers.md 与 tts-integration.md 中关于验证状态的整节内容，以及 HANDOVER-CURRENT.md、WORKLOG.md 中的相关表述与遗留实测项。这类表述容易被误读，故不予保留。
+
+## 2026-11-14 · v1.8.2 发布回执（Muse）
+
+- **发布方式**：DS1017 完成适配与打包（本文件 1.8.2 节 1-5），Muse 独立复核改动与真机复验后直接发布；用户 2026-11-14 授权「测试没问题就直接推」。
+- **Muse 独立复核**：`worker/audited_wechat_keys.py` 新旧 diff 逐行核对，只有两处 `max_version`、`profile_for` 上界与文案变化，`CONFIG_XOR_MASK` 逐字节一致，全部偏移与 SQLCipher/PBKDF2 参数未动；C# `MaxSupportedVersion` 已为 4.2.0.52。
+- **真机复验**（Legion，微信 4.2.0.52 运行且已登录）：1.8.2 产物自带 worker 以 `version=4.2.0.52` 启动，返回 capabilities + ready，联系人头像 1 个；`lastmessage` 取到聂聂会话的真实最后一条消息；`query` 返回 heartbeat；`stop` 干净退出、无 stderr 报错。GUI 实测：启动无「不支持此版本」弹窗、更新说明正常显示；点「开始」进入「正在监听」并保持；点联系人「试听」，Fish 合成播放后界面显示「试听完成」。
+- **上传与校验**：经 `pc-to-a1-chunked-upload.ps1` 32 分块传至 A1 staging，拼装后 sha256 与打包台账逐字一致：ZIP `a0d1aea0630d6a1e0ca41b75dd0aff8716bfe160613694e3de218c1b9d547ad6`（92,189,654 字节）；Setup `e9ec6ea486652499ca920aca4670e13daeb0af29056bcd203215f2fead96d6fb`（67,121,939 字节）。
+- **清单切换**：`/var/www/aoliao/voice-bridge/latest.json` 已切到 1.8.2（`publishedAt 2026-11-14T06:51:23Z`；旧清单备份 `latest.json.bak-1.8.1`）。公网复核：`https://iceland.de5.net/voice-bridge/latest.json` 返回 1.8.2；ZIP 与 Setup 均 HTTP 200，Content-Length 与台账一致。
+- **README**：版本徽章与两个下载链接已更新到 1.8.2（本提交）。

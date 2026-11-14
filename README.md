@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 <img src="src/VoiceBridge.App/app-icon.png" width="96" alt="微信语音桥">
 
@@ -8,7 +8,7 @@
 
 [![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011%20x64-0078D4)](#下载)
 [![电脑微信 4.1.11 – 4.2.0.52](https://img.shields.io/badge/%E7%94%B5%E8%84%91%E5%BE%AE%E4%BF%A1-4.1.11%20%E2%80%93%204.2.0.52-07C160)](#下载)
-[![版本 1.8.1](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.8.1-007AFF)](#下载)
+[![版本 1.8.2](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.8.2-007AFF)](#下载)
 [![许可证 Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue)](LICENSE)
 
 [下载](#下载) · [三步开始](#三步开始) · [使用说明](docs/user-guide.md) · [隐私与安全](#隐私与安全) · [English](#english)
@@ -45,8 +45,8 @@
 
 | 文件 | 说明 |
 | --- | --- |
-| [**安装包** WeChat-Voice-Bridge-V1.8.1-Setup.exe](https://iceland.de5.net/voice-bridge/WeChat-Voice-Bridge-V1.8.1-Setup.exe) | 推荐。中文安装向导，装好后在桌面和开始菜单建快捷方式 |
-| [免安装版 WeChat-Voice-Bridge-V1.8.1-win-x64.zip](https://iceland.de5.net/voice-bridge/WeChat-Voice-Bridge-V1.8.1-win-x64.zip) | 完整解压后运行 `WeChatVoiceBridge.exe` |
+| [**安装包** WeChat-Voice-Bridge-V1.8.2-Setup.exe](https://iceland.de5.net/voice-bridge/WeChat-Voice-Bridge-V1.8.2-Setup.exe) | 推荐。中文安装向导，装好后在桌面和开始菜单建快捷方式 |
+| [免安装版 WeChat-Voice-Bridge-V1.8.2-win-x64.zip](https://iceland.de5.net/voice-bridge/WeChat-Voice-Bridge-V1.8.2-win-x64.zip) | 完整解压后运行 `WeChatVoiceBridge.exe` |
 
 同样的两个文件也可以在本仓库的 [Releases 页面](https://github.com/Nefertarigazer/WeChat-Voice-Bridge/releases/latest) 下载。
 
