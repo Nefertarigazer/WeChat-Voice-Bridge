@@ -4,6 +4,16 @@
 
 ---
 
+## 1.8.4 · 节 7：打包（2026-11-16）
+
+- **打包**：`Publish.ps1 -Dotnet $sdk -OutputDirectory artifacts\win-x64-v1.8.4 -ZipPath artifacts\WeChat-Voice-Bridge-V1.8.4-win-x64.zip`，再 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.8.4`。Clean-payload **PASS**（1993 文件，无本机设置、无真实 Key，比对了 1 个本机凭据），发布与安装包两道门禁均过。
+- **产物台账**：
+  - payload `artifacts\win-x64-v1.8.4\`，ProductVersion `1.8.4+3f6061b06e5731c318d1c1b9ab98e61a7a4e8ea9`（与打包时 HEAD `3f6061b` 一致），FileVersion `1.8.4.0`，1993 文件 / 224,155,986 字节。
+  - ZIP `artifacts\WeChat-Voice-Bridge-V1.8.4-win-x64.zip` = **92,211,444** 字节 / `72d4fe0ee68aeef393cb1f2472632932e8ebf94e52ac66d9b6e151f32e517089`。
+  - Setup `artifacts\WeChat-Voice-Bridge-V1.8.4-Setup.exe` = **67,131,681** 字节 / `8f6e6031e20763a8f291c0fd3cb594e5d74cf03aa437304f548a67fb36dad9b1`。
+- **下一节**：发布（上传 A1、切换六字段清单、README 与 GitHub Release 同步）与回执。
+
+---
 ## 1.8.4 · 节 6：发布前全量验证（2026-11-16）
 
 - `scripts/Verify-Source.ps1`：`PASS`。
