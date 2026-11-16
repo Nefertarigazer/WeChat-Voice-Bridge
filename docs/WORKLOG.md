@@ -4,6 +4,53 @@
 
 ---
 
+## 1.8.5 开发中 · 节 7：版本门禁、更新流程与微信多进程全面体检修复 + 全量回归（2026-11-16）
+
+- **做了什么**（逐项排查死局、死胡同与边界竞态）：
+  1. **门禁「退出应用」按钮失灵死局**（`src/VoiceBridge.Core/VersionGatePolicy.cs`、`src/VoiceBridge.App/VersionGate.cs`）：点过「更新语音桥」再点显式「退出应用」按钮时，原 `OnClosing` 会把 `Exit` 覆写为 `KeepRunning` 导致应用不退出；新增 `explicitQuit` 通道，显式点击「退出应用」必退出，点窗口右上角 `×` 仍维持既有语义；同时在弹出模态框前校验宿主窗口仍加载且可见。
+  2. **门禁断网重装已缓存包死胡同**（`src/VoiceBridge.App/VersionGate.cs`）：`UpdateBridge` 在线上检查异常时补充回查本地已下载并校验通过的缓存包（`ReadPendingAsync` + `GetCachedAsync`），不再因为临时断网而阻塞本地已就绪更新包的安装。
+  3. **门禁探测被大文件下载阻塞与缺失缓存包死胡同**（`src/VoiceBridge.App/MainWindow.Updates.cs`）：`ProbeUpdateForGateAsync` 改为仅等待正在进行的版本检查（`updateChecking`），已有结论或正在下载安装包时立即返回而不阻塞门禁弹窗；`InstallUpdateAsync` 启动前及异常恢复时检查本地安装包是否存在（捕获 `FileNotFoundException` / `DirectoryNotFoundException`），若外部删包则清回下载态而非卡死在「重启安装更新」；交接启动后不再多画一帧启用按钮。
+  4. **断点续传 HTTP 416 死循环**（`src/VoiceBridge.Core/UpdateClient.cs`）：当服务器对 `.part` 断点续传返回 `416 RequestedRangeNotSatisfiable` 时，删除失效 `.part` 并立即从字节 0 重新完整下载，避免永久报错卡死。
+  5. **微信多进程枚举脆弱点**（`src/VoiceBridge.WeChat/WeChatSession.cs`）：`DetectClientVersion` 与 `Bind` 遍历全部 `Weixin` 进程时单进程读取 `StartTime`/`MainModule` 抛异常或首进程无版本信息会跳过而不是中断或误报未运行，保持支持区间 `4.1.11–4.2.0.52` 及提取逻辑一字未动。
+- **单测与回归**：
+  - `tests/VoiceBridge.Tests/VersionGateTests.cs` 新增「点过更新语音桥后点击退出应用仍退出」用例；`tests/VoiceBridge.Tests/UpdateTests.cs` 新增 `RangeNotSatisfiable416DiscardsStalePartialAndRetriesFreshDownload`。
+  - `scripts/Verify-Source.ps1`：`PASS`。
+  - `scripts/Test.ps1`：Release 编译 **0 警告 0 错误**，.NET **335/335 PASS**，Python **55**（13 过 + 42 跳过）PASS。
+  - `tests/wx-multi/test_audited_wechat_keys.py`：**58/58 PASS**；`git diff 5c12db1 -- worker/` 为空。
+  - `DialogPreview`（`--gate`、`--app-settings`、`--app-home`）：全部 `ALL PASS`。
+- **未做**：按流程未升版本号、未打包或推线上，等待用户最终验收后决定发版时机。
+
+---
+
+## 1.8.5 开发中 · 节 6：提醒逻辑优化（从开启那一刻起算 + 防误触 + 作废过期排队提醒）（2026-11-16）
+
+- **做了什么**：
+  - **严格从开启提醒那一刻起算**（`src/VoiceBridge.App/MainWindow.Attention.cs`、`src/VoiceBridge.Core/ReplyTracker.cs`）：
+    - 监听中收到消息时，仅当该联系人当前已开启「提醒模式」且消息接收时间不早于开启时刻（`reminderEnabledSince`），才计入 `ReplyTracker`；未开启提醒前收到的旧消息不会在开启后瞬间爆出未回角标或立即触发提醒。
+    - 打开或关闭联系人的「提醒模式」、移除联系人、开始/结束监听时，调用 `ReplyTracker.Reset` / `BeginAttentionSession` / `ClearAttentionSession` 立即清零对应状态。
+  - **调整提醒参数不瞬发误报**（`src/VoiceBridge.Core/ReplyTracker.cs` `Reconfigure` + `MainWindow.Library.cs` `SyncContactReminderSettings`）：
+    - 在有未回消息等待时开启「持续提醒」，重置 1 分钟起始缓冲（`ContinuousStart`）而不是用历史旧时间戳立刻播报；缩短定时间隔时把已播步进对齐到当前已逝分钟数（`elapsed / next.Interval * next.Interval`），保持真实等待时长同时平滑等待下一轮提醒。
+  - **已回复或标为已读后作废队列中的待播提醒**（`src/VoiceBridge.Core/SessionController.cs`、`src/VoiceBridge.App/MainWindow.xaml.cs`）：
+    - 在 `SessionController` 合成前与播放提示音/正文前增加 `IsStaleReminder` 校验；用户回复或点「✓ 已读」或关闭提醒后，仍在队列里排队的过期提醒不再合成与响铃播报。
+- **单测**：`tests/VoiceBridge.Tests/AttentionTests.cs` 新增 3 项用例（`Reset` 从开启时刻重新计数、`Reconfigure` 切换持续提醒/缩短间隔不瞬发误报、`SessionController` 队列中过期提醒在已读/回复后静默跳过）。
+- **验证**：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0 警告 0 错误、.NET **333/333 PASS**、Python **55**（42 跳过）PASS。
+- **下一节**：节 7（版本门禁、应用内更新与微信多进程全面体检与死局修复 + 全量回归）。
+
+---
+
+## 1.8.5 开发中 · 节 5：朗读记录高度随最大化动态缩放 + 未溢出隐藏滚动条（2026-11-16）
+
+- **做了什么**：
+  - 优化 `src/VoiceBridge.Core/RecordsHeightPolicy.cs`：由记住绝对像素高度改为记住「单行联系人页面的视口固定开销（`DefaultNonScrollingOverhead = 507` DIP）」，在多联系人导致首页滚动时，记录区上限按当前视口高度动态伸缩（`viewportHeight - effectiveOverhead`，上限占视口 `68%`），并在 `MainWindow.xaml.cs` 的 `WindowStateChanged` 挂载高度重算，确保最大化/拉大窗口时即便多联系人也能展示大量对话气泡；常规 `940×780` 窗口仍保持 `235–237` DIP 标定上限。
+  - 在 `src/VoiceBridge.App/MainWindow.xaml` 微调气泡垂直节奏（保持苹果×鸿蒙×微信圆角方形头像、左尾翼气泡与居中「拍一拍」灰字风格，单条行高更凝练，`940×780` 下可容纳约 4 条消息，`1060` 高窗口可容纳约 8–9 条消息）。
+  - 验证内容未超出可视上限时内部滚动条保持隐藏（`ScrollableHeight = 0`），不会提前出现可滑动行为。
+- **验证**：
+  - `Verify-Source.ps1` PASS；`Test.ps1` 编译 0 警告 0 错误、.NET **330/330 PASS**（`RecordsHeightPolicyTests` 增至 6 项）、Python **55**（42 跳过）PASS。
+  - `DialogPreview --app-home` 新增并验证 `home-few-no-scroll.png`（`bar=hidden, innerScroll=0`）、`home-2-maximized-light.png`（`listH=470, cardH=480, pageScroll=0`）与 `home-6-maximized-scroll.png`（`listH=472, cardH=482`）。
+- **下一节**：节 6（提醒逻辑优化：从开启提醒那一刻起算 + 修改提醒配置不误触发 + 已读/回复自动作废队列未播提醒）。
+
+---
+
 ## 2026-11-16 · v1.8.4 发布回执（Muse）
 
 - **发布方式**：OpenCode 桌面端（Gemini 4 Hydrogen）完成节 1–4 的首页消息记录 UI 改造（主题色跟随、记录删除按钮避让滚动条、朗读记录自动扩展高度、微信风重设计与过渡提示去噪）；用户 2026-11-16 审阅效果与截图后拍板「直接发」，Muse 接手节 5–7（升版本、全量验证、打包）并完成发布。
@@ -41,52 +88,6 @@
 - `docs/PROJECT-BRIEF.md` §4 源码版本行同步为 1.8.4。
 - 微信支持范围不变（4.1.11–4.2.0.52），提取参数未动。
 - **下一节**：发布前全量验证 → 打包 → 发布。
-
----
-## 1.8.4 开发中 · 节 7：版本门禁、更新流程与微信多进程全面体检修复 + 全量回归（2026-11-16）
-
-- **做了什么**（逐项排查死局、死胡同与边界竞态）：
-  1. **门禁「退出应用」按钮失灵死局**（`src/VoiceBridge.Core/VersionGatePolicy.cs`、`src/VoiceBridge.App/VersionGate.cs`）：点过「更新语音桥」再点显式「退出应用」按钮时，原 `OnClosing` 会把 `Exit` 覆写为 `KeepRunning` 导致应用不退出；新增 `explicitQuit` 通道，显式点击「退出应用」必退出，点窗口右上角 `×` 仍维持既有语义；同时在弹出模态框前校验宿主窗口仍加载且可见。
-  2. **门禁断网重装已缓存包死胡同**（`src/VoiceBridge.App/VersionGate.cs`）：`UpdateBridge` 在线上检查异常时补充回查本地已下载并校验通过的缓存包（`ReadPendingAsync` + `GetCachedAsync`），不再因为临时断网而阻塞本地已就绪更新包的安装。
-  3. **门禁探测被大文件下载阻塞与缺失缓存包死胡同**（`src/VoiceBridge.App/MainWindow.Updates.cs`）：`ProbeUpdateForGateAsync` 改为仅等待正在进行的版本检查（`updateChecking`），已有结论或正在下载安装包时立即返回而不阻塞门禁弹窗；`InstallUpdateAsync` 启动前及异常恢复时检查本地安装包是否存在（捕获 `FileNotFoundException` / `DirectoryNotFoundException`），若外部删包则清回下载态而非卡死在「重启安装更新」；交接启动后不再多画一帧启用按钮。
-  4. **断点续传 HTTP 416 死循环**（`src/VoiceBridge.Core/UpdateClient.cs`）：当服务器对 `.part` 断点续传返回 `416 RequestedRangeNotSatisfiable` 时，删除失效 `.part` 并立即从字节 0 重新完整下载，避免永久报错卡死。
-  5. **微信多进程枚举脆弱点**（`src/VoiceBridge.WeChat/WeChatSession.cs`）：`DetectClientVersion` 与 `Bind` 遍历全部 `Weixin` 进程时单进程读取 `StartTime`/`MainModule` 抛异常或首进程无版本信息会跳过而不是中断或误报未运行，保持支持区间 `4.1.11–4.2.0.52` 及提取逻辑一字未动。
-- **单测与回归**：
-  - `tests/VoiceBridge.Tests/VersionGateTests.cs` 新增「点过更新语音桥后点击退出应用仍退出」用例；`tests/VoiceBridge.Tests/UpdateTests.cs` 新增 `RangeNotSatisfiable416DiscardsStalePartialAndRetriesFreshDownload`。
-  - `scripts/Verify-Source.ps1`：`PASS`。
-  - `scripts/Test.ps1`：Release 编译 **0 警告 0 错误**，.NET **335/335 PASS**，Python **55**（13 过 + 42 跳过）PASS。
-  - `tests/wx-multi/test_audited_wechat_keys.py`：**58/58 PASS**；`git diff 5c12db1 -- worker/` 为空。
-  - `DialogPreview`（`--gate`、`--app-settings`、`--app-home`）：全部 `ALL PASS`。
-- **未做**：按流程未升版本号、未打包或推线上，等待用户最终验收后决定发版时机。
-
----
-
-## 1.8.4 开发中 · 节 6：提醒逻辑优化（从开启那一刻起算 + 防误触 + 作废过期排队提醒）（2026-11-16）
-
-- **做了什么**：
-  - **严格从开启提醒那一刻起算**（`src/VoiceBridge.App/MainWindow.Attention.cs`、`src/VoiceBridge.Core/ReplyTracker.cs`）：
-    - 监听中收到消息时，仅当该联系人当前已开启「提醒模式」且消息接收时间不早于开启时刻（`reminderEnabledSince`），才计入 `ReplyTracker`；未开启提醒前收到的旧消息不会在开启后瞬间爆出未回角标或立即触发提醒。
-    - 打开或关闭联系人的「提醒模式」、移除联系人、开始/结束监听时，调用 `ReplyTracker.Reset` / `BeginAttentionSession` / `ClearAttentionSession` 立即清零对应状态。
-  - **调整提醒参数不瞬发误报**（`src/VoiceBridge.Core/ReplyTracker.cs` `Reconfigure` + `MainWindow.Library.cs` `SyncContactReminderSettings`）：
-    - 在有未回消息等待时开启「持续提醒」，重置 1 分钟起始缓冲（`ContinuousStart`）而不是用历史旧时间戳立刻播报；缩短定时间隔时把已播步进对齐到当前已逝分钟数（`elapsed / next.Interval * next.Interval`），保持真实等待时长同时平滑等待下一轮提醒。
-  - **已回复或标为已读后作废队列中的待播提醒**（`src/VoiceBridge.Core/SessionController.cs`、`MainWindow.xaml.cs`）：
-    - 在 `SessionController` 合成前与播放提示音/正文前增加 `IsStaleReminder` 校验；用户回复或点「✓ 已读」或关闭提醒后，仍在队列里排队的过期提醒不再合成与响铃播报。
-- **单测**：`tests/VoiceBridge.Tests/AttentionTests.cs` 新增 3 项用例（`Reset` 从开启时刻重新计数、`Reconfigure` 切换持续提醒/缩短间隔不瞬发误报、`SessionController` 队列中过期提醒在已读/回复后静默跳过）。
-- **验证**：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0 警告 0 错误、.NET **333/333 PASS**、Python **55**（42 跳过）PASS。
-- **下一节**：节 7（版本门禁、应用内更新与微信适配多进程全面体检与死局修复 + 全量回归）。
-
----
-
-## 1.8.4 开发中 · 节 5：朗读记录高度随最大化动态缩放 + 未溢出隐藏滚动条（2026-11-16）
-
-- **做了什么**：
-  - 优化 `src/VoiceBridge.Core/RecordsHeightPolicy.cs`：由记住绝对像素高度改为记住「单行联系人页面的视口固定开销（`DefaultNonScrollingOverhead = 507` DIP）」，在多联系人导致首页滚动时，记录区上限按当前视口高度动态伸缩（`viewportHeight - effectiveOverhead`，上限占视口 `68%`），并在 `MainWindow.xaml.cs` 的 `WindowStateChanged` 挂载高度重算，确保最大化/拉大窗口时即便多联系人也能展示大量对话气泡；常规 `940×780` 窗口仍保持 `235–237` DIP 标定上限。
-  - 在 `src/VoiceBridge.App/MainWindow.xaml` 微调气泡垂直节奏（保持苹果×鸿蒙×微信圆角方形头像、左尾翼气泡与居中「拍一拍」灰字风格，单条行高更凝练，`940×780` 下可容纳约 4 条消息，`1060` 高窗口可容纳约 8–9 条消息）。
-  - 验证内容未超出可视上限时内部滚动条保持隐藏（`ScrollableHeight = 0`），不会提前出现可滑动行为。
-- **验证**：
-  - `Verify-Source.ps1` PASS；`Test.ps1` 编译 0 警告 0 错误、.NET **330/330 PASS**（`RecordsHeightPolicyTests` 增至 6 项）、Python **55**（42 跳过）PASS。
-  - `DialogPreview --app-home` 新增并验证 `home-few-no-scroll.png`（`bar=hidden, innerScroll=0`）、`home-2-maximized-light.png`（`listH=470, cardH=480, pageScroll=0`）与 `home-6-maximized-scroll.png`（`listH=472, cardH=482`）。
-- **下一节**：节 6（提醒逻辑优化：从开启提醒那一刻起算 + 修改提醒配置不误触发 + 已读/回复自动作废队列未播提醒）。
 
 ---
 
