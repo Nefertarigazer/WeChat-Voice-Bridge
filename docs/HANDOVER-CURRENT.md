@@ -18,10 +18,12 @@
 - **节 5 已完成**（朗读记录高度随最大化动态缩放 + 未超行不显示滚动条）：
   - `RecordsHeightPolicy.cs` 改为记录单行联系人视口开销（`507` DIP），并在 `WindowStateChanged` 触发重算；普通窗口多联系人保持 `235–237` DIP，最大化后（如 `1060` 视口）自动扩展到 `470–533+` DIP，可一次看多条消息；内容未超上限时 `ScrollableHeight = 0` 且隐藏滚动条；气泡垂直节奏微调后 `940×780` 可完整展示约 4 条对话，保持微信×苹果×鸿蒙风格。
   - 验证：`Test.ps1` 0/0、.NET **330/330**；`DialogPreview --app-home` 覆盖少消息无滚动条及最大化多联系人场景。
+- **节 6 已完成**（提醒逻辑全面优化）：
+  - `MainWindow.Attention.cs` + `ReplyTracker.cs`：从开启「提醒模式」那一刻起才开始计数与计时，开启前的旧消息不再计入；开关切换或移除联系人时 `Reset` 清零等待状态；`Reconfigure` 保证在设置框调整间隔/开启持续提醒时不瞬间误响；`SessionController.cs` 增加 `IsStaleReminder`，已回复/点「✓ 已读」/关提醒后队列中未播出的提醒自动作废不响铃。
+  - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **333/333**（含 3 项提醒新用例）、Python **55**（42 跳过）。
 - **待做**：
-  - 节 6：提醒逻辑优化（开启提醒前的旧消息不计入未提醒、调整提醒间隔/持续开关不瞬发误报、已回复/标为已读后队列中待播提醒作废）；
-  - 节 7：版本门禁、应用内更新与微信适配全面体检与死局修复 + 全量回归与最终截图。
-- **续跑点**：从 `src/VoiceBridge.Core/ReplyTracker.cs` 与 `src/VoiceBridge.App/MainWindow.Attention.cs` 入手开始节 6。
+  - 节 7：版本门禁、应用内更新与微信适配全面体检修复（`退出应用`按钮被 `OnClosing` 覆盖、门禁离线兜底缓存包、下载中弹门禁不阻塞、`HTTP 416` 断点续传死局、`InstallUpdateAsync` 缺失缓存死局、`WeChatSession` 多进程枚举防崩）+ 全量回归与截图检查。
+- **续跑点**：从 `src/VoiceBridge.Core/VersionGatePolicy.cs`、`src/VoiceBridge.App/VersionGate.cs`、`src/VoiceBridge.Core/UpdateClient.cs`、`src/VoiceBridge.WeChat/WeChatSession.cs` 入手开始节 7。
 - **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的 1.8.2 进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---

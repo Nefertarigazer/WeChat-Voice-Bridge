@@ -43,6 +43,22 @@
 - **下一节**：发布前全量验证 → 打包 → 发布。
 
 ---
+## 1.8.4 开发中 · 节 6：提醒逻辑优化（从开启那一刻起算 + 防误触 + 作废过期排队提醒）（2026-11-16）
+
+- **做了什么**：
+  - **严格从开启提醒那一刻起算**（`src/VoiceBridge.App/MainWindow.Attention.cs`、`src/VoiceBridge.Core/ReplyTracker.cs`）：
+    - 监听中收到消息时，仅当该联系人当前已开启「提醒模式」且消息接收时间不早于开启时刻（`reminderEnabledSince`），才计入 `ReplyTracker`；未开启提醒前收到的旧消息不会在开启后瞬间爆出未回角标或立即触发提醒。
+    - 打开或关闭联系人的「提醒模式」、移除联系人、开始/结束监听时，调用 `ReplyTracker.Reset` / `BeginAttentionSession` / `ClearAttentionSession` 立即清零对应状态。
+  - **调整提醒参数不瞬发误报**（`src/VoiceBridge.Core/ReplyTracker.cs` `Reconfigure` + `MainWindow.Library.cs` `SyncContactReminderSettings`）：
+    - 在有未回消息等待时开启「持续提醒」，重置 1 分钟起始缓冲（`ContinuousStart`）而不是用历史旧时间戳立刻播报；缩短定时间隔时把已播步进对齐到当前已逝分钟数（`elapsed / next.Interval * next.Interval`），保持真实等待时长同时平滑等待下一轮提醒。
+  - **已回复或标为已读后作废队列中的待播提醒**（`src/VoiceBridge.Core/SessionController.cs`、`MainWindow.xaml.cs`）：
+    - 在 `SessionController` 合成前与播放提示音/正文前增加 `IsStaleReminder` 校验；用户回复或点「✓ 已读」或关闭提醒后，仍在队列里排队的过期提醒不再合成与响铃播报。
+- **单测**：`tests/VoiceBridge.Tests/AttentionTests.cs` 新增 3 项用例（`Reset` 从开启时刻重新计数、`Reconfigure` 切换持续提醒/缩短间隔不瞬发误报、`SessionController` 队列中过期提醒在已读/回复后静默跳过）。
+- **验证**：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0 警告 0 错误、.NET **333/333 PASS**、Python **55**（42 跳过）PASS。
+- **下一节**：节 7（版本门禁、应用内更新与微信适配多进程全面体检与死局修复 + 全量回归）。
+
+---
+
 ## 1.8.4 开发中 · 节 5：朗读记录高度随最大化动态缩放 + 未溢出隐藏滚动条（2026-11-16）
 
 - **做了什么**：

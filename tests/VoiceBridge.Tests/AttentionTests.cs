@@ -223,6 +223,46 @@ public sealed class ReplyTrackerTests
         tracker.Clear();
         Assert.Equal(0, tracker.Count("a"));
     }
+
+    [Fact]
+    public void ResetClearsPriorMessagesSoEnablingReminderStartsFresh()
+    {
+        var tracker = new ReplyTracker();
+        tracker.Received("a", 1000, "旧消息", T0);
+        Assert.Equal(1, tracker.Count("a"));
+
+        tracker.Reset("a");
+        Assert.Equal(0, tracker.Count("a"));
+        Assert.Empty(StepsUntil(tracker, "a", 30, Default, T0.AddMinutes(10)));
+
+        tracker.Received("a", 2000, "开启后的消息", T0.AddMinutes(11));
+        Assert.Equal(1, tracker.Count("a"));
+        var due = tracker.Due(T0.AddMinutes(14), _ => Default).Single();
+        Assert.Equal(new[] { "开启后的消息" }, due.Texts);
+    }
+
+    [Fact]
+    public void ReconfigureAvoidsImmediateBurstWhenSwitchingToContinuousOrTighteningInterval()
+    {
+        var tracker = new ReplyTracker();
+        tracker.Received("a", 1000, "一", T0);
+        // At 10:08 (8 minutes elapsed, no reminder yet under 10-min interval):
+        var atEight = T0.AddMinutes(8);
+        var tenMin = Default with { IntervalMinutes = 10, DurationMinutes = 60 };
+        Assert.Empty(tracker.Due(atEight, _ => tenMin));
+
+        // Tightening interval to 3 min must wait for the next step (9 min), not fire immediately at 8 min.
+        var threeMin = Default with { IntervalMinutes = 3, DurationMinutes = 60 };
+        tracker.Reconfigure("a", tenMin, threeMin, atEight);
+        Assert.Empty(tracker.Due(atEight, _ => threeMin));
+        Assert.Single(tracker.Due(T0.AddMinutes(9), _ => threeMin));
+
+        // Switching to continuous mode must give a 1-minute grace wait instead of blasting right away.
+        var continuous = threeMin with { Continuous = true };
+        tracker.Reconfigure("a", threeMin, continuous, T0.AddMinutes(9.5));
+        Assert.Empty(tracker.Due(T0.AddMinutes(10), _ => continuous));
+        Assert.Single(tracker.Due(T0.AddMinutes(10.5), _ => continuous));
+    }
 }
 
 public sealed class AttentionPipelineTests
@@ -294,5 +334,41 @@ public sealed class AttentionPipelineTests
         Assert.Equal(MessageKind.Reminder, finished.Single().Kind);
         await controller.EndAsync().WaitAsync(Limit);
         Assert.False(controller.Announce(reminder));
+    }
+
+    [Fact]
+    public async Task QueuedReminderIsSkippedSilentlyOnceClearedBeforePlayback()
+    {
+        var source = new ProbeSource(); source.Ready.TrySetResult();
+        var gate = ProbeSource.NewSignal();
+        var speech = new CountingSpeech();
+        var player = new ProbePlayer();
+        var stillPending = true;
+        await using var controller = new SessionController();
+        controller.Start(DemoTarget, true, 30, false, () => source, speech, player,
+            async (message, token) =>
+            {
+                if (message.Key == "msg-1") await gate.Task.WaitAsync(token);
+                return message.Text;
+            },
+            message => message.Kind != MessageKind.Reminder || stillPending);
+        await Until(() => controller.Status.State == BridgeState.Running);
+
+        // First message holds the queue; meanwhile a reminder is queued, then the user replies / marks read.
+        source.Send(Message("msg-1", "普通消息"));
+        await Until(() => controller.Status.Activity == "正在合成");
+        var reminder = new ChatMessage("reminder:1", DemoTarget.AccountId, DemoTarget.ConversationId,
+            Direction.Incoming, true, "微信在3分钟前来了一条消息", 0, Kind: MessageKind.Reminder,
+            Cue: new AudioData([1, 2, 3], IsWave: true));
+        Assert.True(controller.Announce(reminder));
+
+        stillPending = false;
+        gate.SetResult();
+        await Until(() => Volatile.Read(ref player.Played) >= 1 && controller.Status.Pending == 0);
+        await Task.Delay(150);
+
+        Assert.Equal(new[] { "普通消息×1" }, speech.Calls.ToArray());
+        Assert.Equal(1, Volatile.Read(ref player.Played));
+        await controller.EndAsync().WaitAsync(Limit);
     }
 }

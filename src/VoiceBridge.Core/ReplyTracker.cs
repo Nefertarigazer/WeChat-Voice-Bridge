@@ -65,6 +65,52 @@ public sealed class ReplyTracker
         Changed?.Invoke(conversation);
     }
 
+    /// <summary>
+    /// Clears waiting messages and active timers for a contact (for instance when reminder
+    /// mode is switched off or freshly enabled, so prior messages are never counted).
+    /// </summary>
+    public void Reset(string conversation)
+    {
+        if (!waiting.TryGetValue(conversation, out var item))
+            return;
+        var hadMessages = item.Messages.Count > 0;
+        item.Messages.Clear();
+        item.Quiet();
+        if (hadMessages)
+            Changed?.Invoke(conversation);
+    }
+
+    /// <summary>
+    /// Adapts pending reminder timing when settings change while messages are waiting:
+    /// enabling/disabling clears prior state; switching to continuous restarts its initial
+    /// grace wait; changing scheduled interval aligns the announced step so tweaking the
+    /// stepper never triggers an immediate false alarm.
+    /// </summary>
+    public void Reconfigure(string conversation, ReminderSettings previous, ReminderSettings next, DateTimeOffset now)
+    {
+        if (!next.Enabled || !previous.Enabled)
+        {
+            Reset(conversation);
+            return;
+        }
+        if (!waiting.TryGetValue(conversation, out var item) || item.Messages.Count == 0)
+            return;
+        if (next.Continuous)
+        {
+            if (!previous.Continuous)
+            {
+                item.InFlightSince = null;
+                item.ReadyAt = now + ReminderSettings.ContinuousStart;
+            }
+            return;
+        }
+        var elapsed = (int)Math.Min(int.MaxValue, Math.Max(0, Math.Floor((now - item.Latest).TotalMinutes)));
+        var step = elapsed / next.Interval * next.Interval;
+        item.Announced = Math.Max(item.Announced, step);
+        item.InFlightSince = null;
+        item.ReadyAt = null;
+    }
+
     /// <summary>Listening ended: replies can no longer be seen, so nothing is waiting any more.</summary>
     public void Clear()
     {

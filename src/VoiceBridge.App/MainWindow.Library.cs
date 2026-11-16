@@ -208,6 +208,7 @@ public partial class MainWindow
     private void ContactPreferenceChanged(ContactCard card)
     {
         UpsertContact(card.Profile);
+        SyncContactReminderSettings(card);
         card.SetUnanswered(Unanswered(card.Profile));
         PublishRouting();
         ScheduleSave();
@@ -321,6 +322,7 @@ public partial class MainWindow
         });
         // PublishRouting replaces the immutable snapshot; the running session reads it
         // on every message, so this person stops being read without restarting the baseline.
+        DropContactReminder(card.Profile.ConversationId);
         PublishRouting();
         SaveNow();
         notice = contactCards.Count == 0 ? "朗读名单已空，添加联系人后才会继续朗读。" : null;

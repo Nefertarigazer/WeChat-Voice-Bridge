@@ -354,7 +354,7 @@ public partial class MainWindow : Window
             livePlayer = null;
             ClearRecords();
             // Replies are invisible while stopped, so nothing can stay "waiting".
-            replies.Clear();
+            ClearAttentionSession();
         }
 
         StatusTitle.Text = state.State switch
@@ -729,12 +729,16 @@ public partial class MainWindow : Window
             livePlayer = player;
             foreach (var contact in snapshot.Contacts) RememberContact(contact);
             SaveNow();
+            BeginAttentionSession(snapshot.Contacts);
             controller.Start(targets, true, settings.Capacity, settings.Preview, () => new SessionSource(this, fixture), speech, player,
                 fixture.RenderSpeechAsync,
                 // Removing a contact while listening only narrows the routing snapshot.
                 // Keep the worker baseline, but stop admitting messages from peers no longer on the list.
+                // Queued reminders are also suppressed if the user already replied, marked read or disabled reminders.
                 message => Volatile.Read(ref routing).Contacts.Any(contact =>
-                    contact.AccountId == message.AccountId && contact.ConversationId == message.ConversationId));
+                    contact.AccountId == message.AccountId && contact.ConversationId == message.ConversationId &&
+                    (message.Kind != MessageKind.Reminder ||
+                     (contact.Reminder.Enabled && HasPendingReminder(message.ConversationId)))));
         }
         catch (BridgeException error)
         {

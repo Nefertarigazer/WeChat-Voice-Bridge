@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,6 +18,9 @@ public partial class MainWindow
 {
     private readonly ReplyTracker replies = new();
     private readonly Dictionary<string, AudioData?> cues = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ReminderSettings> reminderBaseline = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, DateTimeOffset> reminderEnabledSince = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> pendingReminders = new(StringComparer.Ordinal);
     private DispatcherTimer? reminderTimer;
 
     /// <summary>Raised on the UI thread when a contact's number of unanswered messages changes.</summary>
@@ -31,7 +35,7 @@ public partial class MainWindow
             var now = DateTimeOffset.Now;
             Dispatcher.InvokeAsync(() =>
             {
-                if (stamp == controller.ActiveStamp)
+                if (stamp == controller.ActiveStamp && ShouldCountForReminder(message.ConversationId, now))
                     replies.Received(message.ConversationId, message.Sequence, message.Text, now);
             });
         };
@@ -52,7 +56,14 @@ public partial class MainWindow
         // Read on the worker thread: only the immutable routing snapshot is safe there.
         controller.Merge = message => RoutedContact(Volatile.Read(ref routing), message.ConversationId)
             ?.Privacy is { Enabled: true };
-        replies.Changed += conversation => AttentionChanged?.Invoke(conversation);
+        replies.Changed += conversation =>
+        {
+            if (replies.Count(conversation) > 0)
+                pendingReminders[conversation] = 1;
+            else
+                pendingReminders.TryRemove(conversation, out _);
+            AttentionChanged?.Invoke(conversation);
+        };
         AttentionChanged += conversation =>
         {
             foreach (var card in contactCards.Where(card => card.Profile.ConversationId == conversation))
@@ -61,6 +72,77 @@ public partial class MainWindow
         reminderTimer = new(TimeSpan.FromSeconds(1), DispatcherPriority.Background, (_, _) => RemindDue(), Dispatcher);
         if (!previewOnly) reminderTimer.Start();
     }
+
+    private bool ShouldCountForReminder(string conversation, DateTimeOffset receivedAt)
+    {
+        var card = contactCards.FirstOrDefault(item => item.Profile.ConversationId == conversation);
+        if (card is null || !card.ReminderOn)
+            return false;
+        return !reminderEnabledSince.TryGetValue(conversation, out var since) || receivedAt >= since;
+    }
+
+    /// <summary>Called when a listening session starts so active reminders only count from this instant.</summary>
+    private void BeginAttentionSession(IEnumerable<ContactProfile> contacts)
+    {
+        var now = DateTimeOffset.Now;
+        replies.Clear();
+        pendingReminders.Clear();
+        reminderBaseline.Clear();
+        reminderEnabledSince.Clear();
+        foreach (var contact in contacts)
+        {
+            reminderBaseline[contact.ConversationId] = contact.Reminder;
+            if (contact.Reminder.Enabled)
+                reminderEnabledSince[contact.ConversationId] = now;
+        }
+    }
+
+    /// <summary>Called when listening stops so stale reminder state never leaks into a later session.</summary>
+    private void ClearAttentionSession()
+    {
+        replies.Clear();
+        pendingReminders.Clear();
+        reminderBaseline.Clear();
+        reminderEnabledSince.Clear();
+    }
+
+    /// <summary>
+    /// Keeps reminder tracking synchronized with per-contact edits: turning reminder on
+    /// anchors counting strictly from now (ignoring earlier messages); turning it off clears
+    /// waiting counts; changing intervals or continuous mode avoids sudden false alarms.
+    /// </summary>
+    private void SyncContactReminderSettings(ContactCard card)
+    {
+        var id = card.Profile.ConversationId;
+        var next = card.Reminder;
+        var now = DateTimeOffset.Now;
+        if (!reminderBaseline.TryGetValue(id, out var previous))
+            previous = new ReminderSettings { Enabled = false };
+        reminderBaseline[id] = next;
+
+        if (!next.Enabled)
+        {
+            reminderEnabledSince.Remove(id);
+            replies.Reset(id);
+            return;
+        }
+        if (!previous.Enabled)
+        {
+            reminderEnabledSince[id] = now;
+            replies.Reset(id);
+            return;
+        }
+        replies.Reconfigure(id, previous, next, now);
+    }
+
+    private void DropContactReminder(string conversation)
+    {
+        reminderBaseline.Remove(conversation);
+        reminderEnabledSince.Remove(conversation);
+        replies.Reset(conversation);
+    }
+
+    private bool HasPendingReminder(string conversation) => pendingReminders.ContainsKey(conversation);
 
     /// <summary>Keeps every card's 试听 / 已读 place and badge in step with the session.</summary>
     private void RenderAttention(bool active)

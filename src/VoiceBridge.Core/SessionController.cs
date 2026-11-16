@@ -346,12 +346,17 @@ public sealed class SessionController : IAsyncDisposable
             if (parts.Length > 1) Record(session, new($"长文分为 {parts.Length} 段朗读"));
         }
         token.ThrowIfCancellationRequested();
+        if (IsStaleReminder(session, work.Message))
+            return new([]);
         work.SentAt = Stopwatch.GetTimestamp();
         void FirstAudio() => Record(session, new("收到首个有效音频帧", Milliseconds: Stopwatch.GetElapsedTime(work.SentAt).TotalMilliseconds));
         return speech is IMessageSpeech routed
             ? await routed.SynthesizeAsync(work.Message, text, FirstAudio, token)
             : await speech.SynthesizeAsync(text, FirstAudio, token);
     }
+
+    private static bool IsStaleReminder(Session session, ChatMessage message) =>
+        message.Kind == MessageKind.Reminder && session.AdmitFilter is { } filter && !filter(message);
 
     private async Task ConsumeAsync(Session session)
     {
@@ -376,6 +381,8 @@ public sealed class SessionController : IAsyncDisposable
                 {
                     var audio = await work.Audio;
                     utterance.Token.ThrowIfCancellationRequested();
+                    if (IsStaleReminder(session, work.Message))
+                        continue;
                     // One look-ahead request overlaps playback. Audio remains bounded and playback is sequential.
                     next = NextAsync(session);
                     if (!work.Continuation && work.Message.Cue is { } cue)
@@ -383,18 +390,22 @@ public sealed class SessionController : IAsyncDisposable
                         {
                             lock (gate)
                             {
-                                if (!IsRunning(session) || utterance.IsCancellationRequested) return false;
+                                if (!IsRunning(session) || utterance.IsCancellationRequested ||
+                                    IsStaleReminder(session, work.Message)) return false;
                                 action();
                                 return true;
                             }
                         }, utterance.Token);
                     utterance.Token.ThrowIfCancellationRequested();
+                    if (IsStaleReminder(session, work.Message))
+                        continue;
                     long started = 0;
                     await session.Player.PlayAsync(audio, action =>
                     {
                         lock (gate)
                         {
-                            if (!IsRunning(session) || utterance.IsCancellationRequested) return false;
+                            if (!IsRunning(session) || utterance.IsCancellationRequested ||
+                                IsStaleReminder(session, work.Message)) return false;
                             action(); started = Stopwatch.GetTimestamp();
                             Set(status.State, status.Pending, "正在播放", null);
                             Processed?.Invoke(new("已向音频设备提交播放", Milliseconds: Stopwatch.GetElapsedTime(work.SentAt, started).TotalMilliseconds));
