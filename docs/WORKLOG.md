@@ -4,6 +4,22 @@
 
 ---
 
+## 1.8.6 预备 · 客户端 UpdateManifest 改为「未知字段忽略」通则（2026-11-16）
+
+- **背景**：1.8.3（`wechatSupport`）与 1.8.5（`setup`）先后两次因 `latest.json` 多出第 7 字段导致已装客户端 `UpdateManifest.Parse` 报「更新清单字段不正确。」。配合服务端流水线硬闸门，在客户端侧根治该问题。
+- **改动**：
+  - `src/VoiceBridge.Core/UpdateManifest.cs`：删除旧的字段总数 `6 or 7` 限制与针对 `wechatSupport` 的特例放行代码，同时从 `UpdateManifest` 记录中移除 `WeChatSupport` 属性；改为统一要求 JSON 为对象且键名不重复，并强制读取和校验 6 个已知字段（`version`、`publishedAt`、`url`、`sha256`、`size`、`notes`），清单里出现任何未知字段（如 `wechatSupport`、`setup` 或未来新增字段）一律忽略。
+  - `src/VoiceBridge.App/VersionGate.cs`：`Show` 调用 `VersionGatePolicy.Decide` 时直接传 `null`（不再从清单读取 `WeChatSupport`）。
+  - 校验边界保持不变：缺少任意 1 个已知字段、字段类型错误、重复键名、版本号不合 SemVer、下载 URL 不受信任、`sha256` 非 64 位小写 hex、`size` 越界或 `notes` 为 `null` 仍然严格报错。
+- **测试**：
+  - `tests/VoiceBridge.Tests/VersionGateTests.cs`：将原 `wechatSupport` 特例与拒绝未知字段用例改为验证任意未知字段（`wechatSupport`、`setup`、嵌套对象、`extra` 等）均可正常解析并忽略。
+  - `tests/VoiceBridge.Tests/UpdateTests.cs`：新增多形态未知字段忽略、6 个必需字段逐一缺失报错、错误类型/非法哈希/越界大小/重复键报错共 19 组测试。
+  - `scripts/Verify-Source.ps1`：`PASS`。
+  - `scripts/Test.ps1`：Release 编译 **0 警告 0 错误**，.NET **354/354 PASS**，Python **55**（13 过 + 42 跳过）PASS；`DialogPreview --gate` `ALL PASS`。
+- **未做**：按要求暂不发版，随下一次正常版本（如 `1.8.6`）一并出包。
+
+---
+
 ## 2026-11-16 · v1.8.5 发布回执与独立公网复核（OpenCode × Muse）
 
 - **发布单** `codex_20261116_144103_deddb5`：14:41 发出，先 `info` 后于 13:45:04Z 回 `status=ok`。Muse 侧校验 ZIP（`81a597d2…` / 92,214,917）与 Setup（`aa39c3db…` / 67,136,269）申报 = PC 实测 = 服务器落地三方一致，并切换 `latest.json`（旧清单备份 `latest.json.bak-1.8.4`）。

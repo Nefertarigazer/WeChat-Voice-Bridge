@@ -109,7 +109,7 @@ internal static class VersionGate
         if (!owner.IsLoaded || !owner.IsVisible) return false;
         var decision = VersionGatePolicy.Decide(raw, parsed,
             WeChatSession.MinSupportedVersion, WeChatSession.MaxSupportedVersion,
-            manifest?.WeChatSupport, UpdateProcess.CurrentVersion, manifest?.Version);
+            null, UpdateProcess.CurrentVersion, manifest?.Version);
         if (!decision.Show) return false;
         var dialog = new VersionGateDialog(decision, detail) { Owner = owner };
         dialog.ShowDialog();

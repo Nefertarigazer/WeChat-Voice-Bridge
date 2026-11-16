@@ -35,8 +35,11 @@
 - **节 10 已完成**（**1.8.5 已上线，公网复核通过**）：
   - 发布单 `codex_20261116_144103_deddb5`（`status=ok`），随后独立公网复核发现清单多带第 7 字段 `"setup"`，经沟通单 `codex_20261116_144908_54b3e2` 请 Muse 立即撤下并恢复标准 6 字段。
   - 二次独立公网复核通过：`latest.json` HTTP 200 且恰好 6 字段、ZIP/Setup HEAD 200 且长度一致、完整下载 ZIP 重算 SHA-256 一致；`README.md` 徽章与两个下载链接已更新至 `1.8.5`。
-- **待做**：无待办；注意以后发版向 `muse-call` 传 `-SetupPath` 时务必提醒或确认流水线不往 `latest.json` 写入第 7 字段 `"setup"`。
-- **续跑点**：1.8.5 发布闭环已完成，工作区干净且已同步 `origin/master`。
+- **1.8.6 预备（已提交并推送 master，未发版）**：
+  - `src/VoiceBridge.Core/UpdateManifest.cs` 改为只校验并读取 6 个已知字段，清单中任意未知字段一律忽略（移除针对 `wechatSupport` 的特例放行），缺失已知字段、类型错误、重复键、非法哈希与越界大小等校验仍严格报错；`src/VoiceBridge.App/VersionGate.cs` 同步调整。
+  - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **354/354 PASS**、Python **55**（42 跳过）PASS；`DialogPreview --gate` ALL PASS。
+- **待做**：无待办；上述清单未知字段忽略改动随下一次正常版本（如 1.8.6）一并打包发版。
+- **续跑点**：工作区干净且已同步 `origin/master`。
 - **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---

@@ -30,6 +30,72 @@ public sealed class UpdateTests : IDisposable
         Assert.Throws<InvalidDataException>(() => UpdateManifest.Parse(Encoding.UTF8.GetBytes(json)));
     }
 
+    [Fact]
+    public void ManifestIgnoresMultipleUnknownFieldsOfVariousShapes()
+    {
+        var hash = new string('b', 64);
+        var json = $$"""
+            {
+              "version": "1.8.6",
+              "publishedAt": "2026-11-16T14:00:00Z",
+              "url": "https://iceland.de5.net/voice-bridge/WeChat-Voice-Bridge-V1.8.6-win-x64.zip",
+              "sha256": "{{hash}}",
+              "size": 123456,
+              "notes": "更新说明",
+              "wechatSupport": "4.1.11-4.2.0.52",
+              "setup": { "url": "https://iceland.de5.net/voice-bridge/setup.exe", "size": 999 },
+              "extraFlags": ["a", "b"],
+              "channel": 2,
+              "unusedNull": null
+            }
+            """;
+        var manifest = UpdateManifest.Parse(Encoding.UTF8.GetBytes(json));
+        Assert.Equal("1.8.6", manifest.Version);
+        Assert.Equal(hash, manifest.Sha256);
+        Assert.Equal(123456, manifest.Size);
+        Assert.Equal("更新说明", manifest.Notes);
+    }
+
+    [Theory]
+    [InlineData("version")]
+    [InlineData("publishedAt")]
+    [InlineData("url")]
+    [InlineData("sha256")]
+    [InlineData("size")]
+    [InlineData("notes")]
+    public void ManifestRejectsAnyMissingRequiredFieldEvenWithExtraFieldsPresent(string missingField)
+    {
+        var fields = new Dictionary<string, object?>
+        {
+            ["version"] = "1.3.0",
+            ["publishedAt"] = "2026-11-06T14:30:00Z",
+            ["url"] = "https://iceland.de5.net/voice-bridge/build.zip",
+            ["sha256"] = new string('a', 64),
+            ["size"] = 42,
+            ["notes"] = "说明",
+            ["setup"] = new { size = 10 },
+            ["extra"] = "ignored"
+        };
+        fields.Remove(missingField);
+        Assert.Throws<InvalidDataException>(() => UpdateManifest.Parse(JsonSerializer.SerializeToUtf8Bytes(fields)));
+    }
+
+    [Theory]
+    [InlineData("""{"version":130,"publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":42,"notes":"ok","extra":1}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":12345,"url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":42,"notes":"ok"}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":"2026-11-06T14:30:00Z","url":123,"sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":42,"notes":"ok"}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":123,"size":42,"notes":"ok"}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":"42","notes":"ok"}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":42,"notes":42}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":42,"notes":null}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"not-64-hex","size":42,"notes":"ok"}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","size":42,"notes":"ok"}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":0,"notes":"ok"}""")]
+    [InlineData("""{"version":"1.3.0","publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":1073741825,"notes":"ok"}""")]
+    [InlineData("""{"version":"1.3.0","version":"1.4.0","publishedAt":"2026-11-06T14:30:00Z","url":"https://iceland.de5.net/voice-bridge/build.zip","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size":42,"notes":"ok"}""")]
+    public void ManifestRejectsWrongTypesInvalidHashesOutOfRangeSizesAndDuplicateKeys(string json) =>
+        Assert.Throws<InvalidDataException>(() => UpdateManifest.Parse(Encoding.UTF8.GetBytes(json)));
+
     [Theory]
     [InlineData("http://iceland.de5.net/voice-bridge/build.zip")]
     [InlineData("https://iceland.de5.net@outside.example/voice-bridge/build.zip")]

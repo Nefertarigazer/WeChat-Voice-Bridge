@@ -180,34 +180,28 @@ public sealed class VersionGateTests
         Assert.Equal(expected, VersionGatePolicy.OnDialogClosed(chosen, installStarted, explicitQuit));
     }
 
-    [Fact]
-    public void ManifestAcceptsTheOptionalSupportBand()
-    {
-        var manifest = UpdateManifest.Parse(ManifestJson(support: "4.1.11-4.2.0.52"));
-        Assert.Equal("4.1.11-4.2.0.52", manifest.WeChatSupport);
-    }
-
-    [Fact]
-    public void ManifestWithoutSupportBandStaysValid()
-    {
-        var manifest = UpdateManifest.Parse(ManifestJson());
-        Assert.Null(manifest.WeChatSupport);
-    }
-
-    [Fact]
-    public void ManifestIgnoresANonStringSupportBand()
-    {
-        var manifest = UpdateManifest.Parse(ManifestJson(supportObject: true));
-        Assert.Null(manifest.WeChatSupport);
-    }
-
     [Theory]
+    [InlineData("wechatSupport")]
+    [InlineData("setup")]
     [InlineData("extra")]
     [InlineData("wechatSupportPlus")]
-    public void ManifestStillRejectsUnknownExtraFields(string name) =>
-        Assert.Throws<InvalidDataException>(() => UpdateManifest.Parse(ManifestJson(extraField: name)));
+    public void ManifestIgnoresAnyUnknownExtraField(string name)
+    {
+        var manifest = UpdateManifest.Parse(ManifestJson(extraField: name));
+        Assert.Equal("1.8.4", manifest.Version);
+        Assert.Equal(42, manifest.Size);
+        Assert.Equal("第一行", manifest.Notes);
+    }
 
-    private static byte[] ManifestJson(string? support = null, bool supportObject = false, string? extraField = null)
+    [Fact]
+    public void ManifestIgnoresNestedObjectExtraFields()
+    {
+        var manifest = UpdateManifest.Parse(ManifestJson(extraObject: true));
+        Assert.Equal("1.8.4", manifest.Version);
+        Assert.Equal(new string('a', 64), manifest.Sha256);
+    }
+
+    private static byte[] ManifestJson(string? extraField = null, bool extraObject = false)
     {
         var fields = new Dictionary<string, object?>
         {
@@ -218,9 +212,8 @@ public sealed class VersionGateTests
             ["size"] = 42,
             ["notes"] = "第一行"
         };
-        if (supportObject) fields["wechatSupport"] = new { min = "4.1.11" };
-        else if (support is not null) fields["wechatSupport"] = support;
-        if (extraField is not null) fields[extraField] = "x";
+        if (extraObject) fields["setup"] = new { url = "https://example.com/setup.exe", size = 100 };
+        if (extraField is not null) fields[extraField] = "4.1.11-4.2.0.52";
         return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(fields));
     }
 }
