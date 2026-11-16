@@ -4,6 +4,24 @@
 
 ---
 
+## 1.8.4 开发中 · 节 4：全量回归与多场景测试截图验证（2026-11-16）
+
+- **全量测试**：
+  - `scripts/Verify-Source.ps1`：`PASS`。
+  - `scripts/Test.ps1`：Release 编译 **0 警告 0 错误**；.NET **329/329 PASS**（含新增高度策略 5 项与消息流策略 2 项）；Python **55 项**（13 过 + 42 跳过，与基线一致）。
+  - `tests/wx-multi/test_audited_wechat_keys.py`（内置 Python 3.12）：`ALL SELF-CHECKS PASSED (58 checks)`。
+  - `git diff 5c12db1 -- worker/ src/VoiceBridge.WeChat/` **为空**——微信提取与支持范围（4.1.11–4.2.0.52）一字未动。
+- **UI 回归与截图检查**：
+  - `DialogPreview --theme Light/Default 1.8.3`、`--theme Dark/Pink 1.8.3`、`--gate` 全部 `ALL PASS`。
+  - `DialogPreview --app-settings` 实测 6 套主题下的 API「使用中」按钮与圆点全部跟随 `Accent`。
+  - `DialogPreview --app-home` 生成并核对虚构聊天记录满载截图（已保存在 `artifacts\screenshots\`）：
+    - `home-1-default-light.png`：单人非滚动页，列表高 **237 DIP**（卡片 **247 DIP**），底留 **20.5 DIP** 间隙，`ScrollableHeight = 0`，垃圾桶 `609..639` 与滚动条 `644..654` 净空 **5 DIP**。
+    - `home-2-filled-light.png` / `home-2-filled-pink.png` / `home-2-filled-dark.png`：2 人非滚动页，列表高 **235 DIP**（卡片 **245 DIP**），底留 **20.5 DIP** 间隙，`ScrollableHeight = 0`；覆盖普通气泡、隐私小锁气泡、居中灰字「拍一拍」提醒与时间戳、仅最新消息显示「正在合成…」且旧提示已清空。
+    - `home-4-scroll-light.png`：4 人滚动页（首页 `ScrollableHeight = 269.5`），朗读记录高度锁定在标定上限 **237 DIP** 列表（**247 DIP** 卡片），未随页面无限拉长。
+- **未做**：按流程未升版本号、未打包、未发版、未碰本机运行中实例与用户设置目录，等待用户查验截图与效果后拍板。
+
+---
+
 ## 1.8.4 开发中 · 节 3：朗读记录微信×苹果×鸿蒙重设计与过渡提示去噪（2026-11-16）
 
 - **做了什么**：
