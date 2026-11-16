@@ -109,12 +109,12 @@ public partial class MainWindow
         libraryReady = true;
         RefreshLibrary(settings.TestVoiceProfileId);
         LoadContactCards();
-        Loaded += (_, _) => { foreach (var card in contactCards) _ = FetchAvatarAsync(card); };
+        Loaded += (_, _) => { if (!previewOnly) foreach (var card in contactCards) _ = FetchAvatarAsync(card); };
         setupCompleted = settings.SetupCompleted || HasUsableConfiguration();
         if (!setupCompleted) NavHelp.IsChecked = true;
         PublishRouting();
         RefreshHistory();
-        WarmEdgeIfUsed();
+        if (!previewOnly) WarmEdgeIfUsed();
         Closed += (_, _) =>
         {
             avatarStop.Cancel();

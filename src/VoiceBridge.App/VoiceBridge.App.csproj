@@ -9,6 +9,11 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>DialogPreview</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../VoiceBridge.Core/VoiceBridge.Core.csproj" />
     <ProjectReference Include="../VoiceBridge.WeChat/VoiceBridge.WeChat.csproj" />
     <ProjectReference Include="../VoiceBridge.FishAudio/VoiceBridge.FishAudio.csproj" />

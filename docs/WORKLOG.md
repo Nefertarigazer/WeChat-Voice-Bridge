@@ -4,6 +4,24 @@
 
 ---
 
+## 1.8.4 开发中 · 节 1：全应用主题色适配审计与修复（2026-11-16）
+
+- **做了什么**：
+  - 修复设置页「语音服务」API 列表中当前选中密钥的「使用中」按钮（`src/VoiceBridge.App/App.xaml` 的 `ProviderEnableButton`）及行首状态点（`src/VoiceBridge.App/MainWindow.xaml` 的 `ProvidersList`）在所有主题下都保留绿色（`Positive`）的问题，统一改为跟随当前主题强调色 `{DynamicResource Accent}`。
+  - 全应用排查其他可能残留绿色或未随主题联动的位置：
+    - 修复 `src/VoiceBridge.App/VersionGate.cs` 中下载进度条 `ProgressBar` 未设 `Foreground`/`Background` 导致回退为 WPF 默认亮绿色的问题，改为动态绑定 `Accent` 与 `Fill`。
+    - 将 `src/VoiceBridge.App/MainWindow.Updates.cs` 中 `UpdateAction.Foreground` 改为 `SetResourceReference(ForegroundProperty, ink)` 动态绑定；`src/VoiceBridge.App/ReleaseNotesDialog.xaml` 确认按钮文字改用 `{DynamicResource WhiteText}`。
+    - 确认「正在监听」状态胶囊、软件更新三色圆点、「免费」语义标签与隐私/提醒固定功能色保持既定语义不变。
+  - 新增 `MainWindow(LocalSettings previewSettings)` 离屏预览构造路径及 `tools/DialogPreview --app-settings`，可在不接触本机用户配置与运行中实例的前提下渲染真实主窗口多主题截图。
+- **验证**：
+  - `scripts/Verify-Source.ps1`：`PASS`。
+  - `scripts/Test.ps1`：Release 编译 0 警告 0 错误，.NET **322/322 PASS**，Python **55**（42 跳过）PASS。
+  - `tools/DialogPreview -c Debug -- --app-settings artifacts\screenshots`：在浅色默认/浅粉/浅蓝/浅绿与深色默认/深粉 6 套主题下离屏渲染真实设置页，程序断言全部 12 个「使用中」按钮背景色与主题 `Accent` 逐字节一致，肉眼检查截图正常。
+- **还剩什么 / 下一节**：节 2（朗读记录右上角垃圾桶按钮左移避让滚动条 + 自动扩展高度上限计算与标定）；节 3（朗读记录微信风×苹果风×鸿蒙风视觉重设计 + 过渡提示去噪与自动淡出）；节 4（全量回归与满载测试截图）。
+- **阻塞**：无。
+
+---
+
 ## 1.8.3 · 节 5：打包（2026-11-15）
 
 - **打包**：`Publish.ps1 -OutputDirectory artifacts\win-x64-v1.8.3 -ZipPath artifacts\WeChat-Voice-Bridge-V1.8.3-win-x64.zip`，再 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.8.3`。Clean-payload **PASS**（1993 文件，无本机设置、无真实 Key，比对了 1 个本机凭据）。

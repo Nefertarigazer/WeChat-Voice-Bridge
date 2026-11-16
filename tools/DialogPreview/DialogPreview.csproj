@@ -12,5 +12,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\VoiceBridge.App\VoiceBridge.App.csproj" />
+    <Resource Include="..\..\src\VoiceBridge.App\app-icon.png" Link="app-icon.png" />
   </ItemGroup>
 </Project>

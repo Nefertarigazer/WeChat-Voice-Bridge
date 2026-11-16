@@ -1,10 +1,26 @@
-# 微信语音桥 · 当前交接（2026-11-12，源码与线上均为 v1.8.0；GitHub 仓库已公开）
+# 微信语音桥 · 当前交接（2026-11-16，1.8.3 已上线；UI 迭代进行中）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录在本机的 `.workbuddy/memory/`（2026-11-12 起不入库）。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 1.8.3 · 版本门禁自救（2026-11-15，进行中）
+## UI 打磨与朗读记录重设计（2026-11-16，进行中，未升版本号/未打包）
+
+- **节 1 已完成**（全应用主题色适配审计与修复）：
+  - `App.xaml` `ProviderEnableButton`（「使用中」按钮）与 `MainWindow.xaml` `ProvidersList` 行首圆点从 `Positive` 改为 `{DynamicResource Accent}`，跟随默认/浅绿/浅粉/浅蓝主题切换。
+  - `VersionGate.cs` 进度条绑定 `Accent`/`Fill`（避免回退 WPF 默认亮绿）；`MainWindow.Updates.cs` `UpdateAction.Foreground` 改为 `SetResourceReference`；`ReleaseNotesDialog.xaml` 按钮文字改 `{DynamicResource WhiteText}`。
+  - 为 `MainWindow` 增加纯内存离屏预览构造路径（跳过托盘/设置读写/目录索引/网络更新）并在 `tools/DialogPreview` 新增 `--app-settings`，已验证 6 套主题下的 API 按钮配色一致。
+  - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **322/322**、Python **55**（42 跳过）。
+- **待做**：
+  - 节 2：朗读记录右上角垃圾桶按钮左移避让滚动条；朗读记录高度超出默认后自动扩展至撑满首页（留少量间隙、首页不滚动），记录高度数值，并在多联系人首页滚动时将记录框最大高度锁定在该数值；
+  - 节 3：朗读记录 1:1 微信头像+气泡 & 居中灰字「拍一拍」风格系统提示，结合苹果/鸿蒙审美打磨；仅最新消息保留「正在合成…」等过渡提示，新消息到来时清除前条过渡提示，且最新过渡提示显示几秒后自动消失；
+  - 节 4：全量验证 + 虚构聊天记录满载截图。
+- **续跑点**：从 `src/VoiceBridge.App/MainWindow.xaml` `RecordsCard`/`ClearButton`/`Results` 入手开始节 2。
+- **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的 1.8.2 进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
+
+---
+
+## 1.8.3 · 版本门禁自救（2026-11-15，已上线）
 
 - **用户已拍板的方案（不要另起方案）**：启动不再被门禁/网络拖慢；先异步查语音桥有没有更新，再决定弹不弹门禁；门禁框主按钮改成「更新语音桥」，在框内走现有应用内更新流程；「更新微信」只在微信低于下限时出现；点叉关闭 = 退出应用（已选「更新语音桥」或「更新微信」之后的关闭除外）。
 - **节 1 已完成**（纯函数 + 清单字段）：新增 `src/VoiceBridge.Core/VersionGatePolicy.cs`（`WeChatSupportRange`、`VersionGatePolicy.Decide`、`VersionGatePolicy.OnDialogClosed`）；`UpdateManifest` 增加可选第 7 字段 `wechatSupport`（六字段仍必需、未知额外字段仍拒绝、非字符串按缺失）；新增 `tests/VoiceBridge.Tests/VersionGateTests.cs` 45 项。`Test.ps1` 构建 0/0、.NET **322/322**、Python 55（42 跳过）。

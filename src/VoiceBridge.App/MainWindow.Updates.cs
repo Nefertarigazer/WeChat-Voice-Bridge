@@ -31,7 +31,7 @@ public partial class MainWindow
         UpdateVersion.Text = $"当前版本 v{UpdateProcess.CurrentVersion}";
         if (restartNotice is not null)
             UpdateStatus.Text = restartNotice;
-        else
+        else if (!previewOnly)
             Loaded += FirstUpdateCheck;
         // Paint the row now. Right after an update restart no check runs, and the dot used
         // to keep its grey placeholder for the whole session instead of reading green.
@@ -295,7 +295,7 @@ public partial class MainWindow
         // A plain string is enough for centring, but the label ink must be set
         // explicitly: a ContentPresenter does not always inherit the template's
         // Foreground, which would leave white text dark on the solid green state.
-        UpdateAction.Foreground = (Brush)FindResource(ink);
+        UpdateAction.SetResourceReference(ForegroundProperty, ink);
         UpdateAction.Content = label;
         // The dot reads green "up to date", red "update available", orange "ready to
         // install". The bridge status pill keeps its own grey/amber/green mapping, so

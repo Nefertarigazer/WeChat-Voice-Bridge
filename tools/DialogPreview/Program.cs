@@ -36,6 +36,9 @@ if (realClick) args = args[1..];
 // update button, so no network or user data is touched.
 var gate = args.Length > 0 && args[0] == "--gate";
 if (gate) args = args[1..];
+// --app-settings renders the real MainWindow Settings -> 语音服务 section across themes.
+var appSettings = args.Length > 0 && args[0] == "--app-settings";
+if (appSettings) args = args[1..];
 var output = Path.GetFullPath(args.Length > 0 ? args[0] : "dialog-preview");
 var versions = args.Length > 1 ? args[1..] : ["1.6.0"];
 Directory.CreateDirectory(output);
@@ -64,47 +67,53 @@ var thread = new Thread(() =>
     };
     owner.Show();
 
-    if (realClick)
+    try
     {
-        // A real mouse click on 完成, which a raised Click event cannot reproduce. The card is
-        // moved so 完成 sits under the pointer where it already is; the pointer never moves,
-        // and nothing is clicked unless this window is the one under it.
-        // As in the app: a real click on a ⋮ button whose Click handler opens the card with ShowDialog.
-        var launcher = new Window
+        if (realClick)
         {
-            Width = 140, Height = 80, WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, Topmost = true,
-            ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual, Background = Brushes.White
-        };
-        var more = new Button { Content = "⋮", Width = 60, Height = 40 };
-        launcher.Content = more;
-        more.Click += (_, _) => Settings(launcher, ("自定义暗语", "two clicks"));
-        launcher.Show();
-        Pump(300);
-        var spot = PresentationSource.FromVisual(launcher)!.CompositionTarget!.TransformFromDevice.Transform(RealMouse.Position());
-        launcher.Left = spot.X - 70;
-        launcher.Top = spot.Y - 40;
-        Pump(300);
-        if (RealMouse.Over(new System.Windows.Interop.WindowInteropHelper(launcher).Handle))
-        {
-            RealMouse.Down(); Pump(90); RealMouse.Up(); Pump(200);
+            // A real mouse click on 完成, which a raised Click event cannot reproduce. The card is
+            // moved so 完成 sits under the pointer where it already is; the pointer never moves,
+            // and nothing is clicked unless this window is the one under it.
+            // As in the app: a real click on a ⋮ button whose Click handler opens the card with ShowDialog.
+            var launcher = new Window
+            {
+                Width = 140, Height = 80, WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, Topmost = true,
+                ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual, Background = Brushes.White
+            };
+            var more = new Button { Content = "⋮", Width = 60, Height = 40 };
+            launcher.Content = more;
+            more.Click += (_, _) => Settings(launcher, ("自定义暗语", "two clicks"));
+            launcher.Show();
+            Pump(300);
+            var spot = PresentationSource.FromVisual(launcher)!.CompositionTarget!.TransformFromDevice.Transform(RealMouse.Position());
+            launcher.Left = spot.X - 70;
+            launcher.Top = spot.Y - 40;
+            Pump(300);
+            if (RealMouse.Over(new System.Windows.Interop.WindowInteropHelper(launcher).Handle))
+            {
+                RealMouse.Down(); Pump(90); RealMouse.Up(); Pump(200);
+            }
+            else Console.WriteLine("[real] launcher: skipped, the pointer is not over it");
+            launcher.Close();
         }
-        else Console.WriteLine("[real] launcher: skipped, the pointer is not over it");
-        launcher.Close();
-    }
-    else
-    {
-        if (gate) Gates(owner);
         else
         {
-            foreach (var version in versions) Centring(version);
-            foreach (var version in versions) ReleaseNotes(owner, version);
-            Settings(owner);
-            Guide();
+            if (appSettings) RenderAppSettings();
+            else if (gate) Gates(owner);
+            else
+            {
+                foreach (var version in versions) Centring(version);
+                foreach (var version in versions) ReleaseNotes(owner, version);
+                Settings(owner);
+                Guide();
+            }
         }
     }
-
-    owner.Close();
-    app.Shutdown();
+    finally
+    {
+        owner.Close();
+        app.Shutdown();
+    }
 });
 thread.SetApartmentState(ApartmentState.STA);
 thread.Start();
@@ -494,6 +503,65 @@ void Gates(Window owner)
         dialog.Close();
         Pump(100);
     }
+}
+
+void RenderAppSettings()
+{
+    var demo = new LocalSettings
+    {
+        SetupCompleted = true,
+        WeChatRoot = @"C:\Demo\xwechat_files",
+        WeChatAccount = "wxid_demo",
+        Providers =
+        [
+            new SpeechProviderProfile { Id = "p1", Kind = SpeechProviderKind.Fish, Preset = "fish", Name = "主力密钥", Vendor = "fish", Endpoint = "https://api.fish.audio", Enabled = true, CredentialId = "k1", AvailableModels = ["s2-pro"] },
+            new SpeechProviderProfile { Id = "p2", Kind = SpeechProviderKind.Fish, Preset = "fish", Name = "备用密钥", Vendor = "fish", Endpoint = "https://api.fish.audio", Enabled = false, CredentialId = "k2", AvailableModels = ["s2-pro"] },
+            new SpeechProviderProfile { Id = "p3", Kind = SpeechProviderKind.OpenAiCompatible, Preset = "openai", Name = "OpenAI", Vendor = "openai", Endpoint = "https://api.openai.com/v1/audio/speech", Enabled = true, CredentialId = "k3", AvailableModels = ["gpt-4o-mini-tts"] }
+        ],
+        VoiceLibrary =
+        [
+            new VoiceProfile { Id = "v1", Name = "温柔女声", ProviderId = "p1", ProviderKind = SpeechProviderKind.Fish, Vendor = "fish", VoiceId = "demo-voice-1" }
+        ]
+    };
+    var main = new MainWindow(demo)
+    {
+        WindowStartupLocation = WindowStartupLocation.Manual,
+        Left = -9000,
+        Top = -3000,
+        ShowInTaskbar = false,
+        ShowActivated = false
+    };
+    main.Show();
+    main.NavAdvanced.IsChecked = true;
+    Pump(350);
+    var themes = new[]
+    {
+        (ThemeMode.Light, ThemeTint.Default, "light-default"),
+        (ThemeMode.Light, ThemeTint.Pink, "light-pink"),
+        (ThemeMode.Light, ThemeTint.Blue, "light-blue"),
+        (ThemeMode.Light, ThemeTint.Green, "light-green"),
+        (ThemeMode.Dark, ThemeTint.Pink, "dark-pink"),
+        (ThemeMode.Dark, ThemeTint.Default, "dark-default"),
+    };
+    // Scroll to the 语音服务 card so both 外观 and API selection buttons are visible.
+    main.ContentScroller.ScrollToVerticalOffset(360);
+    Pump(200);
+    foreach (var (mode, tint, tag) in themes)
+    {
+        Theme.Apply(new AppearanceSettings { Mode = mode, Tint = tint });
+        Pump(200);
+        Save(main, Path.Combine(output, $"settings-providers-{tag}.png"));
+        // Verify programmatically that every "使用中" button uses the theme's Accent brush (not Positive green).
+        var accentColor = Theme.ColorOf("Accent");
+        var inUseButtons = Descendants(main).OfType<Button>().Where(b => Equals(b.Content, "使用中")).ToArray();
+        Check(inUseButtons.Length == 2, $"[{tag}] found 2 使用中 buttons ({inUseButtons.Length})");
+        foreach (var btn in inUseButtons)
+        {
+            var bg = (btn.Background as SolidColorBrush)?.Color;
+            Check(bg == accentColor, $"[{tag}] 使用中 button matches Accent ({bg} == {accentColor})");
+        }
+    }
+    main.Close();
 }
 
 static ResourceDictionary AppResources()

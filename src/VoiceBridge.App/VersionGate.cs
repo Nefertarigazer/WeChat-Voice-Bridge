@@ -189,6 +189,8 @@ internal sealed class VersionGateDialog : Window
             Visibility = Visibility.Collapsed
         };
         progress = new ProgressBar { Width = 300, Height = 6, Minimum = 0, Maximum = 100 };
+        progress.SetResourceReference(Control.ForegroundProperty, "Accent");
+        progress.SetResourceReference(Control.BackgroundProperty, "Fill");
         percent = new TextBlock
         {
             Text = "0%", FontSize = 12, Margin = new(12, 0, 0, 0),

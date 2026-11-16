@@ -118,7 +118,7 @@
       </Border>
       <Button Grid.Row="2" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Center" Margin="0,20,0,0"
               IsDefault="True" IsCancel="True" Click="DismissClick">
-        <TextBlock Text="知道了" Foreground="White" TextWrapping="NoWrap"/>
+        <TextBlock Text="知道了" Foreground="{DynamicResource WhiteText}" TextWrapping="NoWrap"/>
       </Button>
     </Grid>
     </Grid>

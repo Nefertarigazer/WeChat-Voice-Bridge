@@ -1187,7 +1187,7 @@
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
                       </Grid.ColumnDefinitions>
-                      <!-- Grey dot = not the key in use, green = in use. The button
+                      <!-- Grey dot = not the key in use, accent = in use. The button
                            repeats the state in words. -->
                       <Ellipse Width="9" Height="9" Margin="0,0,12,0" VerticalAlignment="Center">
                         <Ellipse.Style>
@@ -1195,7 +1195,7 @@
                             <Setter Property="Fill" Value="{DynamicResource IdleDot}"/>
                             <Style.Triggers>
                               <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                <Setter Property="Fill" Value="{DynamicResource Positive}"/>
+                                <Setter Property="Fill" Value="{DynamicResource Accent}"/>
                               </DataTrigger>
                             </Style.Triggers>
                           </Style>

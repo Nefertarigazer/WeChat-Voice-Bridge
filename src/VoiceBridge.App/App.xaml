@@ -291,7 +291,7 @@
         </ControlTemplate></Setter.Value>
       </Setter>
     </Style>
-    <!-- One action per service row: a white "启用" normally, solid green "使用中"
+    <!-- One action per service row: a white "启用" normally, accent-tinted "使用中"
          when that key is the one in use. The row's dot repeats the same state. -->
     <Style x:Key="ProviderEnableButton" TargetType="Button">
       <Setter Property="Cursor" Value="Hand"/>
@@ -323,7 +323,7 @@
               </ContentPresenter>
             </Border>
             <!-- Hover presses a veil over the frame instead of repainting the
-                 background, so the green "in use" state keeps its colour. -->
+                 background, so the active "in use" state keeps its colour. -->
             <Border x:Name="Veil" CornerRadius="8" Background="{DynamicResource Veil}" Opacity="0" IsHitTestVisible="False"/>
           </Grid>
           <ControlTemplate.Triggers>
@@ -338,8 +338,8 @@
       </Setter>
       <Style.Triggers>
         <DataTrigger Binding="{Binding IsActive}" Value="True">
-          <Setter Property="Background" Value="{DynamicResource Positive}"/>
-          <Setter Property="BorderBrush" Value="{DynamicResource Positive}"/>
+          <Setter Property="Background" Value="{DynamicResource Accent}"/>
+          <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/>
           <Setter Property="Foreground" Value="{DynamicResource WhiteText}"/>
           <Setter Property="Content" Value="使用中"/>
         </DataTrigger>

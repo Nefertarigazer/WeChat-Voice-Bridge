@@ -59,7 +59,7 @@ public partial class MainWindow
                 card.SetUnanswered(Unanswered(card.Profile));
         };
         reminderTimer = new(TimeSpan.FromSeconds(1), DispatcherPriority.Background, (_, _) => RemindDue(), Dispatcher);
-        reminderTimer.Start();
+        if (!previewOnly) reminderTimer.Start();
     }
 
     /// <summary>Keeps every card's 试听 / 已读 place and badge in step with the session.</summary>

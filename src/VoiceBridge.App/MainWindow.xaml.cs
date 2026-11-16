@@ -38,9 +38,9 @@ public partial class MainWindow : Window
 
     private readonly SessionController controller = new();
     private readonly HttpClient http;
-    private readonly Forms.NotifyIcon tray;
+    private readonly Forms.NotifyIcon? tray;
     private Stream? trayIconStream;
-    private readonly Forms.ToolStripMenuItem trayStop;
+    private readonly Forms.ToolStripMenuItem? trayStop;
     private readonly DispatcherTimer searchTimer;
     private readonly DispatcherTimer saveTimer;
     private Storyboard? updateBreath;
@@ -64,6 +64,7 @@ public partial class MainWindow : Window
     private Task? manualTask;
     private CancellationTokenSource? searchCancel;
 
+    private readonly bool previewOnly;
     private bool ready;
     private bool closing;
     private bool allowClose;
@@ -158,7 +159,23 @@ public partial class MainWindow : Window
     }
 
     public MainWindow(HttpClient http, string? updateNotice = null)
+        : this(http, updateNotice, previewSettings: null)
     {
+    }
+
+    /// <summary>
+    /// Off-screen preview constructor used by development/test tools so real layouts
+    /// can be rendered across themes and demo states without touching user data, the
+    /// system tray, network updates or WeChat databases.
+    /// </summary>
+    internal MainWindow(LocalSettings previewSettings)
+        : this(UpdateProcess.CreateUpdateHttp(), null, previewSettings)
+    {
+    }
+
+    private MainWindow(HttpClient http, string? updateNotice, LocalSettings? previewSettings)
+    {
+        previewOnly = previewSettings is not null;
         this.http = http;
         InitializeComponent();
         InitializeUpdates(updateNotice);
@@ -174,14 +191,17 @@ public partial class MainWindow : Window
         noticeTimer.Tick += (_, _) => notice = null;
         InitializeInteraction();
 
-        tray = new() { Icon = LoadTrayIcon(), Text = "微信语音桥 · 未开始", Visible = true };
-        trayStop = new("结束监听", null, (_, _) => Dispatcher.InvokeAsync(async () => await StopAsync()));
-        var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("显示窗口", null, (_, _) => Dispatcher.InvokeAsync(RestoreWindow));
-        menu.Items.Add(trayStop);
-        menu.Items.Add("退出程序", null, (_, _) => Dispatcher.InvokeAsync(Close));
-        tray.ContextMenuStrip = menu;
-        tray.DoubleClick += (_, _) => Dispatcher.InvokeAsync(RestoreWindow);
+        if (!previewOnly)
+        {
+            tray = new() { Icon = LoadTrayIcon(), Text = "微信语音桥 · 未开始", Visible = true };
+            trayStop = new("结束监听", null, (_, _) => Dispatcher.InvokeAsync(async () => await StopAsync()));
+            var menu = new Forms.ContextMenuStrip();
+            menu.Items.Add("显示窗口", null, (_, _) => Dispatcher.InvokeAsync(RestoreWindow));
+            menu.Items.Add(trayStop);
+            menu.Items.Add("退出程序", null, (_, _) => Dispatcher.InvokeAsync(Close));
+            tray.ContextMenuStrip = menu;
+            tray.DoubleClick += (_, _) => Dispatcher.InvokeAsync(RestoreWindow);
+        }
 
         controller.Changed += _ => Dispatcher.InvokeAsync(Render);
         controller.Processed += item =>
@@ -203,7 +223,7 @@ public partial class MainWindow : Window
         LatencyBox.SelectionChanged += (_, _) => ScheduleSave();
         PreviewBox.Checked += PreviewSettingChanged;
         PreviewBox.Unchecked += PreviewSettingChanged;
-        var settings = ReadStoredSettings();
+        var settings = previewSettings ?? ReadStoredSettings();
         fishModel = settings.FishModel == FishSpeech.PaidModel ? FishSpeech.PaidModel : FishSpeech.Model;
         selectedVoiceId = settings.Voice;
         selectedKeyName = settings.FishKeyName;
@@ -213,7 +233,7 @@ public partial class MainWindow : Window
             readingItems.Add(new(rule));
         // The word book starts with one example. It is offered once, so a user
         // who removes it does not get it back on the next start.
-        lexiconSeeded = settings.LexiconSeeded;
+        lexiconSeeded = settings.LexiconSeeded || previewOnly;
         var seeded = false;
         if (!lexiconSeeded)
         {
@@ -224,13 +244,16 @@ public partial class MainWindow : Window
             }
             lexiconSeeded = true;
         }
-        userKeys.AddRange(KeyStore.Load(out var createdThisLoad));
-        foreach (var created in createdThisLoad)
-            sessionNewKeys.Add(created);
-        // The sweep runs strictly after every settings and store migration has
-        // finished — never before, or it could delete a migration's target. It
-        // only removes entries that nothing points at any more.
-        SweepCredentials("启动", settings.Providers, settings.FishKeyName, settings.ContactProfiles);
+        if (!previewOnly)
+        {
+            userKeys.AddRange(KeyStore.Load(out var createdThisLoad));
+            foreach (var created in createdThisLoad)
+                sessionNewKeys.Add(created);
+            // The sweep runs strictly after every settings and store migration has
+            // finished — never before, or it could delete a migration's target. It
+            // only removes entries that nothing points at any more.
+            SweepCredentials("启动", settings.Providers, settings.FishKeyName, settings.ContactProfiles);
+        }
         LatencyBox.SelectedItem = settings.Latency is "normal" or "low" ? settings.Latency : "balanced";
         VolumeBox.Value = Math.Clamp(settings.Volume, 0, 1);
         PreviewBox.IsChecked = settings.Preview;
@@ -240,38 +263,55 @@ public partial class MainWindow : Window
         selectedName = settings.WeChatLabel;
         selectedWechat = settings.WeChatAlias;
 
-        // Most installs keep WeChat in a well-known place. Find it instead of asking.
-        var root = settings.WeChatRoot;
-        if (string.IsNullOrWhiteSpace(root))
+        if (!previewOnly)
         {
-            root = WeChatSession.DiscoverRoot() ?? "";
-            if (root.Length == 0)
-                // The bounded name scan can still miss a deeply custom folder. Point
-                // the user at the existing 浏览… picker instead of failing silently.
-                notice ??= "未找到微信数据目录，请在高级设置里用「浏览…」手动指定。";
+            // Most installs keep WeChat in a well-known place. Find it instead of asking.
+            var root = settings.WeChatRoot;
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                root = WeChatSession.DiscoverRoot() ?? "";
+                if (root.Length == 0)
+                    // The bounded name scan can still miss a deeply custom folder. Point
+                    // the user at the existing 浏览… picker instead of failing silently.
+                    notice ??= "未找到微信数据目录，请在高级设置里用「浏览…」手动指定。";
+            }
+            RootBox.Text = root;
+            // The size of the scratch cache is chosen by the user, and it never
+            // grows past that size.
+            CacheLimitBox.SelectedValue = settings.CacheLimitBytes;
+            SessionCache.Trim(settings.CacheLimitBytes, settings.WeChatRoot);
+            // The account folders under the root are listed, so the user only
+            // has to pick the one that is logged in.
+            RefreshAccounts(settings.WeChatAccount);
+            RefreshDevices(settings.Device);
         }
-        RootBox.Text = root;
-        // The size of the scratch cache is chosen by the user, and it never
-        // grows past that size.
-        CacheLimitBox.SelectedValue = settings.CacheLimitBytes;
-        SessionCache.Trim(settings.CacheLimitBytes, settings.WeChatRoot);
-        // The account folders under the root are listed, so the user only
-        // has to pick the one that is logged in.
-        RefreshAccounts(settings.WeChatAccount);
+        else
+        {
+            CacheLimitBox.SelectedValue = settings.CacheLimitBytes;
+            var account = settings.WeChatAccount;
+            AccountBox.ItemsSource = string.IsNullOrWhiteSpace(account)
+                ? Array.Empty<AccountChoice>()
+                : new[] { new AccountChoice(account, AccountLabelOf(account)) };
+            AccountBox.SelectedValue = account;
+            AccountRow.Visibility = Visibility.Collapsed;
+            AccountRowContent.Visibility = Visibility.Collapsed;
+            DeviceBox.ItemsSource = new[] { new OutputDevice("", "Windows 默认输出") };
+            DeviceBox.SelectedIndex = 0;
+            CacheInfo.Text = "当前缓存占用 1 MB，超过上限会自动清理，退出时也会清空。";
+        }
 
         PaidModel.IsChecked = settings.FishModel == FishSpeech.PaidModel;
         FreeModel.IsChecked = settings.FishModel != FishSpeech.PaidModel;
-        RefreshDevices(settings.Device);
         RefreshVoices();
         RefreshKeys();
         ReadingList.ItemsSource = readingItems;
         PublishReadings();
         InitializeLibrary(settings);
         ready = true;
-        Loaded += (_, _) => RestartContactIndexing();
+        Loaded += (_, _) => { if (!previewOnly) RestartContactIndexing(); };
         ApplySelection();
         Render();
-        if (seeded)
+        if (seeded && !previewOnly)
             SaveNow();
     }
 
@@ -375,8 +415,8 @@ public partial class MainWindow : Window
             userVoices.Any(item => item.Name == voice);
         DeleteKeyButton.IsEnabled = userKeys.Count > 0 && (!active || userKeys.Count > 1);
 
-        trayStop.Enabled = active || manualCancel != null;
-        tray.Text = "微信语音桥 · " + StatusTitle.Text;
+        if (trayStop != null) trayStop.Enabled = active || manualCancel != null;
+        if (tray != null) tray.Text = "微信语音桥 · " + StatusTitle.Text;
     }
 
     private void AddResult(string line)
@@ -952,6 +992,7 @@ public partial class MainWindow : Window
         if (!ready)
             return;
         PublishRouting();
+        if (previewOnly) return;
         saveTimer.Stop();
         saveTimer.Start();
     }
@@ -963,6 +1004,7 @@ public partial class MainWindow : Window
             return;
         saveTimer.Stop();
         PublishRouting();
+        if (previewOnly) return;
         try { ReadSettings().Save(); }
         catch (Exception) { /* The explicit save reports the failure. */ }
     }
@@ -970,6 +1012,7 @@ public partial class MainWindow : Window
     private void SaveTimerTick(object? sender, EventArgs e)
     {
         saveTimer.Stop();
+        if (previewOnly) return;
         try { ReadSettings().Save(); }
         catch (Exception) { /* The explicit save reports the failure. */ }
     }
@@ -1536,6 +1579,15 @@ public partial class MainWindow : Window
     {
         if (allowClose)
             return;
+        if (previewOnly)
+        {
+            updateBreath?.Stop();
+            pillBreath?.Stop();
+            reminderTimer?.Stop();
+            updateHttp.Dispose();
+            http.Dispose();
+            return;
+        }
         e.Cancel = true;
         if (closing)
             return;
@@ -1563,9 +1615,12 @@ public partial class MainWindow : Window
             if (!updateHandoff)
                 Environment.Exit(1);
         }
-        tray.Visible = false;
-        tray.ContextMenuStrip?.Dispose();
-        tray.Dispose();
+        if (tray != null)
+        {
+            tray.Visible = false;
+            tray.ContextMenuStrip?.Dispose();
+            tray.Dispose();
+        }
         trayIconStream?.Dispose();
         trayIconStream = null;
         allowClose = true;
