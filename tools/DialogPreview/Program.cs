@@ -661,13 +661,16 @@ void RenderAppHome()
         };
     }
 
-    foreach (var (label, count, multiModel, mode, theme) in new[]
+    foreach (var (label, count, multiModel, mode, height, theme) in new[]
     {
-        ("home-1-default-light", 1, true, "full", new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
-        ("home-2-filled-light", 2, false, "full", new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
-        ("home-2-filled-pink", 2, false, "full", new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Pink }),
-        ("home-2-filled-dark", 2, false, "full", new AppearanceSettings { Mode = ThemeMode.Dark, Tint = ThemeTint.Default }),
-        ("home-4-scroll-light", 4, true, "full", new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
+        ("home-few-no-scroll", 1, true, "few", 780.0, new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
+        ("home-1-default-light", 1, true, "full", 780.0, new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
+        ("home-2-filled-light", 2, false, "full", 780.0, new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
+        ("home-2-filled-pink", 2, false, "full", 780.0, new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Pink }),
+        ("home-2-filled-dark", 2, false, "full", 780.0, new AppearanceSettings { Mode = ThemeMode.Dark, Tint = ThemeTint.Default }),
+        ("home-4-scroll-light", 4, true, "full", 780.0, new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
+        ("home-2-maximized-light", 2, false, "full", 1060.0, new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
+        ("home-6-maximized-scroll", 6, true, "full", 1060.0, new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
     })
     {
         Theme.Apply(theme);
@@ -676,6 +679,8 @@ void RenderAppHome()
             WindowStartupLocation = WindowStartupLocation.Manual,
             Left = -9000,
             Top = -3000,
+            Width = height > 800 ? 1280 : 940,
+            Height = height,
             ShowInTaskbar = false,
             ShowActivated = false
         };
@@ -696,14 +701,23 @@ void RenderAppHome()
         var bottomGap = scrollerH - (top + cardH);
         var clearRect = new Rect(main.ClearButton.TranslatePoint(new Point(), main.RecordsCard),
             new Size(main.ClearButton.ActualWidth, main.ClearButton.ActualHeight));
+        var innerScroller = Descendants(main.Results).OfType<ScrollViewer>().FirstOrDefault();
+        var innerScrollable = innerScroller?.ScrollableHeight ?? 0;
         var bar = Descendants(main.Results).OfType<ScrollBar>().FirstOrDefault(s => s.Orientation == Orientation.Vertical);
         var barVisible = bar is not null && bar.IsVisible;
         var barRect = barVisible ? new Rect(bar!.TranslatePoint(new Point(), main.RecordsCard), new Size(bar.ActualWidth, bar.ActualHeight)) : Rect.Empty;
-        Console.WriteLine($"[{label}] viewport={scrollerH:0.##} top={top:0.##} cardH={cardH:0.##} listH={listH:0.##} maxH={maxH:0.##} pageScroll={pageScrollable:0.##} bottomGap={bottomGap:0.##} clear={clearRect.Left:0.##}..{clearRect.Right:0.##} bar={(barVisible ? $"{barRect.Left:0.##}..{barRect.Right:0.##}" : "hidden")}");
+        Console.WriteLine($"[{label}] viewport={scrollerH:0.##} top={top:0.##} cardH={cardH:0.##} listH={listH:0.##} maxH={maxH:0.##} innerScroll={innerScrollable:0.##} pageScroll={pageScrollable:0.##} bottomGap={bottomGap:0.##} clear={clearRect.Left:0.##}..{clearRect.Right:0.##} bar={(barVisible ? $"{barRect.Left:0.##}..{barRect.Right:0.##}" : "hidden")}");
         if (count <= 2)
             Check(pageScrollable < 0.5, $"[{label}] Home page must NOT scroll (ScrollableHeight={pageScrollable:0.##})");
         else
             Check(pageScrollable > 0.5, $"[{label}] {count} contacts Home page DOES scroll (ScrollableHeight={pageScrollable:0.##})");
+        if (mode == "few")
+        {
+            Check(innerScrollable < 0.5, $"[{label}] few messages must NOT scroll internally ({innerScrollable:0.##})");
+            Check(!barVisible, $"[{label}] few messages must hide scrollbar");
+        }
+        if (height > 800 && mode == "full")
+            Check(listH > 450, $"[{label}] tall/maximized window must expand records generously ({listH:0.##} > 450)");
         if (barVisible)
             Check(clearRect.Right + 2 <= barRect.Left, $"[{label}] ClearButton ({clearRect.Right:0.##}) must sit left of ScrollBar ({barRect.Left:0.##})");
         if (count > 2)

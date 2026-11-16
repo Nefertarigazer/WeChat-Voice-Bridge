@@ -1412,6 +1412,7 @@ public partial class MainWindow : Window
         // hidden and does not slip away into the overflow of the tray.
         bool maximized = WindowState == WindowState.Maximized;
         UpdateCaptionGlyphs(maximized);
+        ScheduleRecordsHeightUpdate();
     }
 
     // The two caption glyphs live in the button template, so they are looked up

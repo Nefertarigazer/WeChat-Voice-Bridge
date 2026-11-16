@@ -1,43 +1,53 @@
 namespace VoiceBridge.Core;
 
 /// <summary>
-/// Computes the maximum height of the message records list on the Home page.
-/// When contacts fit on the page with room left below, the records card
-/// expands up to that remaining viewport space (leaving a clean bottom margin)
-/// without causing the page itself to scroll. Once additional contacts push the
-/// page into scrolling, the records list caps its maximum height at the
-/// remembered non-scrolling limit (or the calibrated fallback).
+/// Computes the maximum height of the message records list on the Home page:
+/// - While contacts fit on the page, the records box grows seamlessly with incoming
+///   messages up to the remaining viewport height (leaving a clean bottom margin)
+///   without scrolling the page or showing an internal scrollbar prematurely.
+/// - When more contacts push the page into scrolling, the records list scales its
+///   maximum height with the current viewport using the remembered single-row
+///   overhead (or the calibrated baseline 507 DIP), so maximizing the window opens a
+///   spacious chat view while a normal 940x780 window stays at 237 DIP.
 /// </summary>
 public static class RecordsHeightPolicy
 {
     public const double DefaultListHeight = 138;
-    public const double DefaultOverflowMaxListHeight = 237;
+    /// <summary>
+    /// Measured on a 940x780 window (viewport = 744 DIP) with one contact: 744 - 507 = 237 DIP.
+    /// </summary>
+    public const double DefaultNonScrollingOverhead = 507;
+    public const double MaxViewportShareOnOverflow = 0.68;
 
     public static RecordsHeightResult Compute(
         double viewportHeight,
         double recordsCardTop,
         double cardChromeHeight,
         double bottomClearance,
-        double? lastNonScrollingMaxListHeight,
+        double? lastSingleRowOverhead,
         bool rememberForOverflow = true)
     {
         if (viewportHeight <= 0 || double.IsNaN(viewportHeight) || double.IsInfinity(viewportHeight) ||
             double.IsNaN(recordsCardTop) || double.IsInfinity(recordsCardTop))
-            return new(DefaultListHeight, lastNonScrollingMaxListHeight, false);
+            return new(DefaultListHeight, lastSingleRowOverhead, false);
 
-        var available = Math.Floor(viewportHeight - recordsCardTop - cardChromeHeight - bottomClearance);
+        var overhead = recordsCardTop + cardChromeHeight + bottomClearance;
+        var available = Math.Floor(viewportHeight - overhead);
         if (available >= DefaultListHeight)
         {
-            var remembered = rememberForOverflow ? available : lastNonScrollingMaxListHeight;
+            var remembered = rememberForOverflow ? overhead : lastSingleRowOverhead;
             return new(available, remembered, false);
         }
 
-        var capped = Math.Max(DefaultListHeight, lastNonScrollingMaxListHeight ?? DefaultOverflowMaxListHeight);
-        return new(capped, lastNonScrollingMaxListHeight, true);
+        var effectiveOverhead = lastSingleRowOverhead ?? DefaultNonScrollingOverhead;
+        var scaled = Math.Floor(viewportHeight - effectiveOverhead);
+        var shareCap = Math.Floor(viewportHeight * MaxViewportShareOnOverflow);
+        var capped = Math.Max(DefaultListHeight, Math.Min(Math.Max(DefaultListHeight, scaled), shareCap));
+        return new(capped, lastSingleRowOverhead, true);
     }
 }
 
 public readonly record struct RecordsHeightResult(
     double MaxListHeight,
-    double? RememberedMaxListHeight,
+    double? RememberedOverhead,
     bool PageOverflows);

@@ -15,12 +15,13 @@
   - `ClearButton` 移至 `Margin="0,10,20,0"`（`609..639` DIP），与内部滚动条（`644..654` DIP）留出 5 DIP 间隙且置顶 `Panel.ZIndex="2"`；空态与默认列表同为卡片高 **148 DIP**（列表 `MinHeight=138`）。
   - 新增 `src/VoiceBridge.Core/RecordsHeightPolicy.cs` 与 `MainWindow.Interaction.cs` `UpdateRecordsMaxHeight()`：内容超出默认高度后自动扩展至剩余视口（底留 ~20.5 DIP 间隙，首页 `ScrollableHeight=0`）；在 940×780 默认窗口下，1 人满载列表最大 **237 DIP**（卡片 **247 DIP**），2 人精简/Fish 3 行满载 **235 / 227 DIP**（卡片 **245 / 237 DIP**）；添加 3+ 联系人令首页滚动时锁定同一标定上限（同会话记住或兜底 **237 / 247 DIP**）。
   - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **327/327**（含 5 项高度策略单测）、Python **55**（42 跳过）；`DialogPreview --app-home` 全部断言通过。
-- **节 4 已完成**（全量回归与多场景测试截图）：
-  - `Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **329/329**、Python **55**（42 跳过）；wx-multi **58/58**；`DialogPreview`（`Light/Default`、`Dark/Pink`、`--gate`、`--app-settings`、`--app-home`）全 PASS；`git diff 5c12db1 -- worker/ src/VoiceBridge.WeChat/` 为空。
-  - 关键标定数值（940×780 默认窗口）：单人页满载列表最大 **237 DIP**（卡片 **247 DIP**），2 人精简页满载 **235 DIP**（卡片 **245 DIP**），均保留 **20.5 DIP** 底部间隙且首页 `ScrollableHeight = 0`；4 人滚动页记录框锁定上限 **237 / 247 DIP**。
-  - 满载测试截图已输出至 `artifacts\screenshots\`（`home-1-default-light.png`、`home-2-filled-light.png`、`home-2-filled-pink.png`、`home-2-filled-dark.png`、`home-4-scroll-light.png`、`settings-providers-*.png`），待用户确认。
-- **待做**：等用户审阅效果与截图后，若需发布再升版本号（1.8.4）、补 `ReleaseHistory`、打包并交接 Muse 发布。
-- **续跑点**：当前四节改动全部完成并验证通过，等待用户反馈。
+- **节 5 已完成**（朗读记录高度随最大化动态缩放 + 未超行不显示滚动条）：
+  - `RecordsHeightPolicy.cs` 改为记录单行联系人视口开销（`507` DIP），并在 `WindowStateChanged` 触发重算；普通窗口多联系人保持 `235–237` DIP，最大化后（如 `1060` 视口）自动扩展到 `470–533+` DIP，可一次看多条消息；内容未超上限时 `ScrollableHeight = 0` 且隐藏滚动条；气泡垂直节奏微调后 `940×780` 可完整展示约 4 条对话，保持微信×苹果×鸿蒙风格。
+  - 验证：`Test.ps1` 0/0、.NET **330/330**；`DialogPreview --app-home` 覆盖少消息无滚动条及最大化多联系人场景。
+- **待做**：
+  - 节 6：提醒逻辑优化（开启提醒前的旧消息不计入未提醒、调整提醒间隔/持续开关不瞬发误报、已回复/标为已读后队列中待播提醒作废）；
+  - 节 7：版本门禁、应用内更新与微信适配全面体检与死局修复 + 全量回归与最终截图。
+- **续跑点**：从 `src/VoiceBridge.Core/ReplyTracker.cs` 与 `src/VoiceBridge.App/MainWindow.Attention.cs` 入手开始节 6。
 - **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的 1.8.2 进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---

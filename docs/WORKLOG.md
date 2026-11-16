@@ -43,6 +43,19 @@
 - **下一节**：发布前全量验证 → 打包 → 发布。
 
 ---
+## 1.8.4 开发中 · 节 5：朗读记录高度随最大化动态缩放 + 未溢出隐藏滚动条（2026-11-16）
+
+- **做了什么**：
+  - 优化 `src/VoiceBridge.Core/RecordsHeightPolicy.cs`：由记住绝对像素高度改为记住「单行联系人页面的视口固定开销（`DefaultNonScrollingOverhead = 507` DIP）」，在多联系人导致首页滚动时，记录区上限按当前视口高度动态伸缩（`viewportHeight - effectiveOverhead`，上限占视口 `68%`），并在 `MainWindow.xaml.cs` 的 `WindowStateChanged` 挂载高度重算，确保最大化/拉大窗口时即便多联系人也能展示大量对话气泡；常规 `940×780` 窗口仍保持 `235–237` DIP 标定上限。
+  - 在 `src/VoiceBridge.App/MainWindow.xaml` 微调气泡垂直节奏（保持苹果×鸿蒙×微信圆角方形头像、左尾翼气泡与居中「拍一拍」灰字风格，单条行高更凝练，`940×780` 下可容纳约 4 条消息，`1060` 高窗口可容纳约 8–9 条消息）。
+  - 验证内容未超出可视上限时内部滚动条保持隐藏（`ScrollableHeight = 0`），不会提前出现可滑动行为。
+- **验证**：
+  - `Verify-Source.ps1` PASS；`Test.ps1` 编译 0 警告 0 错误、.NET **330/330 PASS**（`RecordsHeightPolicyTests` 增至 6 项）、Python **55**（42 跳过）PASS。
+  - `DialogPreview --app-home` 新增并验证 `home-few-no-scroll.png`（`bar=hidden, innerScroll=0`）、`home-2-maximized-light.png`（`listH=470, cardH=480, pageScroll=0`）与 `home-6-maximized-scroll.png`（`listH=472, cardH=482`）。
+- **下一节**：节 6（提醒逻辑优化：从开启提醒那一刻起算 + 修改提醒配置不误触发 + 已读/回复自动作废队列未播提醒）。
+
+---
+
 ## 1.8.4 开发中 · 节 4：全量回归与多场景测试截图验证（2026-11-16）
 
 - **全量测试**：

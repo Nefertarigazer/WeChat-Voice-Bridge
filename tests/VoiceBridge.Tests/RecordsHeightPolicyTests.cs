@@ -12,60 +12,75 @@ public sealed class RecordsHeightPolicyTests
             recordsCardTop: 476.5,
             cardChromeHeight: 10,
             bottomClearance: 20,
-            lastNonScrollingMaxListHeight: null,
+            lastSingleRowOverhead: null,
             rememberForOverflow: true);
 
         Assert.False(result.PageOverflows);
         Assert.Equal(237, result.MaxListHeight);
-        Assert.Equal(237, result.RememberedMaxListHeight);
+        Assert.Equal(506.5, result.RememberedOverhead);
     }
 
     [Fact]
-    public void ZeroContactsOrPickerExpandsPageWithoutOverwritingRememberedCap()
+    public void ZeroContactsOrPickerExpandsPageWithoutOverwritingRememberedOverhead()
     {
         var result = RecordsHeightPolicy.Compute(
             viewportHeight: 744,
             recordsCardTop: 234.5,
             cardChromeHeight: 10,
             bottomClearance: 20,
-            lastNonScrollingMaxListHeight: 235,
+            lastSingleRowOverhead: 508.5,
             rememberForOverflow: false);
 
         Assert.False(result.PageOverflows);
         Assert.Equal(479, result.MaxListHeight);
-        Assert.Equal(235, result.RememberedMaxListHeight);
+        Assert.Equal(508.5, result.RememberedOverhead);
     }
 
     [Fact]
-    public void MultiContactOverflowLocksToRememberedPageHeight()
+    public void MultiContactOverflowLocksToRememberedOverheadAtNormalWindowHeight()
     {
         var result = RecordsHeightPolicy.Compute(
             viewportHeight: 744,
             recordsCardTop: 790,
             cardChromeHeight: 10,
             bottomClearance: 20,
-            lastNonScrollingMaxListHeight: 227,
-            rememberForOverflow: true);
+            lastSingleRowOverhead: 508.5,
+            rememberForOverflow: false);
 
         Assert.True(result.PageOverflows);
-        Assert.Equal(227, result.MaxListHeight);
-        Assert.Equal(227, result.RememberedMaxListHeight);
+        Assert.Equal(235, result.MaxListHeight);
+        Assert.Equal(508.5, result.RememberedOverhead);
     }
 
     [Fact]
-    public void MultiContactLaunchWithoutPriorMeasurementUsesCalibratedFallback()
+    public void MultiContactOverflowScalesGenerouslyWhenWindowIsMaximized()
+    {
+        var result = RecordsHeightPolicy.Compute(
+            viewportHeight: 1040,
+            recordsCardTop: 1020,
+            cardChromeHeight: 10,
+            bottomClearance: 20,
+            lastSingleRowOverhead: 506.5,
+            rememberForOverflow: false);
+
+        Assert.True(result.PageOverflows);
+        Assert.Equal(533, result.MaxListHeight);
+    }
+
+    [Fact]
+    public void MultiContactLaunchWithoutPriorMeasurementUsesCalibratedBaseline()
     {
         var result = RecordsHeightPolicy.Compute(
             viewportHeight: 744,
             recordsCardTop: 790,
             cardChromeHeight: 10,
             bottomClearance: 20,
-            lastNonScrollingMaxListHeight: null,
-            rememberForOverflow: true);
+            lastSingleRowOverhead: null,
+            rememberForOverflow: false);
 
         Assert.True(result.PageOverflows);
-        Assert.Equal(RecordsHeightPolicy.DefaultOverflowMaxListHeight, result.MaxListHeight);
-        Assert.Null(result.RememberedMaxListHeight);
+        Assert.Equal(237, result.MaxListHeight);
+        Assert.Null(result.RememberedOverhead);
     }
 
     [Fact]
@@ -76,10 +91,10 @@ public sealed class RecordsHeightPolicyTests
             recordsCardTop: 400,
             cardChromeHeight: 10,
             bottomClearance: 20,
-            lastNonScrollingMaxListHeight: 237);
+            lastSingleRowOverhead: 506.5);
 
         Assert.False(result.PageOverflows);
         Assert.Equal(RecordsHeightPolicy.DefaultListHeight, result.MaxListHeight);
-        Assert.Equal(237, result.RememberedMaxListHeight);
+        Assert.Equal(506.5, result.RememberedOverhead);
     }
 }

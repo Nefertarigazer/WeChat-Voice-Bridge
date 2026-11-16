@@ -17,7 +17,7 @@ namespace VoiceBridge.App;
 public partial class MainWindow
 {
     private readonly Dictionary<FrameworkElement, string> restrictions = new();
-    private double? rememberedRecordsMaxHeight;
+    private double? rememberedRecordsOverhead;
     private bool recordsHeightQueued;
 
     private bool ListeningActive => controller.Status.State is BridgeState.Starting or BridgeState.Running or BridgeState.Stopping;
@@ -71,9 +71,9 @@ public partial class MainWindow
             recordsTop,
             chrome,
             clearance,
-            rememberedRecordsMaxHeight,
-            rememberForOverflow: !pickingContact && contactCards.Count > 0);
-        rememberedRecordsMaxHeight = verdict.RememberedMaxListHeight;
+            rememberedRecordsOverhead,
+            rememberForOverflow: !pickingContact && contactCards.Count is 1 or 2);
+        rememberedRecordsOverhead = verdict.RememberedOverhead;
         if (Math.Abs(Results.MaxHeight - verdict.MaxListHeight) > 0.5)
             Results.MaxHeight = verdict.MaxListHeight;
     }
