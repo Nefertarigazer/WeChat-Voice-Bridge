@@ -39,6 +39,9 @@ if (gate) args = args[1..];
 // --app-settings renders the real MainWindow Settings -> 语音服务 section across themes.
 var appSettings = args.Length > 0 && args[0] == "--app-settings";
 if (appSettings) args = args[1..];
+// --app-home measures and renders the Home page across contact counts & message volumes.
+var appHome = args.Length > 0 && args[0] == "--app-home";
+if (appHome) args = args[1..];
 var output = Path.GetFullPath(args.Length > 0 ? args[0] : "dialog-preview");
 var versions = args.Length > 1 ? args[1..] : ["1.6.0"];
 Directory.CreateDirectory(output);
@@ -99,6 +102,7 @@ var thread = new Thread(() =>
         else
         {
             if (appSettings) RenderAppSettings();
+            else if (appHome) RenderAppHome();
             else if (gate) Gates(owner);
             else
             {
@@ -562,6 +566,111 @@ void RenderAppSettings()
         }
     }
     main.Close();
+}
+
+void RenderAppHome()
+{
+    var sampleMessages = Enumerable.Range(1, 20)
+        .Select(i => $"19:{10 + i:00}:00   妈妈：第 {i} 条测试消息，用来观察朗读记录在超过默认高度后自动扩展、出现滚动条以及与右上角垃圾桶按钮的相对位置。")
+        .ToArray();
+
+    LocalSettings SettingsWithContacts(int count, bool multiModel)
+    {
+        var models = multiModel ? new[] { "s2.1-pro-free", "s2-pro" } : new[] { "tts-1" };
+        var kind = multiModel ? SpeechProviderKind.Fish : SpeechProviderKind.OpenAiCompatible;
+        var endpoint = multiModel ? "https://api.fish.audio" : "https://api.example.com";
+        var providers = new List<SpeechProviderProfile>
+        {
+            new() { Id = "p1", Kind = kind, Preset = multiModel ? "fish" : "openai", Name = "语音服务", Vendor = multiModel ? "fish" : "openai", Endpoint = endpoint, Enabled = true, CredentialId = "k1", AvailableModels = models }
+        };
+        var voices = new List<VoiceProfile>
+        {
+            new() { Id = "v1", Name = "温柔女声", ProviderId = "p1", ProviderKind = kind, Vendor = multiModel ? "fish" : "openai", VoiceId = "voice1" }
+        };
+        string[] names = ["妈妈", "小林", "爸爸", "阿哲", "小雨", "姐姐", "爷爷", "奶奶"];
+        var contacts = Enumerable.Range(0, count).Select(i => new ContactProfile
+        {
+            AccountId = "wxid_demo",
+            ConversationId = $"peer_{i}",
+            Name = names[i],
+            Alias = $"wechat_{i}",
+            Selected = true,
+            VoiceProfileId = "v1"
+        }).ToList();
+        return new LocalSettings
+        {
+            SetupCompleted = true,
+            WeChatRoot = @"C:\Demo\xwechat_files",
+            WeChatAccount = "wxid_demo",
+            Providers = providers,
+            VoiceLibrary = voices,
+            ContactProfiles = contacts
+        };
+    }
+
+    foreach (var (label, count, multiModel, fillMessages) in new[]
+    {
+        ("home-0-empty", 0, false, false),
+        ("home-0-full", 0, false, true),
+        ("home-1-empty", 1, true, false),
+        ("home-1-full", 1, true, true),
+        ("home-2compact-full", 2, false, true),
+        ("home-2fish-empty", 2, true, false),
+        ("home-2fish-full", 2, true, true),
+        ("home-4fish-full", 4, true, true),
+    })
+    {
+        var main = new MainWindow(SettingsWithContacts(count, multiModel))
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = -9000,
+            Top = -3000,
+            ShowInTaskbar = false,
+            ShowActivated = false
+        };
+        main.Show();
+        Pump(300);
+        if (fillMessages)
+        {
+            foreach (var msg in sampleMessages)
+            {
+                main.Results.Items.Add(msg);
+            }
+            main.ClearButton.IsEnabled = true;
+            main.ResultsBox.Visibility = Visibility.Visible;
+            main.ResultsEmpty.Visibility = Visibility.Collapsed;
+            main.UpdateRecordsMaxHeight();
+            Pump(250);
+        }
+        main.UpdateLayout();
+        var top = main.RecordsCard.TranslatePoint(new Point(0, 0), main.HomePanel).Y;
+        var cardH = main.RecordsCard.ActualHeight;
+        var listH = main.Results.ActualHeight;
+        var maxH = main.Results.MaxHeight;
+        var scrollerH = main.ContentScroller.ViewportHeight;
+        var pageScrollable = main.ContentScroller.ScrollableHeight;
+        var bottomGap = scrollerH - (top + cardH);
+        var clearRect = new Rect(main.ClearButton.TranslatePoint(new Point(), main.RecordsCard),
+            new Size(main.ClearButton.ActualWidth, main.ClearButton.ActualHeight));
+        var bar = Descendants(main.Results).OfType<ScrollBar>().FirstOrDefault(s => s.Orientation == Orientation.Vertical);
+        var barVisible = bar is not null && bar.IsVisible;
+        var barRect = barVisible ? new Rect(bar!.TranslatePoint(new Point(), main.RecordsCard), new Size(bar.ActualWidth, bar.ActualHeight)) : Rect.Empty;
+        Console.WriteLine($"[{label}] viewport={scrollerH:0.##} top={top:0.##} cardH={cardH:0.##} listH={listH:0.##} maxH={maxH:0.##} pageScroll={pageScrollable:0.##} bottomGap={bottomGap:0.##} clear={clearRect.Left:0.##}..{clearRect.Right:0.##} bar={(barVisible ? $"{barRect.Left:0.##}..{barRect.Right:0.##}" : "hidden")}");
+        if (label != "home-4fish-full")
+            Check(pageScrollable < 0.5, $"[{label}] Home page must NOT scroll (ScrollableHeight={pageScrollable:0.##})");
+        else
+            Check(pageScrollable > 0.5, $"[{label}] 4 contacts Home page DOES scroll (ScrollableHeight={pageScrollable:0.##})");
+        if (barVisible)
+            Check(clearRect.Right + 2 <= barRect.Left, $"[{label}] ClearButton ({clearRect.Right:0.##}) must sit left of ScrollBar ({barRect.Left:0.##})");
+        if (label == "home-4fish-full")
+        {
+            main.ContentScroller.ScrollToEnd();
+            Pump(200);
+        }
+        Save(main, Path.Combine(output, label + ".png"));
+        main.Close();
+        Pump(100);
+    }
 }
 
 static ResourceDictionary AppResources()

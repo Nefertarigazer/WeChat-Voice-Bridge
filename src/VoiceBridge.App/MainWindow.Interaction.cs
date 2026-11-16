@@ -17,6 +17,8 @@ namespace VoiceBridge.App;
 public partial class MainWindow
 {
     private readonly Dictionary<FrameworkElement, string> restrictions = new();
+    private double? rememberedRecordsMaxHeight;
+    private bool recordsHeightQueued;
 
     private bool ListeningActive => controller.Status.State is BridgeState.Starting or BridgeState.Running or BridgeState.Stopping;
 
@@ -29,11 +31,51 @@ public partial class MainWindow
             // wash out the last card's edge.
             BottomFade.Opacity = ContentScroller.ScrollableHeight > 0.5 ? 1 : 0;
         };
+        ContentScroller.SizeChanged += (_, _) => ScheduleRecordsHeightUpdate();
+        ContactsList.SizeChanged += (_, _) => ScheduleRecordsHeightUpdate();
+        SingleContactSurface.SizeChanged += (_, _) => ScheduleRecordsHeightUpdate();
+        SingleModes.SizeChanged += (_, _) => ScheduleRecordsHeightUpdate();
+        ContactPickerGroup.SizeChanged += (_, _) => ScheduleRecordsHeightUpdate();
+        StatusDetail.SizeChanged += (_, _) => ScheduleRecordsHeightUpdate();
+        RecordsHeader.SizeChanged += (_, _) => ScheduleRecordsHeightUpdate();
         // A row lights up when clicked; clicking anywhere outside the table drops that
         // selection again, so nothing stays highlighted while you work elsewhere.
         AddHandler(Mouse.PreviewMouseDownEvent, new MouseButtonEventHandler(ClearReadingSelectionOutside), true);
         AddHandler(Mouse.QueryCursorEvent, new QueryCursorEventHandler(RestrictedQueryCursor), true);
         Closed += (_, _) => SmoothScroll.Cancel(ContentScroller);
+    }
+
+    internal void ScheduleRecordsHeightUpdate()
+    {
+        if (recordsHeightQueued || closing) return;
+        recordsHeightQueued = true;
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            recordsHeightQueued = false;
+            UpdateRecordsMaxHeight();
+        }), DispatcherPriority.Loaded);
+    }
+
+    internal void UpdateRecordsMaxHeight()
+    {
+        if (closing || NavHome.IsChecked != true || !RecordsCard.IsVisible) return;
+        var viewport = ContentScroller.ViewportHeight;
+        if (viewport <= 0 || double.IsNaN(viewport)) return;
+        HomePanel.UpdateLayout();
+        var recordsTop = RecordsCard.TranslatePoint(new Point(0, 0), HomePanel).Y;
+        var chrome = RecordsCard.BorderThickness.Top + RecordsCard.BorderThickness.Bottom +
+                     ResultsBox.Padding.Top + ResultsBox.Padding.Bottom;
+        var clearance = HomePanel.Margin.Bottom + 4;
+        var verdict = RecordsHeightPolicy.Compute(
+            viewport,
+            recordsTop,
+            chrome,
+            clearance,
+            rememberedRecordsMaxHeight,
+            rememberForOverflow: !pickingContact && contactCards.Count > 0);
+        rememberedRecordsMaxHeight = verdict.RememberedMaxListHeight;
+        if (Math.Abs(Results.MaxHeight - verdict.MaxListHeight) > 0.5)
+            Results.MaxHeight = verdict.MaxListHeight;
     }
 
     private void UpdateInteractionRestrictions(bool active)

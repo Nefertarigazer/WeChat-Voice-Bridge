@@ -4,6 +4,25 @@
 
 ---
 
+## 1.8.4 开发中 · 节 2：朗读记录垃圾桶左移避让滚动条 + 自动扩展高度上限（2026-11-16）
+
+- **做了什么**：
+  - `src/VoiceBridge.App/MainWindow.xaml`：`ClearButton` 改为 `Margin="0,10,20,0"` 并设 `Panel.ZIndex="2"`，使按钮右侧（`639` DIP）与内部滚动条左侧（`644` DIP）留出 **5 DIP** 净空，彻底避开重合；`Results` 由固定 `Height="138"` 改为 `MinHeight="138"` + `ScrollViewer.CanContentScroll="False"` + `VerticalScrollBarVisibility="Auto"`；`ResultsEmpty` 改为 `Height="146"` 的居中容器，使空态与 138 DIP 列表态卡片同高（**148 DIP**）。
+  - 新增纯函数策略 `src/VoiceBridge.Core/RecordsHeightPolicy.cs` 并在 `MainWindow.Interaction.cs` 接入 `ScheduleRecordsHeightUpdate` / `UpdateRecordsMaxHeight`：
+    - 当内容超过默认高度时，记录框自动向下扩展至撑满首页剩余空间（保留 HomePanel 底部 16 DIP + 4 DIP 缓冲 ≈ **20.5 DIP** 美观间隙，确保首页 `ContentScroller.ScrollableHeight = 0`）。
+    - 当添加更多联系人导致首页自身需要滚动时，最大高度锁定在同会话记住的非滚动上限（或标定兜底上限 **237 DIP** 列表 / **247 DIP** 卡片，对应单联系人 940×780 满页高度）。
+  - 新增 `tests/VoiceBridge.Tests/RecordsHeightPolicyTests.cs` 5 项单测；在 `tools/DialogPreview` 新增 `--app-home` 覆盖 0/1/2/4 位联系人的空态与满载测试。
+- **实测数值（940×780 默认窗口，ContentScroller ViewportHeight = 744 DIP）**：
+  - 0 位联系人满载：`listH = 479`、`cardH = 489`、`bottomGap = 20.5`、`pageScroll = 0`。
+  - 1 位联系人满载：`listH = 237`、`cardH = 247`、`bottomGap = 20.5`、`pageScroll = 0`。
+  - 2 位联系人满载（精简卡 / Fish 3 行）：`listH = 235 / 227`、`cardH = 245 / 237`、`bottomGap = 20.5`、`pageScroll = 0`。
+  - 4 位联系人满载（首页滚动）：`listH = 237`、`cardH = 247`、`pageScroll = 269.5`。
+  - 垃圾桶按钮与滚动条：`ClearButton = 609..639`，`ScrollBar = 644..654`。
+- **验证**：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0 警告 0 错误、.NET **327/327 PASS**、Python 55（42 跳过）PASS；`DialogPreview --app-home` 全部断言 PASS 并核对截图。
+- **下一节**：节 3（朗读记录微信头像 + 语音气泡 + 居中灰字「拍一拍」风格系统提示重设计，及过渡提示去噪与自动淡出）。
+
+---
+
 ## 1.8.4 开发中 · 节 1：全应用主题色适配审计与修复（2026-11-16）
 
 - **做了什么**：

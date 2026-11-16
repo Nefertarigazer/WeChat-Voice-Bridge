@@ -417,6 +417,7 @@ public partial class MainWindow : Window
 
         if (trayStop != null) trayStop.Enabled = active || manualCancel != null;
         if (tray != null) tray.Text = "微信语音桥 · " + StatusTitle.Text;
+        ScheduleRecordsHeightUpdate();
     }
 
     private void AddResult(string line)

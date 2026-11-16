@@ -11,11 +11,14 @@
   - `VersionGate.cs` 进度条绑定 `Accent`/`Fill`（避免回退 WPF 默认亮绿）；`MainWindow.Updates.cs` `UpdateAction.Foreground` 改为 `SetResourceReference`；`ReleaseNotesDialog.xaml` 按钮文字改 `{DynamicResource WhiteText}`。
   - 为 `MainWindow` 增加纯内存离屏预览构造路径（跳过托盘/设置读写/目录索引/网络更新）并在 `tools/DialogPreview` 新增 `--app-settings`，已验证 6 套主题下的 API 按钮配色一致。
   - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **322/322**、Python **55**（42 跳过）。
+- **节 2 已完成**（垃圾桶左移 + 朗读记录自动扩展高度）：
+  - `ClearButton` 移至 `Margin="0,10,20,0"`（`609..639` DIP），与内部滚动条（`644..654` DIP）留出 5 DIP 间隙且置顶 `Panel.ZIndex="2"`；空态与默认列表同为卡片高 **148 DIP**（列表 `MinHeight=138`）。
+  - 新增 `src/VoiceBridge.Core/RecordsHeightPolicy.cs` 与 `MainWindow.Interaction.cs` `UpdateRecordsMaxHeight()`：内容超出默认高度后自动扩展至剩余视口（底留 ~20.5 DIP 间隙，首页 `ScrollableHeight=0`）；在 940×780 默认窗口下，1 人满载列表最大 **237 DIP**（卡片 **247 DIP**），2 人精简/Fish 3 行满载 **235 / 227 DIP**（卡片 **245 / 237 DIP**）；添加 3+ 联系人令首页滚动时锁定同一标定上限（同会话记住或兜底 **237 / 247 DIP**）。
+  - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **327/327**（含 5 项高度策略单测）、Python **55**（42 跳过）；`DialogPreview --app-home` 全部断言通过。
 - **待做**：
-  - 节 2：朗读记录右上角垃圾桶按钮左移避让滚动条；朗读记录高度超出默认后自动扩展至撑满首页（留少量间隙、首页不滚动），记录高度数值，并在多联系人首页滚动时将记录框最大高度锁定在该数值；
   - 节 3：朗读记录 1:1 微信头像+气泡 & 居中灰字「拍一拍」风格系统提示，结合苹果/鸿蒙审美打磨；仅最新消息保留「正在合成…」等过渡提示，新消息到来时清除前条过渡提示，且最新过渡提示显示几秒后自动消失；
-  - 节 4：全量验证 + 虚构聊天记录满载截图。
-- **续跑点**：从 `src/VoiceBridge.App/MainWindow.xaml` `RecordsCard`/`ClearButton`/`Results` 入手开始节 2。
+  - 节 4：全量验证 + 虚构聊天记录满载截图（单人/2人/多人滚动）。
+- **续跑点**：从创建消息记录模型与设计微信/苹果/鸿蒙气泡模板开始节 3。
 - **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的 1.8.2 进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---
