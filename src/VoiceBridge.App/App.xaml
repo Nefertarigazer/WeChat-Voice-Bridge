@@ -27,6 +27,11 @@
     <SolidColorBrush x:Key="UpdateInstallFill" Color="#0B8F66"/>
     <SolidColorBrush x:Key="UpdateInstallBorder" Color="#0A7C59"/>
     <SolidColorBrush x:Key="WhiteText" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ChatCanvasBg" Color="#F2F6F4"/>
+    <SolidColorBrush x:Key="ChatBubbleBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ChatBubbleBorder" Color="#E6EBE9"/>
+    <SolidColorBrush x:Key="ChatMetaInk" Color="#8C9490"/>
+    <SolidColorBrush x:Key="ChatPrivacyInk" Color="#5E5CE0"/>
 
     <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     <local:InverseBoolToVis x:Key="InverseBoolToVis"/>
@@ -981,20 +986,18 @@
         </Setter.Value>
       </Setter>
     </Style>
-    <!-- 朗读记录：不显示选中态 -->
+    <!-- 朗读记录：微信聊天画布流，不显示选中态与整行悬停底色 -->
     <Style x:Key="LogItem" TargetType="ListBoxItem">
       <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="ListBoxItem">
-            <Border x:Name="Root" Background="Transparent" CornerRadius="8" Padding="12,6" Margin="2,0">
+            <Border Background="Transparent" Padding="{TemplateBinding Padding}">
               <ContentPresenter/>
             </Border>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Root" Property="Background" Value="{DynamicResource Fill}"/>
-              </Trigger>
-            </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
       </Setter>

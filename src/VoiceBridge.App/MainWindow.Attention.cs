@@ -140,7 +140,7 @@ public partial class MainWindow
                 contact.AccountId, due.ConversationId, Direction.Incoming, true, spoken, 0,
                 Kind: MessageKind.Reminder, Cue: Cue(contact.Reminder.Sound));
             if (controller.Announce(reminder))
-                AddResult("提醒：" + shown);
+                AddSystemNotice("提醒：" + shown);
             else if (due.Continuous)
                 replies.Finished(due.ConversationId, now);
         }

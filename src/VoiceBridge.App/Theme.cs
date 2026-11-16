@@ -196,6 +196,13 @@ internal static class ThemePalette
         t["HintBorder"] = dark ? WithAlpha(Mix(card, label, 0.16), 0xC0) : WithAlpha(Mix(fillStrong, label, 0.12), 0x8C);
         t["HintText"] = Mix(label, secondary, 0.6);
 
+        // ---- chat records (WeChat × Apple × HarmonyOS)
+        t["ChatCanvasBg"] = dark ? Mix(page, card, 0.18) : Mix(fill, card, 0.28);
+        t["ChatBubbleBg"] = dark ? Mix(card, fillStrong, 0.28) : card;
+        t["ChatBubbleBorder"] = dark ? Mix(card, label, 0.11) : Mix(card, secondary, 0.14);
+        t["ChatMetaInk"] = Mix(secondary, C(b.Tertiary), 0.35);
+        t["ChatPrivacyInk"] = ModeColor(ModeKind.Privacy, dark);
+
         // ---- text
         t["Label"] = label;
         t["Secondary"] = secondary;

@@ -15,10 +15,13 @@
   - `ClearButton` 移至 `Margin="0,10,20,0"`（`609..639` DIP），与内部滚动条（`644..654` DIP）留出 5 DIP 间隙且置顶 `Panel.ZIndex="2"`；空态与默认列表同为卡片高 **148 DIP**（列表 `MinHeight=138`）。
   - 新增 `src/VoiceBridge.Core/RecordsHeightPolicy.cs` 与 `MainWindow.Interaction.cs` `UpdateRecordsMaxHeight()`：内容超出默认高度后自动扩展至剩余视口（底留 ~20.5 DIP 间隙，首页 `ScrollableHeight=0`）；在 940×780 默认窗口下，1 人满载列表最大 **237 DIP**（卡片 **247 DIP**），2 人精简/Fish 3 行满载 **235 / 227 DIP**（卡片 **245 / 237 DIP**）；添加 3+ 联系人令首页滚动时锁定同一标定上限（同会话记住或兜底 **237 / 247 DIP**）。
   - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **327/327**（含 5 项高度策略单测）、Python **55**（42 跳过）；`DialogPreview --app-home` 全部断言通过。
+- **节 3 已完成**（朗读记录微信风×苹果×鸿蒙重设计与过渡提示去噪）：
+  - `Theme.cs` 新增 `ChatCanvasBg`、`ChatBubbleBg`、`ChatBubbleBorder`、`ChatMetaInk`、`ChatPrivacyInk` 适配全 8 套主题；`MessageFeedPolicy.cs` + `RecordEntry.cs` + `MainWindow.Records.cs` + `MainWindow.xaml` 实现微信圆角方形头像、带无缝左三角尾翼的气泡文字、隐私小锁消息、居中「拍一拍」小灰字系统/时间/提醒提示，以及顶部滚动柔边渐隐。
+  - 过渡提示（「正在合成…」/「正在播放…」/「已朗读」）全局仅最新一条显示、新消息到来立即清除旧提示、最新提示显示 2.5–4 秒后自动平滑淡出。
+  - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **329/329**、Python **55**（42 跳过）；`DialogPreview --app-home` 全 PASS 并核对多主题/多联系人截图。
 - **待做**：
-  - 节 3：朗读记录 1:1 微信头像+气泡 & 居中灰字「拍一拍」风格系统提示，结合苹果/鸿蒙审美打磨；仅最新消息保留「正在合成…」等过渡提示，新消息到来时清除前条过渡提示，且最新过渡提示显示几秒后自动消失；
-  - 节 4：全量验证 + 虚构聊天记录满载截图（单人/2人/多人滚动）。
-- **续跑点**：从创建消息记录模型与设计微信/苹果/鸿蒙气泡模板开始节 3。
+  - 节 4：全量回归（含 `wx-multi` 58 项与旧模式回归检查）并生成完整测试截图供用户审阅。
+- **续跑点**：执行节 4 全量检查并检查所有最终截图文件。
 - **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的 1.8.2 进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---

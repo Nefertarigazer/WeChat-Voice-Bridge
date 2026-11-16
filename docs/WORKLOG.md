@@ -4,6 +4,20 @@
 
 ---
 
+## 1.8.4 开发中 · 节 3：朗读记录微信×苹果×鸿蒙重设计与过渡提示去噪（2026-11-16）
+
+- **做了什么**：
+  - 在 `src/VoiceBridge.App/Theme.cs`（及 `App.xaml` 后备键）新增 `ChatCanvasBg`、`ChatBubbleBg`、`ChatBubbleBorder`、`ChatMetaInk`、`ChatPrivacyInk` 五个全主题语义色；在浅色（默认/绿/粉/蓝）与深色（默认/绿/粉/蓝）下自动匹配柔光画布与高对比气泡。
+  - 在 `src/VoiceBridge.Core/MessageFeedPolicy.cs` 沉淀消息流分类与时间戳/生命周期纯逻辑，新增 `src/VoiceBridge.App/RecordEntry.cs` 与 `src/VoiceBridge.App/MainWindow.Records.cs`：
+    - 联系人新消息以时间顺序从上到下排列，**1:1 复刻微信圆角方形头像（34×34，圆角 6）+ 左侧微信气泡小三角无缝拼接气泡 + 昵称左对齐**；隐私模式或关闭原文预览时显示隐私靛蓝小锁图标与「发来一条新消息」，绝不泄露消息内容。
+    - 时间分隔（满 3 分钟插入居中灰字 `HH:mm`）、提醒/系统日志（如「提醒：…」「长文分为 N 段朗读」「已清空待播」）以微信「拍一拍」式居中小小灰字无气泡渲染；`LogItem` 取消整行悬停灰条。
+    - **过渡提示去噪与自动消失**：全列表同一时刻最多保留 **1 条**位于最底部的过渡提示（「正在合成…」→「正在播放…」→「已朗读」）；新消息一到立刻清除前一条消息的过渡提示，保证历史消息干净整洁；最新一条的过渡提示在显示 2.5–4 秒后平滑淡出消失；列表顶边在向上滚动时自动出现柔和渐隐（`OpacityMask`），避免气泡顶部被硬切。
+  - 新增 `tests/VoiceBridge.Tests/MessageFeedPolicyTests.cs` 2 项单测；`DialogPreview --app-home` 覆盖单人/2人/粉彩/深色/4人滚动、过渡提示唯一性、新消息清除旧提示、超时自动淡出及垃圾桶与滚动条净空校验。
+- **验证**：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0 警告 0 错误、.NET **329/329 PASS**、Python 55（42 跳过）PASS；`DialogPreview --app-home` 全部断言 PASS 并核对 5 张截图。
+- **下一节**：节 4（全量回归 + wx-multi 58 项等价性自检 + 整理最终多场景测试截图供用户查验）。
+
+---
+
 ## 1.8.4 开发中 · 节 2：朗读记录垃圾桶左移避让滚动条 + 自动扩展高度上限（2026-11-16）
 
 - **做了什么**：

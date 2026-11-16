@@ -570,9 +570,62 @@ void RenderAppSettings()
 
 void RenderAppHome()
 {
-    var sampleMessages = Enumerable.Range(1, 20)
-        .Select(i => $"19:{10 + i:00}:00   妈妈：第 {i} 条测试消息，用来观察朗读记录在超过默认高度后自动扩展、出现滚动条以及与右上角垃圾桶按钮的相对位置。")
-        .ToArray();
+    ImageSource MakeDemoAvatar(Color top, Color bottom, string glyph)
+    {
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            var bg = new LinearGradientBrush(top, bottom, new Point(0, 0), new Point(1, 1));
+            dc.DrawRectangle(bg, null, new Rect(0, 0, 72, 72));
+            var ft = new FormattedText(
+                glyph,
+                System.Globalization.CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight,
+                new Typeface(new FontFamily("Microsoft YaHei UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal),
+                32,
+                Brushes.White,
+                1.0);
+            dc.DrawText(ft, new Point((72 - ft.Width) / 2, (72 - ft.Height) / 2 - 1));
+        }
+        var bmp = new RenderTargetBitmap(72, 72, 96, 96, PixelFormats.Pbgra32);
+        bmp.Render(visual);
+        bmp.Freeze();
+        return bmp;
+    }
+
+    var mamaAvatar = MakeDemoAvatar(Color.FromRgb(0xF5, 0x9E, 0x0B), Color.FromRgb(0xEA, 0x58, 0x0C), "妈");
+    var linAvatar = MakeDemoAvatar(Color.FromRgb(0x38, 0xBD, 0xF8), Color.FromRgb(0x25, 0x63, 0xEB), "林");
+
+    void PopulateDemoConversation(MainWindow main, bool fullConversation)
+    {
+        var t0 = new DateTimeOffset(2026, 11, 16, 19, 18, 0, TimeSpan.FromHours(8));
+        main.AddChatMessage("peer_0", "妈妈", "妈", mamaAvatar, "晚上回家吃饭吗？我炖了排骨汤，还买了一盒草莓。", false, t0);
+        // Simulate first message going through synthesis -> playback -> read; next message must clear it.
+        main.ShowTransitionalHint("正在合成…", TimeSpan.FromSeconds(4));
+        main.ShowTransitionalHint("正在播放…", TimeSpan.FromSeconds(4));
+        main.ShowTransitionalHint("已朗读", TimeSpan.FromSeconds(2.5));
+        Check(main.RecordItems.Count(r => r.IsTransitional) == 1, "single transitional hint while active");
+
+        main.AddChatMessage("peer_1", "小林", "林", linAvatar, "文件我已经发你微信邮箱了，有空看下第 3 页数据对不对。", false, t0.AddMinutes(1));
+        Check(main.RecordItems.Count(r => r.IsTransitional) == 0, "new incoming message clears previous transitional hint");
+
+        if (!fullConversation)
+        {
+            main.ShowTransitionalHint("正在合成…", TimeSpan.FromSeconds(4));
+            return;
+        }
+
+        main.AddChatMessage("peer_0", "妈妈", "妈", mamaAvatar, "记得顺路把楼下快递柜里的包裹拿回来。", false, t0.AddMinutes(2));
+        main.AddSystemNotice("提醒：小林在 3 分钟前给您发了 1 条消息", false, t0.AddMinutes(4));
+        main.AddChatMessage("peer_1", "小林", "林", linAvatar, "发来一条新消息", true, t0.AddMinutes(5));
+        main.AddChatMessage("peer_0", "妈妈", "妈", mamaAvatar, "汤快好了，大概二十分钟后开饭。", false, t0.AddMinutes(6));
+        main.AddChatMessage("peer_1", "小林", "林", linAvatar, "发来一条新消息", true, t0.AddMinutes(7));
+        main.AddSystemNotice("提醒：小林在 3 分钟前给您发了 1 条消息", false, t0.AddMinutes(8));
+        main.AddChatMessage("peer_0", "妈妈", "妈", mamaAvatar, "对了，明早九点的会改到十点半了，在三楼大会议室，别跑空啦。", false, t0.AddMinutes(9));
+        main.ShowTransitionalHint("正在合成…", TimeSpan.FromSeconds(4));
+        Check(main.RecordItems.Count(r => r.IsTransitional) == 1 && main.RecordItems[^1].IsTransitional,
+            "only latest message shows transitional hint at bottom");
+    }
 
     LocalSettings SettingsWithContacts(int count, bool multiModel)
     {
@@ -581,7 +634,7 @@ void RenderAppHome()
         var endpoint = multiModel ? "https://api.fish.audio" : "https://api.example.com";
         var providers = new List<SpeechProviderProfile>
         {
-            new() { Id = "p1", Kind = kind, Preset = multiModel ? "fish" : "openai", Name = "语音服务", Vendor = multiModel ? "fish" : "openai", Endpoint = endpoint, Enabled = true, CredentialId = "k1", AvailableModels = models }
+            new() { Id = "p1", Kind = kind, Preset = multiModel ? "fish" : "openai", Name = "语音服务", Vendor = multiModel ? "fish" : "openai", Endpoint = endpoint, Enabled = true, CredentialId = "k1", Model = models[0], AvailableModels = models }
         };
         var voices = new List<VoiceProfile>
         {
@@ -608,18 +661,16 @@ void RenderAppHome()
         };
     }
 
-    foreach (var (label, count, multiModel, fillMessages) in new[]
+    foreach (var (label, count, multiModel, mode, theme) in new[]
     {
-        ("home-0-empty", 0, false, false),
-        ("home-0-full", 0, false, true),
-        ("home-1-empty", 1, true, false),
-        ("home-1-full", 1, true, true),
-        ("home-2compact-full", 2, false, true),
-        ("home-2fish-empty", 2, true, false),
-        ("home-2fish-full", 2, true, true),
-        ("home-4fish-full", 4, true, true),
+        ("home-1-default-light", 1, true, "full", new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
+        ("home-2-filled-light", 2, false, "full", new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
+        ("home-2-filled-pink", 2, false, "full", new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Pink }),
+        ("home-2-filled-dark", 2, false, "full", new AppearanceSettings { Mode = ThemeMode.Dark, Tint = ThemeTint.Default }),
+        ("home-4-scroll-light", 4, true, "full", new AppearanceSettings { Mode = ThemeMode.Light, Tint = ThemeTint.Default }),
     })
     {
+        Theme.Apply(theme);
         var main = new MainWindow(SettingsWithContacts(count, multiModel))
         {
             WindowStartupLocation = WindowStartupLocation.Manual,
@@ -630,18 +681,11 @@ void RenderAppHome()
         };
         main.Show();
         Pump(300);
-        if (fillMessages)
-        {
-            foreach (var msg in sampleMessages)
-            {
-                main.Results.Items.Add(msg);
-            }
-            main.ClearButton.IsEnabled = true;
-            main.ResultsBox.Visibility = Visibility.Visible;
-            main.ResultsEmpty.Visibility = Visibility.Collapsed;
-            main.UpdateRecordsMaxHeight();
-            Pump(250);
-        }
+        main.SetPreviewAvatar(0, mamaAvatar);
+        main.SetPreviewAvatar(1, linAvatar);
+        PopulateDemoConversation(main, mode == "full");
+        main.UpdateRecordsMaxHeight();
+        Pump(350);
         main.UpdateLayout();
         var top = main.RecordsCard.TranslatePoint(new Point(0, 0), main.HomePanel).Y;
         var cardH = main.RecordsCard.ActualHeight;
@@ -656,18 +700,26 @@ void RenderAppHome()
         var barVisible = bar is not null && bar.IsVisible;
         var barRect = barVisible ? new Rect(bar!.TranslatePoint(new Point(), main.RecordsCard), new Size(bar.ActualWidth, bar.ActualHeight)) : Rect.Empty;
         Console.WriteLine($"[{label}] viewport={scrollerH:0.##} top={top:0.##} cardH={cardH:0.##} listH={listH:0.##} maxH={maxH:0.##} pageScroll={pageScrollable:0.##} bottomGap={bottomGap:0.##} clear={clearRect.Left:0.##}..{clearRect.Right:0.##} bar={(barVisible ? $"{barRect.Left:0.##}..{barRect.Right:0.##}" : "hidden")}");
-        if (label != "home-4fish-full")
+        if (count <= 2)
             Check(pageScrollable < 0.5, $"[{label}] Home page must NOT scroll (ScrollableHeight={pageScrollable:0.##})");
         else
-            Check(pageScrollable > 0.5, $"[{label}] 4 contacts Home page DOES scroll (ScrollableHeight={pageScrollable:0.##})");
+            Check(pageScrollable > 0.5, $"[{label}] {count} contacts Home page DOES scroll (ScrollableHeight={pageScrollable:0.##})");
         if (barVisible)
             Check(clearRect.Right + 2 <= barRect.Left, $"[{label}] ClearButton ({clearRect.Right:0.##}) must sit left of ScrollBar ({barRect.Left:0.##})");
-        if (label == "home-4fish-full")
+        if (count > 2)
         {
             main.ContentScroller.ScrollToEnd();
             Pump(200);
         }
         Save(main, Path.Combine(output, label + ".png"));
+
+        // Verify transitional hint auto-expires after a few seconds on the first test run.
+        if (label == "home-1-default-light")
+        {
+            main.ShowTransitionalHint("已朗读", TimeSpan.FromMilliseconds(200));
+            Pump(900);
+            Check(main.RecordItems.Count(r => r.IsTransitional) == 0, "[auto-expire] transitional hint disappears after timer elapses");
+        }
         main.Close();
         Pump(100);
     }

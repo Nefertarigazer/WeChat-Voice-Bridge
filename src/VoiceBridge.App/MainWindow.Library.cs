@@ -297,7 +297,11 @@ public partial class MainWindow
         {
             var profile = card.Profile;
             var avatar = await avatars.GetAsync(profile.AccountId, profile.ConversationId, profile.AvatarUrl, avatarStop.Token);
-            if (!closing) card.Avatar = avatar;
+            if (!closing)
+            {
+                card.Avatar = avatar;
+                RefreshRecordAvatars(card);
+            }
         }
         catch (Exception) { /* An optional portrait never prevents reading messages. */ }
     }
@@ -771,7 +775,7 @@ public partial class MainWindow
     {
         if (!ready) return;
         controller.SetPreview(PreviewBox.IsChecked == true);
-        Results.Items.Clear();
+        ClearRecords();
         ScheduleSave();
         Render();
     }

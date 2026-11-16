@@ -190,6 +190,7 @@ public partial class MainWindow : Window
         noticeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         noticeTimer.Tick += (_, _) => notice = null;
         InitializeInteraction();
+        InitializeRecords();
 
         if (!previewOnly)
         {
@@ -211,9 +212,7 @@ public partial class MainWindow : Window
             {
                 if (stamp != controller.ActiveStamp || controller.Status.State != BridgeState.Running)
                     return;
-                var line = Friendly(item);
-                if (line != null)
-                    AddResult(line);
+                HandleProcessingEvent(item);
             });
         };
         InitializeAttention();
@@ -353,7 +352,7 @@ public partial class MainWindow : Window
         {
             source = null;
             livePlayer = null;
-            Results.Items.Clear();
+            ClearRecords();
             // Replies are invisible while stopped, so nothing can stay "waiting".
             replies.Clear();
         }
@@ -407,10 +406,10 @@ public partial class MainWindow : Window
         StartButton.IsEnabled = !closing && state.State != BridgeState.Stopping;
         PreviewButton.Content = manualCancel != null ? "取消试听" : "试听最后一条消息";
         PreviewButton.IsEnabled = !active && !closing && !string.IsNullOrWhiteSpace(selectedId);
-        var noResults = Results.Items.Count == 0;
-        ClearButton.IsEnabled = !noResults;
-        ResultsBox.Visibility = noResults ? Visibility.Collapsed : Visibility.Visible;
-        ResultsEmpty.Visibility = noResults ? Visibility.Visible : Visibility.Collapsed;
+        if (state.State == BridgeState.Running && state.Activity == "正在合成" &&
+            recordItems.Count > 0 && recordItems[^1].IsMessage)
+            ShowTransitionalHint("正在合成…", MessageFeedPolicy.SynthesizingHintLifetime);
+        SyncRecordsVisibility();
         DeleteVoiceButton.IsEnabled = VoicePresetBox.SelectedItem is string voice &&
             userVoices.Any(item => item.Name == voice);
         DeleteKeyButton.IsEnabled = userKeys.Count > 0 && (!active || userKeys.Count > 1);
@@ -419,32 +418,6 @@ public partial class MainWindow : Window
         if (tray != null) tray.Text = "微信语音桥 · " + StatusTitle.Text;
         ScheduleRecordsHeightUpdate();
     }
-
-    private void AddResult(string line)
-    {
-        Results.Items.Insert(0, $"{DateTime.Now:HH:mm:ss}   {line}");
-        while (Results.Items.Count > 40)
-            Results.Items.RemoveAt(Results.Items.Count - 1);
-        ResultsBox.Visibility = Visibility.Visible;
-        ResultsEmpty.Visibility = Visibility.Collapsed;
-    }
-
-    private string? Friendly(ProcessingEvent item) => item.Stage switch
-    {
-        "文件通知 → 接收" => null,
-        "查询请求 → 接收" => null,
-        "已接收" => contactCards.FirstOrDefault(card => card.Profile.ConversationId == item.ConversationId) is var card
-            ? (card?.Name ?? "对方") + (item.Preview == null || PreviewBox.IsChecked != true ||
-                card?.Profile.Privacy is { Enabled: true } ? "发来一条新消息" : "：" + item.Preview)
-            : "对方发来一条新消息",
-        "收到首个有效音频帧" => "正在合成…",
-        "已向音频设备提交播放" => "正在播放…",
-        "播放完成" => "已朗读",
-        "已清空待播队列" => "已清空待播",
-        "跳过超长消息" => "这条消息太长，已跳过。",
-        "队列已满，跳过新消息" => "待播的太多了，已跳过一条。",
-        _ => item.Stage
-    };
 
     // -------------------------------------------------------------- contact
 
@@ -733,7 +706,7 @@ public partial class MainWindow : Window
             fixture.Warning += text => Dispatcher.InvokeAsync(() =>
             {
                 if (ReferenceEquals(source, fixture) && controller.Status.State == BridgeState.Running)
-                    AddResult(text);
+                    AddSystemNotice(text, isAlert: true);
             });
             fixture.ContactsReady += contacts => Dispatcher.InvokeAsync(() =>
             {
@@ -743,11 +716,12 @@ public partial class MainWindow : Window
                     var card = contactCards.FirstOrDefault(item => item.Profile.ConversationId == contact.Id);
                     if (card == null) continue;
                     card.UpdateIdentity(contact.Name, contact.Wechat, contact.AvatarUrl);
+                    RefreshRecordAvatars(card);
                     _ = FetchAvatarAsync(card);
                 }
                 ScheduleSave();
             });
-            Results.Items.Clear();
+            ClearRecords();
             searchTimer.Stop();
             searchCancel?.Cancel();
             notice = null;
@@ -790,7 +764,7 @@ public partial class MainWindow : Window
     /// <summary>The icon in the records card clears the list itself, not the queue.</summary>
     private void ClearClick(object sender, RoutedEventArgs e)
     {
-        Results.Items.Clear();
+        ClearRecords();
         Render();
     }
 
@@ -1585,6 +1559,8 @@ public partial class MainWindow : Window
             updateBreath?.Stop();
             pillBreath?.Stop();
             reminderTimer?.Stop();
+            transitionalTimer?.Stop();
+            transitionalFadeTimer?.Stop();
             updateHttp.Dispose();
             http.Dispose();
             return;
