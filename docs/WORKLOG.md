@@ -4,6 +4,18 @@
 
 ---
 
+## 1.8.5 · 节 9：打包与提交发布前检查（2026-11-16）
+
+- **打包**：`Publish.ps1 -OutputDirectory artifacts\win-x64-v1.8.5 -ZipPath artifacts\WeChat-Voice-Bridge-V1.8.5-win-x64.zip` 与 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.8.5`。两道 Clean-payload 门禁均 **PASS**（1993 文件，无本机设置、无真实 Key，比对了 1 个本机凭据）。
+- **台账**：
+  - payload `artifacts\win-x64-v1.8.5\`，ProductVersion `1.8.5+1831c36c36da8001d248c6a05bd59e1a4cbd99e1`（与提交 `1831c36` 一致），FileVersion `1.8.5.0`，1993 文件 / 224,162,106 字节。
+  - ZIP `artifacts\WeChat-Voice-Bridge-V1.8.5-win-x64.zip` = **92,214,917** 字节 / `81a597d2c49182803f99f8319cb76efe1584208e40837c8d91a4d34530706bd6`。
+  - Setup `artifacts\WeChat-Voice-Bridge-V1.8.5-Setup.exe` = **67,136,269** 字节 / `aa39c3dbcf4886f1c6d60a3a43a26af784b4c9117de67fed5ca5e8439e1b5074`。
+- **包内抽查**（解压至 OneDrive 外部临时目录，查完已删）：`worker\audited_wechat_keys.py`、`WeChatVoiceBridge.dll` 与仓库/payload 逐字节一致；`WeChatVoiceBridge.exe` ProductVersion 为 `1.8.5+1831c36…`。
+- **下一步**：推送 `origin/master` 后，通过 `muse-call` 发 `publish-release` 发布单给 Muse（只走 frozen 6 字段契约）。
+
+---
+
 ## 1.8.5 · 节 8：升版本到 1.8.5、写更新说明并全量验证（2026-11-16）
 
 - 用户发话「联系缪斯推新吧」，按流程在打包前先升版本并完成全量回归。

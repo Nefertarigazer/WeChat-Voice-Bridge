@@ -27,8 +27,13 @@
   - 加固 `WeChatSession.DetectClientVersion` 与 `Bind` 对多 `Weixin` 辅助进程异常/无版本句柄的容错（`4.1.11–4.2.0.52` 范围与提取参数零改动）。
   - 全量验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **335/335 PASS**、Python **55**（42 跳过）；wx-multi **58/58 PASS**；`DialogPreview`（`--gate`、`--app-settings`、`--app-home`）全部 PASS。
 - **节 8 已完成**（升版本到 1.8.5 + 全量验证）：`Directory.Build.props` → **1.8.5**；`ReleaseHistory.cs` 新增 1.8.5 条目；`PROJECT-BRIEF.md` §4 同步；`Verify-Source.ps1` PASS、`Test.ps1` 0/0 / .NET **335/335** / Python **55**、wx-multi **58/58**、`DialogPreview 1.8.5` 全 PASS。
-- **待做**：节 9 打包 `1.8.5` ZIP + Setup、推送 `origin/master`、经 `muse-call` 联系 Muse 发布并做独立公网复核。
-- **续跑点**：执行 `Publish.ps1` 与 `Build-Installer.ps1` 构建 `1.8.5` 出厂产物。
+- **节 9 已完成**（1.8.5 已打包，源码 `1831c36`）：
+  - payload `artifacts\win-x64-v1.8.5\`，ProductVersion `1.8.5+1831c36c36da8001d248c6a05bd59e1a4cbd99e1`，1993 文件 / 224,162,106 字节。
+  - ZIP `artifacts\WeChat-Voice-Bridge-V1.8.5-win-x64.zip` = **92,214,917** 字节 / `81a597d2c49182803f99f8319cb76efe1584208e40837c8d91a4d34530706bd6`。
+  - Setup `artifacts\WeChat-Voice-Bridge-V1.8.5-Setup.exe` = **67,136,269** 字节 / `aa39c3dbcf4886f1c6d60a3a43a26af784b4c9117de67fed5ca5e8439e1b5074`。
+  - 两道 Clean-payload PASS；抽查解包字节一致。
+- **待做**：推送 `origin/master` 后，经 `muse-call` 发 `1.8.5` 发布单请 Muse 上线，完成后独立公网复核、同步 README 下载链接/徽章并回执 Muse。
+- **续跑点**：推送确认一致后发起 `muse-call` 发布单。
 - **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---
