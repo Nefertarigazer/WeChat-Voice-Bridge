@@ -4,7 +4,7 @@
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 1.8.5 · 最大化高度缩放、提醒逻辑与门禁/更新/微信多进程体检（2026-11-16，待验收，未升版本号/未打包）
+## 1.8.5 · 最大化高度缩放、提醒逻辑与门禁/更新/微信多进程体检（2026-11-16，打包发布中）
 
 - **节 1 已完成**（全应用主题色适配审计与修复）：
   - `App.xaml` `ProviderEnableButton`（「使用中」按钮）与 `MainWindow.xaml` `ProvidersList` 行首圆点从 `Positive` 改为 `{DynamicResource Accent}`，跟随默认/浅绿/浅粉/浅蓝主题切换。
@@ -26,8 +26,9 @@
   - 修复 `MainWindow.Updates.cs` 门禁探测等待正在进行的下载、以及本地缓存包被删除后卡死在「重启安装更新」按钮的两处死胡同；`UpdateClient.cs` 增加断点续传 `HTTP 416` 自动清残片重下。
   - 加固 `WeChatSession.DetectClientVersion` 与 `Bind` 对多 `Weixin` 辅助进程异常/无版本句柄的容错（`4.1.11–4.2.0.52` 范围与提取参数零改动）。
   - 全量验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **335/335 PASS**、Python **55**（42 跳过）；wx-multi **58/58 PASS**；`DialogPreview`（`--gate`、`--app-settings`、`--app-home`）全部 PASS。
-- **待做**：等用户查看优化后的截图与各项结论后，若确认发版再升版本号（1.8.5）、补 `ReleaseHistory`、打包交 Muse 发布。
-- **续跑点**：1.8.4 已于 `ae661ef` 上线；本轮续改（节 5–7）全部代码改动、单测与多场景截图已落地并推送 `origin/master`，工作区干净。
+- **节 8 已完成**（升版本到 1.8.5 + 全量验证）：`Directory.Build.props` → **1.8.5**；`ReleaseHistory.cs` 新增 1.8.5 条目；`PROJECT-BRIEF.md` §4 同步；`Verify-Source.ps1` PASS、`Test.ps1` 0/0 / .NET **335/335** / Python **55**、wx-multi **58/58**、`DialogPreview 1.8.5` 全 PASS。
+- **待做**：节 9 打包 `1.8.5` ZIP + Setup、推送 `origin/master`、经 `muse-call` 联系 Muse 发布并做独立公网复核。
+- **续跑点**：执行 `Publish.ps1` 与 `Build-Installer.ps1` 构建 `1.8.5` 出厂产物。
 - **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---
