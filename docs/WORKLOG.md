@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-11-16 · v1.8.4 发布回执（Muse）
+
+- **发布方式**：OpenCode 桌面端（Gemini 4 Hydrogen）完成节 1–4 的首页消息记录 UI 改造（主题色跟随、记录删除按钮避让滚动条、朗读记录自动扩展高度、微信风重设计与过渡提示去噪）；用户 2026-11-16 审阅效果与截图后拍板「直接发」，Muse 接手节 5–7（升版本、全量验证、打包）并完成发布。
+- **全量验证**：`Verify-Source.ps1` PASS；`Test.ps1`（SDK 8.0.427）Release 编译 0 警告 0 错误，.NET **329/329 PASS**，Python **55 项**（13 过 + 42 跳过，与基线一致）PASS；wx-multi 58 项自检全过。打包两道 Clean-payload 门禁均 PASS。
+- **上传与校验**：分块上传 32 块 ALLDONE，A1 拼装后 sha256 与打包台账逐字一致：ZIP `72d4fe0ee68aeef393cb1f2472632932e8ebf94e52ac66d9b6e151f32e517089`（92,211,444 字节）；Setup `8f6e6031e20763a8f291c0fd3cb594e5d74cf03aa437304f548a67fb36dad9b1`（67,131,681 字节）。公网完整下载 ZIP 重算 SHA-256 与清单一致；ZIP 与 Setup 公网 HEAD 均 200 且长度一致。
+- **清单切换**：`latest.json` 已切到 1.8.4（`publishedAt 2026-11-16T10:12:48Z`；旧清单备份 `latest.json.bak-1.8.3`），**仍是冻结的 6 字段**（version / publishedAt / url / sha256 / size / notes），未加 `wechatSupport`。已按 1.8.2 及更早客户端的严格规则（恰好 6 字段）与现行 `UpdateManifest.Parse` 双路校验，线上清单实测均可解析。
+- **README**：版本徽章与两个下载链接已更新到 1.8.4（本提交）。
+- **GitHub Release**：`v1.8.4` 已创建，附同名 ZIP 与 Setup 两个资产。
+
+---
 ## 1.8.4 · 节 7：打包（2026-11-16）
 
 - **打包**：`Publish.ps1 -Dotnet $sdk -OutputDirectory artifacts\win-x64-v1.8.4 -ZipPath artifacts\WeChat-Voice-Bridge-V1.8.4-win-x64.zip`，再 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.8.4`。Clean-payload **PASS**（1993 文件，无本机设置、无真实 Key，比对了 1 个本机凭据），发布与安装包两道门禁均过。
