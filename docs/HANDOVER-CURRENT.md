@@ -1,10 +1,10 @@
-# 微信语音桥 · 当前交接（2026-11-16，1.8.4 已上线；1.8.5 开发中）
+# 微信语音桥 · 当前交接（2026-11-16，源码与线上均为 v1.8.5）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录在本机的 `.workbuddy/memory/`（2026-11-12 起不入库）。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 1.8.5 · 最大化高度缩放、提醒逻辑与门禁/更新/微信多进程体检（2026-11-16，打包发布中）
+## 1.8.5 · 最大化高度缩放、提醒逻辑与门禁/更新/微信多进程体检（2026-11-16，已上线）
 
 - **节 1 已完成**（全应用主题色适配审计与修复）：
   - `App.xaml` `ProviderEnableButton`（「使用中」按钮）与 `MainWindow.xaml` `ProvidersList` 行首圆点从 `Positive` 改为 `{DynamicResource Accent}`，跟随默认/浅绿/浅粉/浅蓝主题切换。
@@ -32,8 +32,11 @@
   - ZIP `artifacts\WeChat-Voice-Bridge-V1.8.5-win-x64.zip` = **92,214,917** 字节 / `81a597d2c49182803f99f8319cb76efe1584208e40837c8d91a4d34530706bd6`。
   - Setup `artifacts\WeChat-Voice-Bridge-V1.8.5-Setup.exe` = **67,136,269** 字节 / `aa39c3dbcf4886f1c6d60a3a43a26af784b4c9117de67fed5ca5e8439e1b5074`。
   - 两道 Clean-payload PASS；抽查解包字节一致。
-- **待做**：推送 `origin/master` 后，经 `muse-call` 发 `1.8.5` 发布单请 Muse 上线，完成后独立公网复核、同步 README 下载链接/徽章并回执 Muse。
-- **续跑点**：推送确认一致后发起 `muse-call` 发布单。
+- **节 10 已完成**（**1.8.5 已上线，公网复核通过**）：
+  - 发布单 `codex_20261116_144103_deddb5`（`status=ok`），随后独立公网复核发现清单多带第 7 字段 `"setup"`，经沟通单 `codex_20261116_144908_54b3e2` 请 Muse 立即撤下并恢复标准 6 字段。
+  - 二次独立公网复核通过：`latest.json` HTTP 200 且恰好 6 字段、ZIP/Setup HEAD 200 且长度一致、完整下载 ZIP 重算 SHA-256 一致；`README.md` 徽章与两个下载链接已更新至 `1.8.5`。
+- **待做**：无待办；注意以后发版向 `muse-call` 传 `-SetupPath` 时务必提醒或确认流水线不往 `latest.json` 写入第 7 字段 `"setup"`。
+- **续跑点**：1.8.5 发布闭环已完成，工作区干净且已同步 `origin/master`。
 - **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---

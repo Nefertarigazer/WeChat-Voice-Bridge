@@ -58,12 +58,12 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 6. **干完活自己 `git commit`**（用户采纳的 Muse 习惯）。仓库有 remote `origin = https://github.com/Nefertarigazer/WeChat-Voice-Bridge.git`，`master` 跟踪 `origin/master`。
 7. 用户偏好：中文交流；Muse 的恶作剧/吓唬内容要清掉，但**工作、发布、工程记录一律保留**。
 
-## 4. 当前版本与线上状态（2026-11-16，1.8.5 打包中）
+## 4. 当前版本与线上状态（2026-11-16，1.8.5 已上线）
 
 | 项 | 值 |
 | --- | --- |
-| 线上正式版 | **1.8.4**（`publishedAt=2026-11-16T10:12:48Z`，旧清单备份 `latest.json.bak-1.8.3`；ZIP `72d4fe0ee68aeef393cb1f2472632932e8ebf94e52ac66d9b6e151f32e517089` / 92,211,444 字节） |
-| 源码版本 | `Directory.Build.props` = **1.8.5**（程序集 1.8.5.0）。在 1.8.4 微信式气泡基础上优化最大化/多联系人动态扩展高度与未超行隐藏滚动条、提醒严格从开启时刻起算并防误报且作废已读排队提醒、以及门禁退出/断点续传 416/缓存包缺失/微信多进程容错；微信支持范围仍为 4.1.11–4.2.0.52 |
+| 线上正式版 | **1.8.5**（发布单 `codex_20261116_144103_deddb5`，`publishedAt=2026-11-16T13:44:59Z`，旧清单备份 `latest.json.bak-1.8.4`；修正清单多出 `"setup"` 字段单 `codex_20261116_144908_54b3e2`） |
+| 源码版本 | `Directory.Build.props` = **1.8.5**（程序集 `1.8.5.0`、`1.8.5+1831c36c36da8001d248c6a05bd59e1a4cbd99e1`）。1.8.5 ZIP `92,214,917` 字节 / `81a597d2c49182803f99f8319cb76efe1584208e40837c8d91a4d34530706bd6`；Setup `67,136,269` 字节 / `aa39c3dbcf4886f1c6d60a3a43a26af784b4c9117de67fed5ca5e8439e1b5074` |
 | 1.8.2 ZIP | 92,189,654 字节 / `a0d1aea0630d6a1e0ca41b75dd0aff8716bfe160613694e3de218c1b9d547ad6` |
 | 1.8.2 Setup | 67,121,939 字节 / `e9ec6ea486652499ca920aca4670e13daeb0af29056bcd203215f2fead96d6fb` |
 | 1.8.1 ZIP | 92,189,272 字节 / `ca2b07fea5d8d619bd12b5412fad315d29536ec60d1fac5af775e2b92e24fbd0` |

@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-11-16 · v1.8.5 发布回执与独立公网复核（OpenCode × Muse）
+
+- **发布单** `codex_20261116_144103_deddb5`：14:41 发出，先 `info` 后于 13:45:04Z 回 `status=ok`。Muse 侧校验 ZIP（`81a597d2…` / 92,214,917）与 Setup（`aa39c3db…` / 67,136,269）申报 = PC 实测 = 服务器落地三方一致，并切换 `latest.json`（旧清单备份 `latest.json.bak-1.8.4`）。
+- **独立公网复核发现并立即修正清单字段事故**（沟通单 `codex_20261116_144908_54b3e2`）：
+  - 初次独立 GET `https://iceland.de5.net/voice-bridge/latest.json` 时发现流水线因 `-SetupPath` 额外写入了第 7 个字段 `"setup"`，与 `UpdateManifest.Parse`（1.8.0–1.8.2 要求 6 字段；1.8.3–1.8.5 只容忍可选 `wechatSupport`）冲突，会导致已装客户端报「更新清单字段不正确。」。
+  - 已第一时间通过 `muse-call` 通知 Muse；Muse 于 13:53Z 从 `latest.json` 撤掉 `"setup"` 字段恢复标准 6 字段（带 `"setup"` 备份为服务器 `latest.json.bak-1.8.5-setup`），`V1.8.5-Setup.exe` 保留不动。
+- **二次独立公网复核（全部 PASS）**：
+  - `GET https://iceland.de5.net/voice-bridge/latest.json` HTTP 200：**恰好 6 个字段**（`version, publishedAt, url, sha256, size, notes`），`version="1.8.5"`、`publishedAt="2026-11-16T13:44:59Z"`、`size=92214917`、`sha256="81a597d2c49182803f99f8319cb76efe1584208e40837c8d91a4d34530706bd6"`、`notes` 205 字中文 UTF-8 正常。
+  - `HEAD` ZIP HTTP 200（`92214917` 字节）、`HEAD` Setup HTTP 200（`67136269` 字节）。
+  - 完整下载公网 ZIP 至 `Temp\opencode\verify-1.8.5.zip` 重算大小与 SHA-256 与清单逐字一致（复核后已删除）。
+- **收尾**：`README.md` 版本徽章与两个下载链接已更新至 `1.8.5`；桌面快捷方式未动；提交并推送后通过 `muse-call` 回执 Muse 确认。
+
+---
+
 ## 1.8.5 · 节 9：打包与提交发布前检查（2026-11-16）
 
 - **打包**：`Publish.ps1 -OutputDirectory artifacts\win-x64-v1.8.5 -ZipPath artifacts\WeChat-Voice-Bridge-V1.8.5-win-x64.zip` 与 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.8.5`。两道 Clean-payload 门禁均 **PASS**（1993 文件，无本机设置、无真实 Key，比对了 1 个本机凭据）。
