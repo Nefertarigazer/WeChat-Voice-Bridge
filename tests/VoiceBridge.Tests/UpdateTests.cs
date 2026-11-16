@@ -135,6 +135,36 @@ public sealed class UpdateTests : IDisposable
     }
 
     [Fact]
+    public async Task RangeNotSatisfiable416DiscardsStalePartialAndRetriesFreshDownload()
+    {
+        var bytes = new byte[120_000];
+        Random.Shared.NextBytes(bytes);
+        var manifest = Manifest(bytes);
+        Directory.CreateDirectory(Updates);
+        var partialPath = Path.Combine(Updates, UpdateClient.ArchiveName(manifest) + ".part");
+        File.WriteAllBytes(partialPath, [1, 2, 3, 4, 5]);
+
+        var requests = 0;
+        using var http = new HttpClient(new MockHttp((request, _) =>
+        {
+            requests++;
+            if (requests == 1)
+            {
+                Assert.NotNull(request.Headers.Range);
+                return new(HttpStatusCode.RequestedRangeNotSatisfiable);
+            }
+            Assert.Null(request.Headers.Range);
+            return new(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) };
+        }));
+
+        var archive = await new UpdateClient(http, "1.2.0")
+            .DownloadAsync(manifest, Updates, new RecordedProgress(), CancellationToken.None);
+        Assert.Equal(2, requests);
+        Assert.Equal(bytes, File.ReadAllBytes(archive));
+        Assert.Empty(Directory.GetFiles(Updates, "*.part"));
+    }
+
+    [Fact]
     public async Task VerifiedDownloadSurvivesReopenAndWorksOffline()
     {
         byte[] bytes = [9, 8, 7, 6];

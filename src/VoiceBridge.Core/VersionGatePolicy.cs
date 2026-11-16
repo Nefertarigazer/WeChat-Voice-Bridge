@@ -121,9 +121,13 @@ public static class VersionGatePolicy
     /// dismissal. The two exceptions are a remediation the user already picked
     /// (updating the bridge, or opening the WeChat download page) and a finished
     /// install handoff, which needs this process gone so the files can be replaced.
+    /// An explicit click on "退出应用" always quits, even after a remediation check.
     /// </summary>
     public static VersionGateExit OnDialogClosed(bool remediationChosen, bool installStarted) =>
-        installStarted || !remediationChosen ? VersionGateExit.ExitApplication : VersionGateExit.KeepRunning;
+        OnDialogClosed(remediationChosen, installStarted, explicitQuit: false);
+
+    public static VersionGateExit OnDialogClosed(bool remediationChosen, bool installStarted, bool explicitQuit) =>
+        explicitQuit || installStarted || !remediationChosen ? VersionGateExit.ExitApplication : VersionGateExit.KeepRunning;
 
     private static bool IsNewer(string? publishedVersion, string? appVersion)
     {

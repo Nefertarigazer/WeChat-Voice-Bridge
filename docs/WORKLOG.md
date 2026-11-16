@@ -43,6 +43,24 @@
 - **下一节**：发布前全量验证 → 打包 → 发布。
 
 ---
+## 1.8.4 开发中 · 节 7：版本门禁、更新流程与微信多进程全面体检修复 + 全量回归（2026-11-16）
+
+- **做了什么**（逐项排查死局、死胡同与边界竞态）：
+  1. **门禁「退出应用」按钮失灵死局**（`src/VoiceBridge.Core/VersionGatePolicy.cs`、`src/VoiceBridge.App/VersionGate.cs`）：点过「更新语音桥」再点显式「退出应用」按钮时，原 `OnClosing` 会把 `Exit` 覆写为 `KeepRunning` 导致应用不退出；新增 `explicitQuit` 通道，显式点击「退出应用」必退出，点窗口右上角 `×` 仍维持既有语义；同时在弹出模态框前校验宿主窗口仍加载且可见。
+  2. **门禁断网重装已缓存包死胡同**（`src/VoiceBridge.App/VersionGate.cs`）：`UpdateBridge` 在线上检查异常时补充回查本地已下载并校验通过的缓存包（`ReadPendingAsync` + `GetCachedAsync`），不再因为临时断网而阻塞本地已就绪更新包的安装。
+  3. **门禁探测被大文件下载阻塞与缺失缓存包死胡同**（`src/VoiceBridge.App/MainWindow.Updates.cs`）：`ProbeUpdateForGateAsync` 改为仅等待正在进行的版本检查（`updateChecking`），已有结论或正在下载安装包时立即返回而不阻塞门禁弹窗；`InstallUpdateAsync` 启动前及异常恢复时检查本地安装包是否存在（捕获 `FileNotFoundException` / `DirectoryNotFoundException`），若外部删包则清回下载态而非卡死在「重启安装更新」；交接启动后不再多画一帧启用按钮。
+  4. **断点续传 HTTP 416 死循环**（`src/VoiceBridge.Core/UpdateClient.cs`）：当服务器对 `.part` 断点续传返回 `416 RequestedRangeNotSatisfiable` 时，删除失效 `.part` 并立即从字节 0 重新完整下载，避免永久报错卡死。
+  5. **微信多进程枚举脆弱点**（`src/VoiceBridge.WeChat/WeChatSession.cs`）：`DetectClientVersion` 与 `Bind` 遍历全部 `Weixin` 进程时单进程读取 `StartTime`/`MainModule` 抛异常或首进程无版本信息会跳过而不是中断或误报未运行，保持支持区间 `4.1.11–4.2.0.52` 及提取逻辑一字未动。
+- **单测与回归**：
+  - `tests/VoiceBridge.Tests/VersionGateTests.cs` 新增「点过更新语音桥后点击退出应用仍退出」用例；`tests/VoiceBridge.Tests/UpdateTests.cs` 新增 `RangeNotSatisfiable416DiscardsStalePartialAndRetriesFreshDownload`。
+  - `scripts/Verify-Source.ps1`：`PASS`。
+  - `scripts/Test.ps1`：Release 编译 **0 警告 0 错误**，.NET **335/335 PASS**，Python **55**（13 过 + 42 跳过）PASS。
+  - `tests/wx-multi/test_audited_wechat_keys.py`：**58/58 PASS**；`git diff 5c12db1 -- worker/` 为空。
+  - `DialogPreview`（`--gate`、`--app-settings`、`--app-home`）：全部 `ALL PASS`。
+- **未做**：按流程未升版本号、未打包或推线上，等待用户最终验收后决定发版时机。
+
+---
+
 ## 1.8.4 开发中 · 节 6：提醒逻辑优化（从开启那一刻起算 + 防误触 + 作废过期排队提醒）（2026-11-16）
 
 - **做了什么**：

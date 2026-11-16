@@ -120,20 +120,34 @@ public sealed class UpdateClient(HttpClient http, string currentVersion)
                 progress.Report(100);
                 return verified;
             }
-            using var request = Request(manifest.Url);
-            if (offset > 0) request.Headers.Range = new RangeHeaderValue(offset, null);
-            using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
-            response.EnsureSuccessStatusCode();
-            if (response.StatusCode == HttpStatusCode.PartialContent)
+            HttpResponseMessage? response = null;
+            for (var attempt = 0; attempt < 2; attempt++)
             {
-                var range = response.Content.Headers.ContentRange;
+                using var request = Request(manifest.Url);
+                if (offset > 0) request.Headers.Range = new RangeHeaderValue(offset, null);
+                response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+                if (offset > 0 && response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
+                {
+                    response.Dispose();
+                    response = null;
+                    File.Delete(partial);
+                    offset = 0;
+                    continue;
+                }
+                break;
+            }
+            using var finalResponse = response!;
+            finalResponse.EnsureSuccessStatusCode();
+            if (finalResponse.StatusCode == HttpStatusCode.PartialContent)
+            {
+                var range = finalResponse.Content.Headers.ContentRange;
                 if (range?.Unit != "bytes" || range.From != offset || range.Length != manifest.Size ||
                     range.To != manifest.Size - 1)
                     throw new InvalidDataException("更新服务返回了无效的续传范围，请重新下载。");
             }
-            else if (response.StatusCode == HttpStatusCode.OK) offset = 0; // Server ignored Range: replace, never append.
+            else if (finalResponse.StatusCode == HttpStatusCode.OK) offset = 0; // Server ignored Range: replace, never append.
             else throw new InvalidDataException("更新服务返回了不支持的下载响应。");
-            if (response.Content.Headers.ContentLength is long length && length != manifest.Size - offset)
+            if (finalResponse.Content.Headers.ContentLength is long length && length != manifest.Size - offset)
                 throw new InvalidDataException("更新包大小与清单不符。");
 
             progress.Report((int)(offset * 100 / manifest.Size));
@@ -141,7 +155,7 @@ public sealed class UpdateClient(HttpClient http, string currentVersion)
                 FileAccess.Write, FileShare.None, 64 * 1024, useAsync: true))
             {
                 output.Position = offset;
-                await using var body = await response.Content.ReadAsStreamAsync(timeout.Token);
+                await using var body = await finalResponse.Content.ReadAsStreamAsync(timeout.Token);
                 var buffer = new byte[64 * 1024];
                 var lastPercent = (int)(offset * 100 / manifest.Size);
                 while (true)

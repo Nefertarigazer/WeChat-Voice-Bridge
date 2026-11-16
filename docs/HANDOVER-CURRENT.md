@@ -21,9 +21,13 @@
 - **节 6 已完成**（提醒逻辑全面优化）：
   - `MainWindow.Attention.cs` + `ReplyTracker.cs`：从开启「提醒模式」那一刻起才开始计数与计时，开启前的旧消息不再计入；开关切换或移除联系人时 `Reset` 清零等待状态；`Reconfigure` 保证在设置框调整间隔/开启持续提醒时不瞬间误响；`SessionController.cs` 增加 `IsStaleReminder`，已回复/点「✓ 已读」/关提醒后队列中未播出的提醒自动作废不响铃。
   - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **333/333**（含 3 项提醒新用例）、Python **55**（42 跳过）。
-- **待做**：
-  - 节 7：版本门禁、应用内更新与微信适配全面体检修复（`退出应用`按钮被 `OnClosing` 覆盖、门禁离线兜底缓存包、下载中弹门禁不阻塞、`HTTP 416` 断点续传死局、`InstallUpdateAsync` 缺失缓存死局、`WeChatSession` 多进程枚举防崩）+ 全量回归与截图检查。
-- **续跑点**：从 `src/VoiceBridge.Core/VersionGatePolicy.cs`、`src/VoiceBridge.App/VersionGate.cs`、`src/VoiceBridge.Core/UpdateClient.cs`、`src/VoiceBridge.WeChat/WeChatSession.cs` 入手开始节 7。
+- **节 7 已完成**（版本门禁、应用内更新与微信多进程全面体检修复 + 全量回归）：
+  - 修复 `VersionGateDialog` 点过「更新语音桥」后再点「退出应用」被 `OnClosing` 覆写为不退出的逻辑死局，并补充门禁框断网兜底安装已校验缓存包、弹出前宿主可见性校验。
+  - 修复 `MainWindow.Updates.cs` 门禁探测等待正在进行的下载、以及本地缓存包被删除后卡死在「重启安装更新」按钮的两处死胡同；`UpdateClient.cs` 增加断点续传 `HTTP 416` 自动清残片重下。
+  - 加固 `WeChatSession.DetectClientVersion` 与 `Bind` 对多 `Weixin` 辅助进程异常/无版本句柄的容错（`4.1.11–4.2.0.52` 范围与提取参数零改动）。
+  - 全量验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **335/335 PASS**、Python **55**（42 跳过）；wx-multi **58/58 PASS**；`DialogPreview`（`--gate`、`--app-settings`、`--app-home`）全部 PASS。
+- **待做**：等用户查看优化后的截图与各项结论后，若确认发版再升版本号（1.8.4）、补 `ReleaseHistory`、打包交 Muse 发布。
+- **续跑点**：节 1–7 全部代码改动、单测与多场景截图已落地并推送 `origin/master`，工作区干净。
 - **不做的事**：未完成并经用户确认前不打包、不发版；不动提取参数与微信支持范围（仍 4.1.11–4.2.0.52）；不碰本机用户运行中的 1.8.2 进程与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---

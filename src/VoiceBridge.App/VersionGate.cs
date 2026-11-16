@@ -106,6 +106,7 @@ internal static class VersionGate
 
     private static bool Show(Window owner, string raw, Version? parsed, UpdateManifest? manifest, string? detail)
     {
+        if (!owner.IsLoaded || !owner.IsVisible) return false;
         var decision = VersionGatePolicy.Decide(raw, parsed,
             WeChatSession.MinSupportedVersion, WeChatSession.MaxSupportedVersion,
             manifest?.WeChatSupport, UpdateProcess.CurrentVersion, manifest?.Version);
@@ -113,7 +114,7 @@ internal static class VersionGate
         var dialog = new VersionGateDialog(decision, detail) { Owner = owner };
         dialog.ShowDialog();
         if (dialog.Exit == VersionGateExit.ExitApplication)
-            Application.Current.Shutdown();
+            Application.Current?.Shutdown();
         return true;
     }
 }
@@ -131,6 +132,7 @@ internal sealed class VersionGateDialog : Window
     /// <summary>True once updating the bridge or opening the WeChat page was chosen.</summary>
     private bool remediationChosen;
     private bool installStarted;
+    private bool explicitQuit;
     private bool busy;
 
     /// <summary>What the caller must do after the box closes.</summary>
@@ -210,7 +212,7 @@ internal sealed class VersionGateDialog : Window
         {
             Content = "退出应用", Style = (Style)FindResource("SecondaryButton"), Margin = new(0, 0, 10, 0)
         };
-        quit.Click += (_, _) => { Exit = VersionGateExit.ExitApplication; Close(); };
+        quit.Click += (_, _) => { explicitQuit = true; Exit = VersionGateExit.ExitApplication; Close(); };
         AutomationProperties.SetHelpText(quit, "关闭这个提示就退出应用");
         actions.Children.Add(quit);
         // Only a client below the supported band can be fixed by updating WeChat;
@@ -281,7 +283,21 @@ internal sealed class VersionGateDialog : Window
         {
             var client = new UpdateClient(http, UpdateProcess.CurrentVersion);
             SetStatus("正在检查更新…");
-            var manifest = await client.CheckAsync(cancellation.Token);
+            UpdateManifest? manifest;
+            try
+            {
+                manifest = await client.CheckAsync(cancellation.Token);
+            }
+            catch (Exception error) when (error is HttpRequestException or TimeoutException or IOException)
+            {
+                // If an update archive was already downloaded and verified earlier, let the
+                // user finish installing it even while offline.
+                var pending = await client.ReadPendingAsync(UpdateProcess.DirectoryPath, cancellation.Token);
+                var cached = pending is null ? null
+                    : await client.GetCachedAsync(pending, UpdateProcess.DirectoryPath, cancellation.Token);
+                if (cached is null) throw;
+                manifest = pending;
+            }
             if (manifest is null)
             {
                 SetStatus($"语音桥已是最新（v{UpdateProcess.CurrentVersion}），暂时没有可安装的更新。" +
@@ -379,7 +395,7 @@ internal sealed class VersionGateDialog : Window
     protected override void OnClosing(CancelEventArgs e)
     {
         if (!installStarted)
-            Exit = VersionGatePolicy.OnDialogClosed(remediationChosen, installStarted);
+            Exit = VersionGatePolicy.OnDialogClosed(remediationChosen, installStarted, explicitQuit);
         // Stops a download that is still running; its partial file stays resumable.
         cancellation.Cancel();
         base.OnClosing(e);

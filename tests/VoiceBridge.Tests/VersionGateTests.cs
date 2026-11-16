@@ -164,15 +164,21 @@ public sealed class VersionGateTests
 
     [Theory]
     // Closing the box with nothing chosen quits, by the owner's explicit decision.
-    [InlineData(false, false, VersionGateExit.ExitApplication)]
+    [InlineData(false, false, false, VersionGateExit.ExitApplication)]
     // After picking 更新语音桥 or 更新微信 the close is an ordinary dismissal.
-    [InlineData(true, false, VersionGateExit.KeepRunning)]
+    [InlineData(true, false, false, VersionGateExit.KeepRunning)]
+    // Explicitly clicking "退出应用" must always exit even after checking for updates.
+    [InlineData(true, false, true, VersionGateExit.ExitApplication)]
     // A started install handoff needs this process gone so files can be replaced.
-    [InlineData(true, true, VersionGateExit.ExitApplication)]
-    [InlineData(false, true, VersionGateExit.ExitApplication)]
+    [InlineData(true, true, false, VersionGateExit.ExitApplication)]
+    [InlineData(false, true, false, VersionGateExit.ExitApplication)]
     public void ClosingTheBoxQuitsUnlessARemediationWasChosen(bool chosen, bool installStarted,
-        VersionGateExit expected) =>
-        Assert.Equal(expected, VersionGatePolicy.OnDialogClosed(chosen, installStarted));
+        bool explicitQuit, VersionGateExit expected)
+    {
+        if (!explicitQuit)
+            Assert.Equal(expected, VersionGatePolicy.OnDialogClosed(chosen, installStarted));
+        Assert.Equal(expected, VersionGatePolicy.OnDialogClosed(chosen, installStarted, explicitQuit));
+    }
 
     [Fact]
     public void ManifestAcceptsTheOptionalSupportBand()

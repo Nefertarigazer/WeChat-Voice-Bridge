@@ -49,18 +49,21 @@ public sealed record WeChatSession(string Root, string Account, string Directory
         var processes = Process.GetProcessesByName("Weixin");
         try
         {
+            string? fallbackRaw = null;
             foreach (var process in processes)
             {
                 try
                 {
                     if (process.HasExited) continue;
-                    var raw = process.MainModule?.FileVersionInfo.FileVersion;
-                    System.Version.TryParse(raw, out var parsed);
-                    return (raw, parsed);
+                    var raw = process.MainModule?.FileVersionInfo.FileVersion?.Trim();
+                    if (string.IsNullOrEmpty(raw)) continue;
+                    if (System.Version.TryParse(raw, out var parsed))
+                        return (raw, parsed);
+                    fallbackRaw ??= raw;
                 }
-                catch (Exception) { /* A process may exit between the enumeration and the read. */ }
+                catch (Exception) { /* A process may exit or deny access between enumeration and read. */ }
             }
-            return (null, null);
+            return (fallbackRaw, null);
         }
         finally { foreach (var process in processes) process.Dispose(); }
     }
@@ -97,21 +100,34 @@ public sealed record WeChatSession(string Root, string Account, string Directory
         var processes = Process.GetProcessesByName("Weixin");
         try
         {
-            var running = processes.Where(p => !p.HasExited).OrderBy(p => p.StartTime).ToArray();
-            if (running.Length == 0)
+            var running = new List<(Process Process, DateTime StartTime, string FileName, string? FileVersion)>();
+            foreach (var process in processes)
+            {
+                try
+                {
+                    if (process.HasExited) continue;
+                    var module = process.MainModule;
+                    if (module is null) continue;
+                    running.Add((process, process.StartTime, module.FileName, module.FileVersionInfo.FileVersion?.Trim()));
+                }
+                catch (Exception) { /* Skip exiting or inaccessible helper processes. */ }
+            }
+            if (running.Count == 0)
                 throw new BridgeException("请先打开并登录 Windows 微信。");
-            var module = running[0].MainModule;
-            var fileVersion = module?.FileVersionInfo.FileVersion;
-            System.Version.TryParse(fileVersion, out var parsed);
+            running.Sort((a, b) => a.StartTime.CompareTo(b.StartTime));
+            var primary = running.FirstOrDefault(item => !string.IsNullOrEmpty(item.FileVersion));
+            if (primary.Process is null) primary = running[0];
+            System.Version.TryParse(primary.FileVersion, out var parsed);
             // An unreadable module version is a hard refusal too: never fall back to
             // the old single-version check and never let a null Version reach ToString().
-            if (module is null || !IsSupportedVersion(parsed))
+            if (!IsSupportedVersion(parsed))
                 throw new BridgeException(
                     $"不支持此版本。真实微信模式当前支持微信 Windows {MinSupportedVersion} 至 " +
                     $"{MaxSupportedVersion}（含两端及其间全部小版本；4.1.11/4.1.15.99 为区间覆盖·待实测）。" +
-                    $"检测到版本：{fileVersion ?? "未知"}。");
-            var pids = running.Where(p => p.MainModule?.FileName == module.FileName).Select(p => p.Id).ToArray();
-            return new(root, account, directory, pids, running[0].StartTime, parsed!.ToString());
+                    $"检测到版本：{primary.FileVersion ?? "未知"}。");
+            var pids = running.Where(item => string.Equals(item.FileName, primary.FileName, StringComparison.OrdinalIgnoreCase))
+                .Select(item => item.Process.Id).ToArray();
+            return new(root, account, directory, pids, primary.StartTime, parsed!.ToString());
         }
         finally { foreach (var process in processes) process.Dispose(); }
     }

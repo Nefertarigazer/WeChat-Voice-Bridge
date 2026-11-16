@@ -22,6 +22,7 @@ public partial class MainWindow
     private string? stagedUpdate;
     private CancellationTokenSource? updateCancel;
     private Task? updateWork;
+    private bool updateChecking;
     private bool updateChecked;
     private bool restartConfirmed;
     private bool updateHandoff;
@@ -105,12 +106,14 @@ public partial class MainWindow
     /// </summary>
     internal async Task<UpdateManifest?> ProbeUpdateForGateAsync()
     {
-        if (updateWork is { } running)
+        if (availableUpdate is not null || updateChecked)
+            return availableUpdate;
+        if (updateChecking && updateWork is { } running)
         {
             try { await running; }
             catch (Exception) { /* No verdict then: the gate still explains the refusal. */ }
         }
-        else if (!updateChecked && !closing)
+        else if (!updateChecked && !closing && updateWork is null)
         {
             await RunUpdateAsync(CheckUpdateAsync);
         }
@@ -119,11 +122,16 @@ public partial class MainWindow
 
     private async Task CheckUpdateAsync(CancellationToken cancellationToken)
     {
+        updateChecking = true;
         try
         {
             await CheckUpdateCoreAsync(cancellationToken);
         }
-        finally { updateChecked = true; }
+        finally
+        {
+            updateChecking = false;
+            updateChecked = true;
+        }
     }
 
     private async Task CheckUpdateCoreAsync(CancellationToken cancellationToken)
@@ -206,6 +214,13 @@ public partial class MainWindow
 
     private async Task InstallUpdateAsync(CancellationToken cancellationToken)
     {
+        if (string.IsNullOrEmpty(verifiedUpdate) || !File.Exists(verifiedUpdate))
+        {
+            verifiedUpdate = null;
+            DeleteUpdateStage();
+            UpdateStatus.Text = "本地更新包已不存在，请重新下载。";
+            return;
+        }
         if (!ConfirmUpdateRestart())
             return;
 
@@ -232,7 +247,7 @@ public partial class MainWindow
             UpdateProgress.IsIndeterminate = false;
             UpdateCancelButton.Visibility = Visibility.Collapsed;
         }
-        catch (InvalidDataException)
+        catch (Exception error) when (error is InvalidDataException or FileNotFoundException or DirectoryNotFoundException)
         {
             DeleteUpdateArchive();
             DeleteUpdateStage();
@@ -266,8 +281,11 @@ public partial class MainWindow
         {
             restartConfirmed = false;
             closing = false;
-            if (!updateHandoff) saveTimer.Start();
-            Render();
+            if (!updateHandoff)
+            {
+                saveTimer.Start();
+                Render();
+            }
         }
 
         if (updateHandoff)
