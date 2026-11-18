@@ -4,6 +4,23 @@
 
 ---
 
+## 1.8.6 · 节 3：升版本号到 1.8.6、新增更新说明并完成全量回归（2026-11-18）
+
+- **做了什么**：
+  - `Directory.Build.props` 升至 **1.8.6**（实测 `FileVersion 1.8.6.0`、`ProductVersion 1.8.6+7317718…`）。
+  - `src/VoiceBridge.App/ReleaseHistory.cs` 在首位新增 `1.8.6` 条目「适配微信 4.2.0.53 与更新检查兼容」三条：支持范围扩至 `4.1.11 至 4.2.0.53`、`4.2.0.53` 本机 26 个数据库通过 page1 HMAC 校验（结构/布局/掩码/偏移与 4.2.0.13、4.2.0.52 一致）、以及更新清单未知字段忽略（来自 `e3eb174`）与启动门禁叠窗/多进程排序修复。`1.8.5` 及更早条目一字未改。
+  - `docs/PROJECT-BRIEF.md` §4 同步当前线上版 `1.8.5`、源码版本 `1.8.6`（未发版）。
+- **验证**：
+  - `scripts/Verify-Source.ps1`：`PASS`。
+  - `scripts/Test.ps1 -Dotnet $sdk`：Release 编译 **0 警告 0 错误**，.NET **355/355 PASS**，Python **55**（13 过 + 42 跳过基线）PASS。
+  - 内置 Python 3.12 + `worker/deps` 全量跑 `tests\python`：**55/55 PASS（0 跳过）**。
+  - `tests/wx-multi/test_audited_wechat_keys.py`（内置 Python 3.12）：**58/58 PASS**；`tests/wx-multi/slice/` 零改动；`worker/audited_wechat_keys.py` 提取常量/掩码/偏移零改动。
+  - `tools/DialogPreview`（`1.8.6` 更新说明、`--gate`、`--app-home`、`--app-settings`）：全部 `ALL PASS`（`1.8.6` 更新说明自然撑开不截断、使用说明 19 个服务标签齐全、5 种门禁状态全部显示 `4.1.11 至 4.2.0.53`）。
+- **未做**：按工作纪律暂未打包、未发版、未更新 `README.md` 下载链接（仍指向已上线的 `1.8.5`）、未动桌面快捷方式与用户运行中的实例；待用户确认效果后决定是否打包上线。
+- **阻塞**：无。
+
+---
+
 ## 1.8.6 · 节 2：用户可见支持范围文案与文档同步（2026-11-18）
 
 - **做了什么**：

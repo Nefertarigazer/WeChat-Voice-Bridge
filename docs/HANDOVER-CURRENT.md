@@ -1,10 +1,10 @@
-# 微信语音桥 · 当前交接（2026-11-18，源码适配微信 4.2.0.53 进行中；线上仍为 v1.8.5）
+# 微信语音桥 · 当前交接（2026-11-18，源码 v1.8.6 已适配微信 4.2.0.53 待确认；线上仍为 v1.8.5）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录在本机的 `.workbuddy/memory/`（2026-11-12 起不入库）。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 1.8.6 · 适配微信 Windows 4.2.0.53 与启动门禁竞态修复（2026-11-18，进行中）
+## 1.8.6 · 适配微信 Windows 4.2.0.53 与启动门禁竞态修复（2026-11-18，源码与全量验证完成，待用户确认后打包发布）
 
 - **节 1 已完成**（4.2.0.53 只读实测 + 放行上限更新 + 启动门禁竞态/进程顺序修复）：
   - 对本机运行中的微信 `4.2.0.53`（5 进程，主进程 PID `19560`）做只读探针：现行 `Config.Cipher` 参数得到 **70 个候选**、账号下 **26/26 数据库**通过 page1 HMAC（32B 密钥），`contact.db` 与 4 个消息分片表结构、zstd 压缩、引用回复与回复游标均一致，**提取参数一处未动**。可选的 `MASTER_CFG_PROFILES`（`extract_master_key_from_cfg`，非主扫描路径）在 `4.2.0.53` 返回 `None`（cfg 锚点漂移），上限保留 `(4, 2, 0, 52)` 不虚标。
@@ -14,10 +14,13 @@
 - **节 2 已完成**（用户可见范围文案与文档同步）：
   - `PythonFixtureSource.cs` / `WeChatDirectory.cs` 的 `unsupported_version` 文案、`README.md` 微信徽章与正文/英文摘要、`docs/user-guide.md` 版本表、`docs/compatibility.md`、`docs/troubleshooting.md`、`tools/DialogPreview` 门禁样例、`HANDOVER-CURRENT.md` 边界段均已同步至 `4.1.11–4.2.0.53`（`README.md` 应用版本徽章与下载链接保留 `1.8.5`，未发版不改）。
   - 验证：`dotnet build -c Release` 0/0、`Verify-Source.ps1` PASS。
-- **待做**：
-  - 节 3：升版本号至 `1.8.6`、编写 `ReleaseHistory.cs` 条目并完成全量回归（含 `DialogPreview`）。
-- **续跑点**：正在推进 节 3（升版本与全量回归）。
-- **不做的事**：未完成并经用户确认前不打包、不发版、不改 `README.md` 下载链接与版本徽章（线上仍是 `1.8.5`）、不动提取常量/掩码/偏移、不碰用户运行中的 `artifacts\win-x64-v1.5.1\WeChatVoiceBridge.exe` 与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
+- **节 3 已完成**（升版本号到 `1.8.6`、新增更新说明并全量回归）：
+  - `Directory.Build.props` → **1.8.6**（`FileVersion 1.8.6.0`）；`src/VoiceBridge.App/ReleaseHistory.cs` 新增 `1.8.6` 条目；`docs/PROJECT-BRIEF.md` §4 同步。
+  - 全量验证：`Verify-Source.ps1` PASS；`Test.ps1` 编译 0/0、.NET **355/355 PASS**、Python **55**（内置全量 **55/55 PASS，0 跳过**）；wx-multi **58/58 PASS**；`DialogPreview`（`1.8.6`、`--gate`、`--app-home`、`--app-settings`）全部 `ALL PASS`。
+- **新版开发软件位置**：`src\VoiceBridge.App\bin\Release\net8.0-windows\WeChatVoiceBridge.exe`（内置 `runtime\`、`worker\deps\`、`worker\tts-deps\` 均已就位）。
+- **待做**：等用户检视/确认后，再按发版流程打包（`Publish.ps1` + `Build-Installer.ps1`）、经 `muse-call` 发 `publish-voicebridge` 单（保持严格 6 字段 `latest.json`）、公网复核并更新 `README.md` 下载链接。
+- **续跑点**：工作区干净且已同步 `origin/master`，源码与全量验证全部完成。
+- **不做的事**：未经用户明确发话前不打包、不发版、不改 `README.md` 下载链接与版本徽章（线上仍是 `1.8.5`）、不改桌面快捷方式、不动提取常量/掩码/偏移、不碰用户运行中的 `artifacts\win-x64-v1.5.1\WeChatVoiceBridge.exe` 与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---
 
