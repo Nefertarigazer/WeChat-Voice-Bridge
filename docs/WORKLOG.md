@@ -4,6 +4,17 @@
 
 ---
 
+## 2026-11-18 · v1.8.6 发布回执与独立公网复核（OpenCode × Muse）
+
+- **发布单** `codex_20261118_222950_0b8caf` 恢复执行并正式发布成功（`replied_at=2026-11-18T22:04:20Z`，`status=ok`）。Muse 侧校验 ZIP（`55333dc98734416dcfdc1f1e1db8302db22348e756b46fac3d55550bc3bea1c1` / `92,215,170` 字节）与 Setup（`aba5228041010db0cf5dc36af4ebd28dbdb9c27831caf95b73d6e0ba5d99792f` / `67,136,609` 字节）申报 = PC 实测 = 服务器落地三方一致，`latest.json` 切换至 `1.8.6`（旧清单备份 `latest.json.bak-1.8.5`）；官网 `https://iceland.de5.net/` 下载页也同步更新至 `1.8.6`。
+- **独立公网复核（全部 PASS）**：
+  - `GET https://iceland.de5.net/voice-bridge/latest.json` HTTP 200：**严格 6 个字段**（`version, publishedAt, url, sha256, size, notes`），`version="1.8.6"`、`publishedAt="2026-11-18T22:04:12Z"`、`size=92215170`、`sha256="55333dc98734416dcfdc1f1e1db8302db22348e756b46fac3d55550bc3bea1c1"`、`notes` 184 字中文 UTF-8 正常，无多余扩展字段。
+  - `HEAD` ZIP HTTP 200（`92215170` 字节）、`HEAD` Setup HTTP 200（`67136609` 字节）。
+  - **完整下载验证**：公网完整下载 `WeChat-Voice-Bridge-V1.8.6-win-x64.zip` 与 `WeChat-Voice-Bridge-V1.8.6-Setup.exe` 至 `Temp\opencode`，重算字节数与 SHA-256 均与本地产物逐字一致（临时文件已删除）。
+- **收尾**：`README.md` 版本徽章与两个下载链接已更新至 `1.8.6`；桌面快捷方式未动；提交并推送文档后通过 `muse-call` 带 commit 号向 Muse 发确认回执闭环。
+
+---
+
 ## 1.8.6 · 节 5（在途）：Muse 发布单发出后因服务重启挂起，待用户与 Muse 指示恢复（2026-11-18）
 
 - **发布单** `codex_20261118_222950_0b8caf`（`22:29:50 +01:00` 发出）：

@@ -58,17 +58,18 @@ $root = 'D:\OneDrive\文档\ChatGPT\微信语音'
 6. **干完活自己 `git commit`**（用户采纳的 Muse 习惯）。仓库有 remote `origin = https://github.com/Nefertarigazer/WeChat-Voice-Bridge.git`，`master` 跟踪 `origin/master`。
 7. 用户偏好：中文交流；Muse 的恶作剧/吓唬内容要清掉，但**工作、发布、工程记录一律保留**。
 
-## 4. 当前版本与线上状态（2026-11-18，1.8.5 已上线，源码 1.8.6 适配微信 4.2.0.53 未发版）
+## 4. 当前版本与线上状态（2026-11-18，1.8.6 已上线）
 
 | 项 | 值 |
 | --- | --- |
-| 线上正式版 | **1.8.5**（发布单 `codex_20261116_144103_deddb5`，`publishedAt=2026-11-16T13:44:59Z`，旧清单备份 `latest.json.bak-1.8.4`；修正清单多出 `"setup"` 字段单 `codex_20261116_144908_54b3e2`） |
-| 源码版本 | `Directory.Build.props` = **1.8.6**（适配微信 `4.1.11–4.2.0.53` + 清单未知字段忽略 + 启动门禁竞态修复；尚未打包发版）。上版 1.8.5 ZIP `92,214,917` 字节 / `81a597d2c49182803f99f8319cb76efe1584208e40837c8d91a4d34530706bd6`；Setup `67,136,269` 字节 / `aa39c3dbcf4886f1c6d60a3a43a26af784b4c9117de67fed5ca5e8439e1b5074` |
+| 线上正式版 | **1.8.6**（发布单 `codex_20261118_222950_0b8caf`，`publishedAt=2026-11-18T22:04:12Z`，旧清单备份 `latest.json.bak-1.8.5`） |
+| 源码版本 | `Directory.Build.props` = **1.8.6**（程序集 `1.8.6.0`、`1.8.6+23bb762ab89b29ab969511622c93e61d4a2d4e73`）。1.8.6 ZIP `92,215,170` 字节 / `55333dc98734416dcfdc1f1e1db8302db22348e756b46fac3d55550bc3bea1c1`；Setup `67,136,609` 字节 / `aba5228041010db0cf5dc36af4ebd28dbdb9c27831caf95b73d6e0ba5d99792f` |
+| 1.8.5 ZIP / Setup | `92,214,917` 字节 / `81a597d2c49182803f99f8319cb76efe1584208e40837c8d91a4d34530706bd6`；Setup `67,136,269` 字节 / `aa39c3dbcf4886f1c6d60a3a43a26af784b4c9117de67fed5ca5e8439e1b5074` |
 | 1.8.2 ZIP | 92,189,654 字节 / `a0d1aea0630d6a1e0ca41b75dd0aff8716bfe160613694e3de218c1b9d547ad6` |
 | 1.8.2 Setup | 67,121,939 字节 / `e9ec6ea486652499ca920aca4670e13daeb0af29056bcd203215f2fead96d6fb` |
 | 1.8.1 ZIP | 92,189,272 字节 / `ca2b07fea5d8d619bd12b5412fad315d29536ec60d1fac5af775e2b92e24fbd0` |
 | 1.8.1 Setup | 67,121,299 字节 / `d8ce0b7c61edcfffe09a0b44d6d1e1be2a9321f7055c268070ffa9b4b4025ef2` |
-| 公网复核 | 清单 200（六字段齐全、notes 109 字正常 UTF-8 中文）、ZIP 与 Setup HEAD 200 且长度一致、**完整下载 ZIP 重算 SHA-256 一致** |
+| 公网复核 | 清单 200（严格 6 字段齐全、notes 184 字正常 UTF-8 中文）、ZIP 与 Setup HEAD 200 且长度一致、**完整下载 ZIP 与 Setup 重算 SHA-256 一致** |
 | 桌面快捷方式 | `D:\OneDrive\桌面\微信语音桥.lnk` → `artifacts\win-x64-v1.4.7-r3\WeChatVoiceBridge.exe`，**仍刻意保持 1.4.7**，让线上版本严格大于桌面版，用户能亲自点一次更新实测 |
 | 上一版 1.8.0 ZIP | 92,188,901 字节 / `3548a75646c6fc05bef293426e43b3cfc444681e1eb0a0e5422ac8776d55bb10`（发布单 `codex_20261112_020446_0bf7a9`） |
 | 上一版 1.8.0 Setup | 67,120,906 字节 / `de8532a06f1015e94ea6f1d7255694b8ffa922abc5cd3b19278d003c857cb551` |

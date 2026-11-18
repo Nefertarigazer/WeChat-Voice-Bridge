@@ -1,10 +1,10 @@
-# 微信语音桥 · 当前交接（2026-11-18，v1.8.6 已打包待上线；线上仍为 v1.8.5）
+# 微信语音桥 · 当前交接（2026-11-18，源码与线上均为 v1.8.6，已适配微信 4.2.0.53）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录在本机的 `.workbuddy/memory/`（2026-11-12 起不入库）。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
 
-## 1.8.6 · 适配微信 Windows 4.2.0.53 与启动门禁竞态修复（2026-11-18，已打包，待 Muse 发布）
+## 1.8.6 · 适配微信 Windows 4.2.0.53 与启动门禁竞态修复（2026-11-18，已上线，公网复核通过）
 
 - **节 1 已完成**（4.2.0.53 只读实测 + 放行上限更新 + 启动门禁竞态/进程顺序修复）：
   - 对本机运行中的微信 `4.2.0.53`（5 进程，主进程 PID `19560`）做只读探针：现行 `Config.Cipher` 参数得到 **70 个候选**、账号下 **26/26 数据库**通过 page1 HMAC（32B 密钥），`contact.db` 与 4 个消息分片表结构、zstd 压缩、引用回复与回复游标均一致，**提取参数一处未动**。可选的 `MASTER_CFG_PROFILES`（`extract_master_key_from_cfg`，非主扫描路径）在 `4.2.0.53` 返回 `None`（cfg 锚点漂移），上限保留 `(4, 2, 0, 52)` 不虚标。
@@ -22,12 +22,12 @@
   - ZIP `artifacts\WeChat-Voice-Bridge-V1.8.6-win-x64.zip` = **92,215,170** 字节 / `55333dc98734416dcfdc1f1e1db8302db22348e756b46fac3d55550bc3bea1c1`。
   - Setup `artifacts\WeChat-Voice-Bridge-V1.8.6-Setup.exe` = **67,136,609** 字节 / `aba5228041010db0cf5dc36af4ebd28dbdb9c27831caf95b73d6e0ba5d99792f`。
   - 两道 Clean-payload PASS；解包抽查字节一致、无禁带文件。
-- **节 5（在途，发布单已发给 Muse 但因服务重启挂起）**：
-  - 发布单 `codex_20261118_222950_0b8caf` 已通过 stage1/stage2/stage4 并弹出确认框；`21:47:28 UTC` `muse-bridge` 服务重启导致在途任务未接上用户在 `21:51:44 UTC` 的「允许」点击。
-  - 经 `codex_20261118_225244_ec2445` 与 `codex_20261118_225808_a10deb` 核实：线上 `latest.json` 仍完整保持 **1.8.5**（6 字段），`1.8.6` 尚未上传，**未重发重复发布单**。Muse 正待用户指示决定是否恢复 `codex_20261118_222950_0b8caf`。
-- **待做**：待用户或 Muse 恢复/完成 `codex_20261118_222950_0b8caf` 发布并回 `ok` 后，独立公网复核（清单 6 字段、ZIP/Setup HEAD、完整下载重算 SHA-256）、更新 `README.md` 版本徽章与下载链接，并向 Muse 回执确认。
-- **续跑点**：检查 `muse-call -Check codex_20261118_222950_0b8caf`；勿重发重复发布单。
-- **不做的事**：不自行上传、不重发重复发布单、未上线前不改 `README.md` 下载链接（仍 `1.8.5`）、不改桌面快捷方式、不动提取常量/掩码/偏移、不碰 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
+- **节 5 已完成**（**1.8.6 已上线，公网复核通过**）：
+  - 发布单 `codex_20261118_222950_0b8caf` 在 `21:47:28 UTC` 因 `muse-bridge` 重启一度挂起，经用户确认及 `codex_20261118_225244_ec2445` / `codex_20261118_225808_a10deb` 核实后由 Muse 恢复完成（`22:04:20Z` 回 `status=ok`）。
+  - 独立公网复核全部 PASS：`latest.json` HTTP 200 且严格 6 个字段（`version="1.8.6"`、`publishedAt="2026-11-18T22:04:12Z"`），ZIP 与 Setup HEAD 200 且**完整下载重算 SHA-256 逐字一致**；官网 `https://iceland.de5.net/` 与 `README.md` 版本徽章及下载链接均已同步为 `1.8.6`。
+- **待做**：无待办。
+- **续跑点**：1.8.6 发布闭环完成，工作区干净且已同步 `origin/master`。
+- **不做的事**：未经用户再次确认不发新版本；不改桌面快捷方式；不动提取常量/掩码/偏移；不碰 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---
 
