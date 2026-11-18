@@ -4,6 +4,19 @@
 
 ---
 
+## 1.8.6 · 节 4：打包与提交发布前检查（2026-11-18）
+
+- 用户确认「没问题推新吧」，在发送发布单前先完成打包与出厂门禁验证。
+- **打包**：`Publish.ps1 -OutputDirectory artifacts\win-x64-v1.8.6 -ZipPath artifacts\WeChat-Voice-Bridge-V1.8.6-win-x64.zip` 与 `Build-Installer.ps1 -PayloadDirectory artifacts\win-x64-v1.8.6`。`worker dependencies ok`、`speech dependencies ok`，两道 Clean-payload 门禁均 **PASS**（1993 文件，无本机设置、无真实 Key，比对了 1 个本机凭据）。
+- **台账**：
+  - payload `artifacts\win-x64-v1.8.6\`，ProductVersion `1.8.6+23bb762ab89b29ab969511622c93e61d4a2d4e73`（与打包时源码 `HEAD` `23bb762` 一致），FileVersion `1.8.6.0`，1993 文件 / 224,162,313 字节。
+  - ZIP `artifacts\WeChat-Voice-Bridge-V1.8.6-win-x64.zip` = **92,215,170** 字节 / `55333dc98734416dcfdc1f1e1db8302db22348e756b46fac3d55550bc3bea1c1`。
+  - Setup `artifacts\WeChat-Voice-Bridge-V1.8.6-Setup.exe` = **67,136,609** 字节 / `aba5228041010db0cf5dc36af4ebd28dbdb9c27831caf95b73d6e0ba5d99792f`。
+- **包内抽查**（解压至 OneDrive 外 `Temp\opencode\unpack-186`，查完已删）：`worker\audited_wechat_keys.py`、`WeChatVoiceBridge.dll` 与仓库/payload 逐字节一致，`WeChatVoiceBridge.exe` ProductVersion 为 `1.8.6+23bb762…`，禁带文件 0 处。
+- **下一步**：提交并推送 `origin/master` 且核对远端 HEAD 一致后，通过 `muse-call` 发 `publish-voicebridge` 单给 Muse（明确提醒仅写入冻结 6 字段至 `latest.json`）。
+
+---
+
 ## 1.8.6 · 节 3：升版本号到 1.8.6、新增更新说明并完成全量回归（2026-11-18）
 
 - **做了什么**：
