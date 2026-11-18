@@ -1,8 +1,23 @@
-# 微信语音桥 · 当前交接（2026-11-16，源码与线上均为 v1.8.5）
+# 微信语音桥 · 当前交接（2026-11-18，源码适配微信 4.2.0.53 进行中；线上仍为 v1.8.5）
 
 > **新模型第一入口是 [PROJECT-BRIEF.md](PROJECT-BRIEF.md)**：自包含的项目总览、环境命令、发布纪律、不可回退的红线、当前任务与准绳。本文是细节交接，逐版本流水见 [WORKLOG.md](WORKLOG.md)，当日执行记录在本机的 `.workbuddy/memory/`（2026-11-12 起不入库）。
 > 旧的 `NEXT-AGENT-HANDOVER-1.4.md` 是 1.4.0 时期的历史快照，`PROJECT-HANDOVER.md` 更早（1.2），都不要当作现状。
 > 用户可见的版本说明在 `src/VoiceBridge.App/ReleaseHistory.cs`。
+
+## 1.8.6 · 适配微信 Windows 4.2.0.53 与启动门禁竞态修复（2026-11-18，进行中）
+
+- **节 1 已完成**（4.2.0.53 只读实测 + 放行上限更新 + 启动门禁竞态/进程顺序修复）：
+  - 对本机运行中的微信 `4.2.0.53`（5 进程，主进程 PID `19560`）做只读探针：现行 `Config.Cipher` 参数得到 **70 个候选**、账号下 **26/26 数据库**通过 page1 HMAC（32B 密钥），`contact.db` 与 4 个消息分片表结构、zstd 压缩、引用回复与回复游标均一致，**提取参数一处未动**。可选的 `MASTER_CFG_PROFILES`（`extract_master_key_from_cfg`，非主扫描路径）在 `4.2.0.53` 返回 `None`（cfg 锚点漂移），上限保留 `(4, 2, 0, 52)` 不虚标。
+  - `WeChatSession.MaxSupportedVersion` → `4.2.0.53`，`Bind` 保证 `Pids[0]` 始终为 `primary.Process.Id`；`MainWindow.ContactIndexing` 传 `BindWeChat(showGate: false)`，防止后台索引在 `Loaded` 抢先触发 `ShowForAsync` 与 `ContentRendered` 的启动门禁/更新说明叠窗。
+  - `worker/audited_wechat_keys.py`、`worker/wechat_adapter.py`、`tests/wx-multi/test_audited_wechat_keys.py`、`tests/VoiceBridge.Tests/VersionGateTests.cs` 同步更新至 `4.1.11–4.2.0.53`。
+  - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 0/0、.NET **355/355 PASS**、Python 55（内置 `bin\Release\...\python.exe` 全跑 **55/55 PASS，0 跳过**）；wx-multi **58/58 PASS**；真实 `worker/main.py` IPC（`browse` + `wechat` + `4.2.0.54` 拒绝）与 C# `WeChatSession` 实机检查全部 PASS。
+- **待做**：
+  - 节 2：同步用户可见支持范围文案与文档（`PythonFixtureSource.cs`、`WeChatDirectory.cs`、`README.md` 微信范围、`docs/user-guide.md`、`docs/compatibility.md`、`docs/troubleshooting.md`、`tools/DialogPreview`）。
+  - 节 3：升版本号至 `1.8.6`、编写 `ReleaseHistory.cs` 条目并完成全量回归（含 `DialogPreview`）。
+- **续跑点**：正在推进 节 2（文案与文档同步）。
+- **不做的事**：未完成并经用户确认前不打包、不发版、不改 `README.md` 下载链接与版本徽章（线上仍是 `1.8.5`）、不动提取常量/掩码/偏移、不碰用户运行中的 `artifacts\win-x64-v1.5.1\WeChatVoiceBridge.exe` 与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
+
+---
 
 ## 1.8.5 · 最大化高度缩放、提醒逻辑与门禁/更新/微信多进程体检（2026-11-16，已上线）
 

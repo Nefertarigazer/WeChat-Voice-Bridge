@@ -4,6 +4,31 @@
 
 ---
 
+## 1.8.6 · 节 1：微信 Windows 4.2.0.53 只读实测与放行上限更新（2026-11-18）
+
+- **背景与实测**：用户本机微信已更新至 `4.2.0.53`（5 个运行中的 `Weixin.exe` 进程，主进程 `19560`）。在正式修改前，先用现行 `PROFILES[0]`（`wcdb-config-cipher-4.1.11+`）对运行中的 `4.2.0.53` 做严格只读探针（`tempfile.TemporaryDirectory` 位于 OneDrive 外 `Temp\opencode`，同批复用快照，用完即闭连接并清理）：
+  - `Config.Cipher` 内存扫描共得 **70 个候选**（全部来自主进程，4 个辅助子进程为 0）；
+  - 本机账号下 **26/26 数据库**通过 page1 HMAC 校验（均为标准 32B 密钥，耗时 52.3 ms，`failed_count=0`）；
+  - `contact.db`（28,627 条有效联系人，`small_head_url` 列存在）、4 个消息分片（`message_0..3.db`）、`Name2Id`、`Msg_<md5>` 表结构与字段、zstd 长文解压、引用回复与回复游标查询均与 `4.2.0.13` / `4.2.0.52` 一致，无需修改任何提取参数；
+  - 另查得可选的 `MASTER_CFG_PROFILES`（`extract_master_key_from_cfg`）在 `4.2.0.53` 返回 `None`（`Weixin.dll` 找到且 `MASTER_DLL_PATTERN` 命中，但 `global_config` 指针偏移已漂移；该路径不在主扫描链上），故保持 `MASTER_CFG_PROFILES[0].max_version = (4, 2, 0, 52)` 而不虚标。
+- **改动**：
+  - `src/VoiceBridge.WeChat/WeChatSession.cs`：`MaxSupportedVersion` 升至 `4.2.0.53`，同步注释；`Bind` 的 `pids` 排序确保 `primary.Process.Id` 排在首位，与 `ProcessStarted` 严格对应，防止辅助进程无版本号时 `CheckRunning()` 错配。
+  - `src/VoiceBridge.App/MainWindow.xaml.cs`、`src/VoiceBridge.App/MainWindow.ContactIndexing.cs`：`BindWeChat(bool showGate = true)`，后台联系人索引 `RestartContactIndexingCore` 传 `showGate: false`，消除「`Loaded` 后台索引比 `ContentRendered` 的启动门禁先触发 `ShowForAsync`，导致启动时版本门禁与更新说明可能叠窗」的竞态。
+  - `worker/audited_wechat_keys.py`：`PROFILES[0].max_version`、`profile_for()` 上界 `high` 改为 `(4, 2, 0, 53)`，同步注释与中文拒绝文案；`MASTER_CFG_PROFILES[0]` 维持 `(4, 2, 0, 52)` 并写明原因。**红线核对**：`CONFIG_CIPHER_NAME`、`CONFIG_XOR_MASK`、`HEX_LITERAL_RE`、`node_back`、`config_ptr_offset`、`blob_object_offset/ptr/len`、`blob_max`、`PAGE_SZ`/`RESERVE_SZ`、PBKDF2/SQLCipher 参数一处未动。
+  - `worker/wechat_adapter.py`：两处注释区间同步为 `4.1.11 <= v <= 4.2.0.53`。
+  - `tests/wx-multi/test_audited_wechat_keys.py`：上限断言改为 `4.2.0.53`，越界样本 `4.2.0.53` → `4.2.0.54`，`master_cfg_profile_for('4.2.0.53')` 断言为 `None`，检查项仍保持 **58 项**（`tests/wx-multi/slice/` 零改动）。
+  - `tests/VoiceBridge.Tests/VersionGateTests.cs`：新增 `WeChatSessionSupportsExpectedBoundsThrough42053` 锁定 C# 侧 `4.1.11–4.2.0.53` 放行与 `4.2.0.54` 拒绝。
+- **验证**：
+  - `scripts/Verify-Source.ps1`：`PASS`。
+  - `scripts/Test.ps1`：Release 编译 **0 警告 0 错误**，.NET **355/355 PASS**，Python **55**（13 过 + 42 跳过基线）PASS。
+  - 内置 Python 3.12 + `worker/deps` 全量跑 `tests\python`：**55/55 PASS（0 跳过）**。
+  - `tests/wx-multi/test_audited_wechat_keys.py`（内置 Python 3.12）：**58/58 PASS**。
+  - 真实 `worker/main.py` IPC 实测（对接本机运行中的微信 `4.2.0.53`）：`4.2.0.54` 走 `unsupported_version` 拒绝（exit 2，零句柄）；`4.2.0.53` `browse` 模式（`capabilities` → `ready` → `contacts` 60 条 → `contactindex` 28,627 条 → `lastmessage` → `stopped`）与 `wechat` 模式（`capabilities` → `ready` 确认 2 位联系人与 2 份头像 → `query` 心跳 → `stopped`）均 exit 0、无 stderr；实测 C# `WeChatSession.DetectClientVersion` / `Bind` / `CheckRunning` / `DiscoverRoot` 全 PASS。
+- **还剩什么 / 下一节**：节 2（用户可见支持范围文案与文档同步：`PythonFixtureSource.cs`、`WeChatDirectory.cs`、`README.md` 微信范围、`docs/user-guide.md`、`docs/compatibility.md`、`docs/troubleshooting.md`、`tools/DialogPreview`）；节 3（升版到 `1.8.6`、补 `ReleaseHistory` 并做包含 `DialogPreview` 在内的全量回归）。暂不打包、不发版。
+- **阻塞**：无。
+
+---
+
 ## 1.8.6 预备 · 客户端 UpdateManifest 改为「未知字段忽略」通则（2026-11-16）
 
 - **背景**：1.8.3（`wechatSupport`）与 1.8.5（`setup`）先后两次因 `latest.json` 多出第 7 字段导致已装客户端 `UpdateManifest.Parse` 报「更新清单字段不正确。」。配合服务端流水线硬闸门，在客户端侧根治该问题。

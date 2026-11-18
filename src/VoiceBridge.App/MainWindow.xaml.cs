@@ -549,14 +549,14 @@ public partial class MainWindow : Window
             ContactHint.Text = "请从匹配列表或最近使用中选择联系人，身份未确认的对象不会加入监听。";
     }
 
-    private WeChatSession BindWeChat()
+    private WeChatSession BindWeChat(bool showGate = true)
     {
         var root = RootBox.Text.Trim();
         var account = AccountOf();
         if (root.Length == 0 || account.Length == 0)
             throw new BridgeException("请先在高级设置里填写微信数据目录和账号目录。");
         try { return WeChatSession.Bind(root, account); }
-        catch (BridgeException error) when (VersionGate.IsUnsupported(error.Message))
+        catch (BridgeException error) when (showGate && VersionGate.IsUnsupported(error.Message))
         {
             // A client started after the app (or upgraded meanwhile) must also get
             // the visible gate, not just a line of status text. The box opens once

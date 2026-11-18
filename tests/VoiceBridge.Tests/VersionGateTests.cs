@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using VoiceBridge.Core;
+using VoiceBridge.WeChat;
 
 namespace VoiceBridge.Tests;
 
@@ -213,7 +214,22 @@ public sealed class VersionGateTests
             ["notes"] = "第一行"
         };
         if (extraObject) fields["setup"] = new { url = "https://example.com/setup.exe", size = 100 };
-        if (extraField is not null) fields[extraField] = "4.1.11-4.2.0.52";
+        if (extraField is not null) fields[extraField] = "4.1.11-4.2.0.53";
         return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(fields));
+    }
+
+    [Fact]
+    public void WeChatSessionSupportsExpectedBoundsThrough42053()
+    {
+        Assert.Equal(new Version(4, 1, 11), WeChatSession.MinSupportedVersion);
+        Assert.Equal(new Version(4, 2, 0, 53), WeChatSession.MaxSupportedVersion);
+        Assert.True(WeChatSession.IsSupportedVersion(new Version(4, 1, 11)));
+        Assert.True(WeChatSession.IsSupportedVersion(new Version(4, 2, 0, 13)));
+        Assert.True(WeChatSession.IsSupportedVersion(new Version(4, 2, 0, 52)));
+        Assert.True(WeChatSession.IsSupportedVersion(new Version(4, 2, 0, 53)));
+        Assert.False(WeChatSession.IsSupportedVersion(null));
+        Assert.False(WeChatSession.IsSupportedVersion(new Version(4, 1, 10, 99)));
+        Assert.False(WeChatSession.IsSupportedVersion(new Version(4, 2, 0, 54)));
+        Assert.False(WeChatSession.IsSupportedVersion(new Version(4, 2, 1, 0)));
     }
 }

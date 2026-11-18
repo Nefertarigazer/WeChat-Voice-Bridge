@@ -27,7 +27,7 @@ public partial class MainWindow
         if (!ready || closing || ListeningActive) return;
         var previous = StopContactIndexingAsync();
         WeChatSession account;
-        try { account = BindWeChat(); }
+        try { account = BindWeChat(showGate: false); }
         catch (Exception)
         {
             // WeChat may be opened after this app. Retry identification only, not database access.

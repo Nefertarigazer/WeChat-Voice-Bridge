@@ -21,17 +21,17 @@ public sealed record WeChatSession(string Root, string Account, string Directory
     public static readonly System.Version MinSupportedVersion = new Version(4, 1, 11);
 
     /// <summary>
-    /// Upper bound (inclusive). 4.2.0.52 is the current latest client; it shares the
-    /// byte-identical Config.Cipher layout, XOR mask and offsets with 4.2.0.13
-    /// (verified on a real 4.2.0.52 client: every one of the account's databases
-    /// passed page1 HMAC). Beyond it no layout is published, so nothing is
-    /// force-fitted.
+    /// Upper bound (inclusive). 4.2.0.53 is the current latest client; it shares the
+    /// byte-identical Config.Cipher layout, XOR mask and offsets with 4.2.0.13 and
+    /// 4.2.0.52 (verified on a real 4.2.0.53 client: 70 candidates, 26/26 account
+    /// databases passed page1 HMAC). Beyond it no layout is published, so nothing
+    /// is force-fitted.
     /// </summary>
-    public static readonly System.Version MaxSupportedVersion = new Version(4, 2, 0, 52);
+    public static readonly System.Version MaxSupportedVersion = new Version(4, 2, 0, 53);
 
     /// <summary>
     /// Whether a parsed file version lies inside the supported passive range
-    /// (4.1.11&nbsp;&lt;=&nbsp;v&nbsp;&lt;=&nbsp;4.2.0.52). Parsing must succeed; an
+    /// (4.1.11&nbsp;&lt;=&nbsp;v&nbsp;&lt;=&nbsp;4.2.0.53). Parsing must succeed; an
     /// empty or malformed version is not supported.
     /// </summary>
     public static bool IsSupportedVersion(System.Version? version)
@@ -126,6 +126,8 @@ public sealed record WeChatSession(string Root, string Account, string Directory
                     $"{MaxSupportedVersion}（含两端及其间全部小版本；4.1.11/4.1.15.99 为区间覆盖·待实测）。" +
                     $"检测到版本：{primary.FileVersion ?? "未知"}。");
             var pids = running.Where(item => string.Equals(item.FileName, primary.FileName, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(item => item.Process.Id == primary.Process.Id)
+                .ThenBy(item => item.StartTime)
                 .Select(item => item.Process.Id).ToArray();
             return new(root, account, directory, pids, primary.StartTime, parsed!.ToString());
         }
