@@ -476,7 +476,7 @@ void Gates(Window owner)
     var cases = new (string Name, string Raw, string? Published, string? Support)[]
     {
         ("newer-bridge-covers", "4.2.0.60", "1.8.4", "4.1.11-4.2.0.60"),
-        ("newer-bridge-not-yet", "4.2.0.60", "1.8.4", "4.1.11-4.2.0.52"),
+        ("newer-bridge-not-yet", "4.2.0.60", "1.8.4", "4.1.11-4.2.0.53"),
         ("latest-too-new", "4.2.0.60", null, null),
         ("too-old", "4.1.10.99", null, null),
         ("unreadable", "4.2.0.beta", null, null)

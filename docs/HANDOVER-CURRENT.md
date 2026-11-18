@@ -11,10 +11,12 @@
   - `WeChatSession.MaxSupportedVersion` → `4.2.0.53`，`Bind` 保证 `Pids[0]` 始终为 `primary.Process.Id`；`MainWindow.ContactIndexing` 传 `BindWeChat(showGate: false)`，防止后台索引在 `Loaded` 抢先触发 `ShowForAsync` 与 `ContentRendered` 的启动门禁/更新说明叠窗。
   - `worker/audited_wechat_keys.py`、`worker/wechat_adapter.py`、`tests/wx-multi/test_audited_wechat_keys.py`、`tests/VoiceBridge.Tests/VersionGateTests.cs` 同步更新至 `4.1.11–4.2.0.53`。
   - 验证：`Verify-Source.ps1` PASS；`Test.ps1` 0/0、.NET **355/355 PASS**、Python 55（内置 `bin\Release\...\python.exe` 全跑 **55/55 PASS，0 跳过**）；wx-multi **58/58 PASS**；真实 `worker/main.py` IPC（`browse` + `wechat` + `4.2.0.54` 拒绝）与 C# `WeChatSession` 实机检查全部 PASS。
+- **节 2 已完成**（用户可见范围文案与文档同步）：
+  - `PythonFixtureSource.cs` / `WeChatDirectory.cs` 的 `unsupported_version` 文案、`README.md` 微信徽章与正文/英文摘要、`docs/user-guide.md` 版本表、`docs/compatibility.md`、`docs/troubleshooting.md`、`tools/DialogPreview` 门禁样例、`HANDOVER-CURRENT.md` 边界段均已同步至 `4.1.11–4.2.0.53`（`README.md` 应用版本徽章与下载链接保留 `1.8.5`，未发版不改）。
+  - 验证：`dotnet build -c Release` 0/0、`Verify-Source.ps1` PASS。
 - **待做**：
-  - 节 2：同步用户可见支持范围文案与文档（`PythonFixtureSource.cs`、`WeChatDirectory.cs`、`README.md` 微信范围、`docs/user-guide.md`、`docs/compatibility.md`、`docs/troubleshooting.md`、`tools/DialogPreview`）。
   - 节 3：升版本号至 `1.8.6`、编写 `ReleaseHistory.cs` 条目并完成全量回归（含 `DialogPreview`）。
-- **续跑点**：正在推进 节 2（文案与文档同步）。
+- **续跑点**：正在推进 节 3（升版本与全量回归）。
 - **不做的事**：未完成并经用户确认前不打包、不发版、不改 `README.md` 下载链接与版本徽章（线上仍是 `1.8.5`）、不动提取常量/掩码/偏移、不碰用户运行中的 `artifacts\win-x64-v1.5.1\WeChatVoiceBridge.exe` 与 `%LOCALAPPDATA%\WeChatVoiceBridge` 设置文件。
 
 ---
@@ -389,7 +391,7 @@
 
 - 先读 `AGENTS.md`。所有真实 DB 探针必须 `tempfile.TemporaryDirectory()`，放在本地 scratch、OneDrive 之外；同批复用一个快照；离开上下文前关闭 SQLite/子进程；DB/WAL/SHM 不进项目、报告、发布物。
 - 不修改微信进程内存、不注入/Hook/UIA 热激活、不发微信消息、**不重写密钥扫描算法**。`scripts/Verify-Source.ps1` 会强制 `ReadProcessMemory` 只出现在 `worker/audited_wechat_keys.py`。
-- 微信受审计支持范围是 `WeChatSession.MinSupportedVersion`–`MaxSupportedVersion`（当前 **4.1.11–4.2.0.52**），不要擅自放宽；范围外的版本必须走 `unsupported_version` 通道拒绝。只读访问也不保证符合微信平台规范或账号安全。
+- 微信受审计支持范围是 `WeChatSession.MinSupportedVersion`–`MaxSupportedVersion`（当前 **4.1.11–4.2.0.53**），不要擅自放宽；范围外的版本必须走 `unsupported_version` 通道拒绝。只读访问也不保证符合微信平台规范或账号安全。
 - 始终手动开始、初始 IDLE，结束取消整条链路；不自动恢复监听。
 - 用户配置与 DPAPI 密钥在 `%LOCALAPPDATA%\WeChatVoiceBridge`，不进发布包；不删用户数据库、录音、配置。
 - **不得重新引入任何出厂预置 API 服务、出厂音色、不可删条目或内置密钥**：全新安装的「语音服务」与「我的音色」两个列表都必须为空。`scripts/Verify-Source.ps1` 会拦截再次播种（`providers.Insert(` / `SyncDefaultFish` / `DefaultFishId` / `VoicePresets` / `LegacyPresetProviderId`）、迁移或孤儿绑定缺失、以及 `fish-default` 字面量扩散；`scripts/Assert-CleanPayload.ps1` 会在 ZIP / Setup 打包前拦下个人配置与真实 API Key。

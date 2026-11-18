@@ -4,6 +4,22 @@
 
 ---
 
+## 1.8.6 · 节 2：用户可见支持范围文案与文档同步（2026-11-18）
+
+- **做了什么**：
+  - `src/VoiceBridge.WeChat/PythonFixtureSource.cs`、`src/VoiceBridge.WeChat/WeChatDirectory.cs`：`unsupported_version` 的中文报错改为「（4.1.11 至 4.2.0.53）」。
+  - `README.md`：微信支持徽章、下载一节的微信说明、英文摘要里的版本区间同步为 `4.1.11 – 4.2.0.53`（正文写明 4.2.0.13、4.2.0.52 与 4.2.0.53 已实测）；应用版本徽章与两个下载链接仍保持 `1.8.5`（未发版前不改链接，避免指向不存在的文件）。
+  - `docs/user-guide.md`：版本表同步为 `4.2.0.53`（保持三行结构，与软件内由 `MinSupportedVersion`/`MaxSupportedVersion` 动态生成的表一致）。
+  - `docs/compatibility.md`：本机微信同步为 `4.2.0.53`，如实写清验证边界（4.2.0.53 上实测密钥提取 26/26 库通过 page1 HMAC 与只读数据库/worker 协议闭环；完整扬声器播放监听链路曾在 4.2.0.13 与 4.2.0.52 上做过），并同步门禁说明与固定 6 字段清单语义。
+  - `docs/troubleshooting.md`：「找不到真实微信会话」一条同步为 `4.1.11 至 4.2.0.53`；`docs/HANDOVER-CURRENT.md` 边界段同步。
+  - `tools/DialogPreview/Program.cs`：门禁预览样例区间字符串同步为 `"4.1.11-4.2.0.53"`。
+- **未改**：`ReleaseHistory.cs` 中 1.8.5 及更早的历史条目原文未动；`README.md` 版本徽章与下载链接未动。
+- **验证**：`dotnet build WeChatVoiceBridge.sln -c Release` **0 警告 0 错误**；`scripts/Verify-Source.ps1` **PASS**；`grep` 核对 `src/`、`worker/`、`README.md`、`docs/user-guide.md`、`docs/compatibility.md`、`docs/troubleshooting.md` 无遗留旧上限。
+- **还剩什么 / 下一节**：节 3（升版本号到 `1.8.6`、新增 `ReleaseHistory` 条目、同步 `PROJECT-BRIEF.md`、执行全量回归与 `DialogPreview` 检验）。暂不打包、不发版。
+- **阻塞**：无。
+
+---
+
 ## 1.8.6 · 节 1：微信 Windows 4.2.0.53 只读实测与放行上限更新（2026-11-18）
 
 - **背景与实测**：用户本机微信已更新至 `4.2.0.53`（5 个运行中的 `Weixin.exe` 进程，主进程 `19560`）。在正式修改前，先用现行 `PROFILES[0]`（`wcdb-config-cipher-4.1.11+`）对运行中的 `4.2.0.53` 做严格只读探针（`tempfile.TemporaryDirectory` 位于 OneDrive 外 `Temp\opencode`，同批复用快照，用完即闭连接并清理）：
